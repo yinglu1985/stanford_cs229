@@ -5,6 +5,7 @@ from datasets import Dataset
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 pd.set_option("display.max_colwidth", None) 
 
 import datasets
@@ -127,32 +128,33 @@ from langchain_community.vectorstores.utils import DistanceStrategy
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-embedding_model = HuggingFaceEmbeddings(
-    model_name=EMBEDDING_MODEL_NAME,
-    multi_process=True,
-    model_kwargs={"device": "cpu"},
-    encode_kwargs={"normalize_embeddings": True},  # Set `True` for cosine similarity
-)
+# embedding_model = HuggingFaceEmbeddings(
+#     model_name=EMBEDDING_MODEL_NAME,
+#     multi_process=True,
+#     model_kwargs={"device": "cpu"},
+#     encode_kwargs={"normalize_embeddings": True},  # Set `True` for cosine similarity
+# )
 
-KNOWLEDGE_VECTOR_DATABASE = FAISS.from_documents(
-    docs_processed, embedding_model, distance_strategy=DistanceStrategy.COSINE
-)
+# KNOWLEDGE_VECTOR_DATABASE = FAISS.from_documents(
+#     docs_processed, embedding_model, distance_strategy=DistanceStrategy.COSINE
+# )
 
-KNOWLEDGE_VECTOR_DATABASE.index.reconstruct_n().shape
+# KNOWLEDGE_VECTOR_DATABASE.index.reconstruct_n().shape
 
-np.savetxt("knowledge_vector_db.txt", KNOWLEDGE_VECTOR_DATABASE.index.reconstruct_n())
+# np.savetxt("knowledge_vector_db.txt", KNOWLEDGE_VECTOR_DATABASE.index.reconstruct_n())
 
-loaded_array = np.loadtxt("knowledge_vector_db.txt")
+# loaded_array = np.loadtxt("knowledge_vector_db.txt")
 
 def flatten_comprehension(matrix):
   return [item for row in matrix for item in row]
 
+index = np.arange(len(docs_processed))
 seq_flatten = np.array(flatten_comprehension(seq))
 doc_list_flatten = np.array(flatten_comprehension(doc_list))
 doc_processed_page_contents = np.array([docs_processed[i].page_content for i in range(len(docs_processed))])
-vector = KNOWLEDGE_VECTOR_DATABASE.index.reconstruct_n()
+#vector = KNOWLEDGE_VECTOR_DATABASE.index.reconstruct_n()
 
-dataset = np.stack([doc_list_flatten, seq_flatten, doc_processed_page_contents], axis=1)
+dataset = np.stack([index, doc_list_flatten, seq_flatten, doc_processed_page_contents], axis=1)
 
 with open('data.txt', 'w') as f:
     for line in dataset:
