@@ -139,6 +139,12 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 #     docs_processed, embedding_model, distance_strategy=DistanceStrategy.COSINE
 # )
 
+## save faiss document
+KNOWLEDGE_VECTOR_DATABASE.save_local("faiss_index")
+
+## load faiss document
+kbsearch = FAISS.load_local("faiss_index", embedding_model,allow_dangerous_deserialization=True)
+
 # KNOWLEDGE_VECTOR_DATABASE.index.reconstruct_n().shape
 
 # np.savetxt("knowledge_vector_db.txt", KNOWLEDGE_VECTOR_DATABASE.index.reconstruct_n())
