@@ -1,0 +1,975 @@
+query,context,summary
+How do the various approaches discussed across the documents contribute to optimizing feature extraction and model efficiency?,"
+Extracted documents:
+Document 0:::
+3.  **Architectural Innovations:** Considering that LLMs are always deployed in the same way during inference, namely autoregressive text generation with a long input context, specialized model architectures have been proposed that allow for more efficient inference. The most important advancement in model architectures hereby are [Alibi](https://arxiv.org/abs/2108.12409), [Rotary embeddings](https://arxiv.org/abs/2104.09864), [Multi-Query Attention (MQA)](https://arxiv.org/abs/1911.02150) and [Grouped-Query-Attention (GQA)]((https://arxiv.org/abs/2305.13245)).
+
+Throughout this guide, we will offer an analysis of auto-regressive generation from a tensor's perspective. We delve into the pros and cons of adopting lower precision, provide a comprehensive exploration of the latest attention algorithms, and discuss improved LLM architectures. While doing so, we run practical examples showcasing each of the feature improvements.
+
+## 1. Lower PrecisionDocument 1:::
+*Pre-training techniques have been verified successfully in a variety of NLP tasks in recent years. Despite the
+widespread use of pretraining models for NLP applications, they almost exclusively focus on text-level manipulation,
+while neglecting layout and style information that is vital for document image understanding. In this paper, we propose
+the LayoutLM to jointly model interactions between text and layout information across scanned document images, which is
+beneficial for a great number of real-world document image understanding tasks such as information extraction from
+scanned documents. Furthermore, we also leverage image features to incorporate words' visual information into LayoutLM.
+To the best of our knowledge, this is the first time that text and layout are jointly learned in a single framework for
+document-level pretraining. It achieves new state-of-the-art results in several downstream tasks, including formDocument 2:::
+<Youtube id=""d_ixlCubqQw""/>
+
+### deep learning (DL)
+
+Machine learning algorithms which uses neural networks with several layers.
+
+## E
+
+### encoder models
+
+Also known as autoencoding models, encoder models take an input (such as text or images) and transform them into a condensed numerical representation called an embedding. Oftentimes, encoder models are pretrained using techniques like [masked language modeling](#masked-language-modeling-mlm), which masks parts of the input sequence and forces the model to create more meaningful representations.
+
+<Youtube id=""H39Z_720T5s""/>
+
+## F
+
+### feature extraction
+
+The process of selecting and transforming raw data into a set of features that are more informative and useful for machine learning algorithms. Some examples of feature extraction include transforming raw text into word embeddings and extracting important features such as edges or shapes from image/video data.
+
+### feed forward chunkingDocument 3:::
+However, most Transformer models continued to trend towards more parameters, leading to new models focused on improving training efficiency. [ALBERT](model_doc/albert) reduces memory consumption by lowering the number of parameters in two ways: separating the larger vocabulary embedding into two smaller matrices and allowing layers to share parameters. [DeBERTa](model_doc/deberta) added a disentangled attention mechanism where the word and its position are separately encoded in two vectors. The attention is computed from these separate vectors instead of a single vector containing the word and position embeddings. [Longformer](model_doc/longformer) also focused on making attention more efficient, especially for processing documents with longer sequence lengths. It uses a combination of local windowed attention (attention only calculated from fixed window size around each token) and global attention (only for specific task tokens like `[CLS]` for classification) to create a sparseDocument 4:::
+-->
+
+# Feature Extractor
+
+A feature extractor is in charge of preparing input features for audio or vision models. This includes feature extraction from sequences, e.g., pre-processing audio files to generate Log-Mel Spectrogram features, feature extraction from images, e.g., cropping image files, but also padding, normalization, and conversion to NumPy, PyTorch, and TensorFlow tensors.
+
+
+## FeatureExtractionMixin
+
+[[autodoc]] feature_extraction_utils.FeatureExtractionMixin
+    - from_pretrained
+    - save_pretrained
+
+## SequenceFeatureExtractor
+
+[[autodoc]] SequenceFeatureExtractor
+    - pad
+
+## BatchFeature
+
+[[autodoc]] BatchFeature
+
+## ImageFeatureExtractionMixin
+
+[[autodoc]] image_utils.ImageFeatureExtractionMixin","The documents highlight several approaches to optimize feature extraction and model efficiency:
+
+* **Lower Precision:** Using lower precision for computations can reduce memory usage and speed up inference.
+* **Specialized Model Architectures:**  Innovations like Alibi, Rotary Embeddings, MQA, and GQA improve efficiency by allowing for more efficient inference in autoregressive text generation. 
+* **Pretraining Techniques:** Techniques like LayoutLM, which jointly model text and layout information, improve document image understanding and information extraction.
+* **Model Parameter Reduction:**  Models like ALBERT reduce memory consumption by sharing parameters across layers and using smaller vocabulary embeddings.
+* **Efficient Attention Mechanisms:** DeBERTa uses disentangled attention and Longformer utilizes local windowed attention to process longer sequences more efficiently.
+* **Feature Extraction Mixins:**  Feature extraction mixins, like those in Hugging Face's Transformers library,  offer standardized and optimized functions for preparing input features for audio and vision models, including padding, normalization, and tensor conversion. 
+"
+How do the documents describe handling transcription accuracy challenges and improving inference speed in speech recognition?,"
+Extracted documents:
+Document 0:::
+While the transcription accuracy is exceptional, the inference time is very slow. A 1 hour audio clip takes upwards of 
+6 minutes to transcribe on a 16GB T4 GPU, even after leveraging inference optimisations like [flash attention](https://huggingface.co/docs/transformers/perf_infer_gpu_one#flashattention-2), 
+half-precision, and [chunking](https://huggingface.co/docs/transformers/main_classes/pipelines#transformers.AutomaticSpeechRecognitionPipeline.chunk_length_s).Document 1:::
+!--⚠️ Note that this file is in Markdown but contain specific syntax for our doc-builder (similar to MDX) that may not be
+rendered properly in your Markdown viewer.
+-->
+
+# int8 training for automatic speech recognition
+
+Quantization reduces the precision of floating point data types, decreasing the memory required to store model weights. However, quantization degrades inference performance because you lose information when you reduce the precision. 8-bit or `int8` quantization uses only a quarter precision, but it does not degrade performance because it doesn't just drop the bits or data. Instead, `int8` quantization *rounds* from one data type to another.
+
+<Tip>
+
+💡 Read the [LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale](https://arxiv.org/abs/2208.07339) paper to learn more, or you can take a look at the corresponding [blog post](https://huggingface.co/blog/hf-bitsandbytes-integration) for a gentler introduction.
+
+</Tip>Document 2:::
+## Conclusion
+
+In this blog post, we covered the inference strategy of speculative decoding, as applied to the Whisper model for speech 
+transcription. We demonstrated how 2x speed-ups can be achieved, while mathematically ensuring the same outputs as using 
+the original model alone. We encourage you to try speculative decoding as a drop-in replacement for existing Whisper 
+pipelines, given the low overhead of using the additional assistant model and the guarantee of the same transcription results.
+
+## Acknowledgements 
+
+Blog post by [Sanchit Gandhi](https://huggingface.co/sanchit-gandhi). Many thanks to [Patrick von Platen](https://huggingface.co/patrickvonplaten)
+and [Pedro Cuenca](https://huggingface.co/pcuenq) for their constructive comments, and to [Joao Gante](https://huggingface.co/joaogante)
+for the assisted generation implementation in 🤗 Transformers.Document 3:::
+-->
+
+# Whisper
+
+## Overview
+
+The Whisper model was proposed in [Robust Speech Recognition via Large-Scale Weak Supervision](https://cdn.openai.com/papers/whisper.pdf) by Alec Radford, Jong Wook Kim, Tao Xu, Greg Brockman, Christine McLeavey, Ilya Sutskever.
+
+The abstract from the paper is the following:
+
+*We study the capabilities of speech processing systems trained simply to predict large amounts of transcripts of audio on the internet. When scaled to 680,000 hours of multilingual and multitask supervision, the resulting models generalize well to standard benchmarks and are often competitive with prior fully supervised results but in a zeroshot transfer setting without the need for any finetuning. When compared to humans, the models approach their accuracy and robustness. We are releasing models and inference code to serve as a foundation for further work on robust speech processing.*Document 4:::
+-   To exhibit near-human text understanding and generation capabilities, LLMs currently require to be composed of billions of parameters (see [Kaplan et al](https://arxiv.org/abs/2001.08361), [Wei et. al](https://arxiv.org/abs/2206.07682)). This consequently amplifies the memory demands for inference.
+-   In many real-world tasks, LLMs need to be given extensive contextual information. This necessitates the model's capability to manage very long input sequences during inference.
+
+The crux of these challenges lies in augmenting the computational and memory capabilities of LLMs, especially when handling expansive input sequences.
+
+In this blog post, we will go over the most effective techniques at the time of writing this blog post to tackle these challenges for efficient LLM deployment:","The documents describe several techniques for addressing transcription accuracy challenges and improving inference speed in speech recognition:
+
+* **Speculative decoding:** This technique achieves a 2x speed-up in inference time while maintaining the same transcription accuracy as the original model.  (Document 2)
+* **Int8 quantization:**  This technique reduces the precision of floating point data types, decreasing the memory needed to store model weights. While this generally degrades performance, int8 quantization uses rounding instead of dropping bits, which prevents performance degradation. (Document 1)
+* **Inference optimisations:** Techniques like flash attention, half-precision, and chunking can improve inference speed. However, even with these optimisations, a 1-hour audio clip can take 6 minutes to transcribe. (Document 0)
+* **Large-scale weak supervision:** The Whisper model is trained on a massive dataset of 680,000 hours of multilingual and multitask supervision. This allows the model to generalize well to standard benchmarks and achieve performance close to human accuracy in a zero-shot transfer setting. (Document 3) 
+"
+"How are different components, such as feature extractors, tokenizers, and language models, integrated to enhance machine learning pipelines?","
+Extracted documents:
+Document 0:::
+- Separately trained components of the diffusion pipeline, *e.g.* the text encoder, the unet, and the variational autoencoder, each have their own model class. This forces the user to handle the interaction between the different model components, and the serialization format separates the model components into different files. However, this allows for easier debugging and customization. DreamBooth or Textual Inversion training
+is very simple thanks to Diffusers' ability to separate single components of the diffusion pipeline.Document 1:::
+- Separately trained components of the diffusion pipeline, *e.g.* the text encoder, the UNet, and the variational autoencoder, each has their own model class. This forces the user to handle the interaction between the different model components, and the serialization format separates the model components into different files. However, this allows for easier debugging and customization. DreamBooth or Textual Inversion training
+is very simple thanks to Diffusers' ability to separate single components of the diffusion pipeline.Document 2:::
+```
+
+Great, MMS's feature extraction pipeline is thereby fully defined!
+
+For improved user-friendliness, the feature extractor and tokenizer are *wrapped* into a single `Wav2Vec2Processor` class so that one only needs a `model` and `processor` object.
+
+```python
+from transformers import Wav2Vec2Processor
+
+processor = Wav2Vec2Processor(feature_extractor=feature_extractor, tokenizer=tokenizer)Document 3:::
+```
+
+Common Voice is but one multilingual ASR dataset that we can download from the Hub - 
+there are plenty more available to us! To view the range of datasets available for speech recognition, 
+follow the link: [ASR Datasets on the Hub](https://huggingface.co/datasets?task_categories=task_categories:automatic-speech-recognition&sort=downloads).
+
+### Prepare Feature Extractor, Tokenizer and Data
+
+The ASR pipeline can be de-composed into three components: 
+1) A feature extractor which pre-processes the raw audio-inputs
+2) The model which performs the sequence-to-sequence mapping 
+3) A tokenizer which post-processes the model outputs to text formatDocument 4:::
+{/if}
+
+<Youtube id=""VFp38yj8h3A""/>
+
+Tokenizers are one of the core components of the NLP pipeline. They serve one purpose: to translate text into data that can be processed by the model. Models can only process numbers, so tokenizers need to convert our text inputs to numerical data. In this section, we'll explore exactly what happens in the tokenization pipeline. 
+
+In NLP tasks, the data that is generally processed is raw text. Here's an example of such text:","The provided text describes the components of a machine learning pipeline for speech recognition and natural language processing (NLP), but it does not specifically discuss the integration of different components to enhance pipelines. 
+"
+Explain the role of architectural modifications in improving the performance and scalability of machine learning models.,"
+Extracted documents:
+Document 0:::
+## Unfair advantage
+
+The Transformer architecture was a decisive inflection point for Machine Learning performance, starting with NLP, and over the last 3 years the rate of improvement in Natural Language Understanding and Generation has been steep and accelerating. Another metric which accelerated accordingly, is the average size of the models, from the 110M parameters of BERT to the now 175Bn of GPT-3.
+
+This trend has introduced daunting challenges for Machine Learning Engineers when deploying the latest models into production. While 100x speedup is a high bar to reach, that’s what it takes to serve predictions with acceptable latency in real-time consumer applications.Document 1:::
+### Performance tuning knobs
+
+As highlighted above, we are going to cover a new set of tunable items to improve the performance of our AI application. From a high-level point of view, every machine learning and deep learning framework is made of the same ingredients:
+1. A structural way of representing data in memory (vector, matrices, etc.)
+2. Implementation of mathematical operators
+3. Efficient parallelization of the computations on the target hardware
+
+_In addition to the points listed above, deep learning frameworks provide ways to represent data flow and dependencies to compute gradients. 
+This falls out of the scope of this blog post, and it leverages the same components as the ones listed above!_Document 2:::
+Once trained, the fundamental LLM architecture is difficult to change, so it is important to make considerations about the LLM's tasks beforehand and accordingly optimize the model's architecture.
+There are two important components of the model architecture that quickly become memory and/or performance bottlenecks for large input sequences.
+
+-   The positional embeddings
+-   The key-value cache
+
+Let's go over each component in more detail
+
+### 3.1 Improving positional embeddings of LLMs
+
+Self-attention puts each token in relation to each other's tokens.
+As an example, the \\( \text{Softmax}(\mathbf{QK}^T) \\) matrix of the text input sequence *""Hello"", ""I"", ""love"", ""you""* could look as follows:
+
+![](/blog/assets/163_optimize_llm/self_attn_tokens.png)Document 3:::
+Once trained, the fundamental LLM architecture is difficult to change, so it is important to make considerations about the LLM's tasks beforehand and accordingly optimize the model's architecture.
+There are two important components of the model architecture that quickly become memory and/or performance bottlenecks for large input sequences.
+
+-   The positional embeddings
+-   The key-value cache
+
+Let's go over each component in more detail
+
+### 3.1 Improving positional embeddings of LLMs
+
+Self-attention puts each token in relation to each other's tokens.
+As an example, the \\( \text{Softmax}(\mathbf{QK}^T) \\) matrix of the text input sequence *""Hello"", ""I"", ""love"", ""you""* could look as follows:
+
+![](/blog/assets/163_optimize_llm/self_attn_tokens.png)Document 4:::
+hardware architecture for training deep models, consisting of a multicore CPU coupled with multiple accelerator units. We demonstrate superior performance compared to state-of-the-art on very large learning tasks such as machine translation with Transformers, language modeling with BERT, click-through rate prediction on Criteo, and image classification on ImageNet with ResNet-50.","Architectural modifications are crucial for improving the performance and scalability of machine learning models, particularly large language models (LLMs). Optimizing components like positional embeddings and the key-value cache can address memory and performance bottlenecks that arise with large input sequences. These modifications allow for efficient processing of information and improve the overall speed and effectiveness of the model. 
+"
+Compare the methods for optimizing data preprocessing as discussed in the documents. How does preprocessing impact model accuracy?,"
+Extracted documents:
+Document 0:::
+```
+
+To apply the preprocessing transformations over the entire dataset, use the 🤗 Datasets [`~datasets.Dataset.set_transform`] function.
+The transform is applied on the fly which is faster and consumes less disk space:
+
+```py
+>>> train_ds.set_transform(train_transforms)
+>>> test_ds.set_transform(val_transforms)
+```
+</tf>
+</frameworkcontent>
+
+### Evaluate
+
+Including a metric during training is often helpful for evaluating your model's performance. You can quickly load an evaluation method with the 🤗 [Evaluate](https://huggingface.co/docs/evaluate/index) library. For this task, load the [mean Intersection over Union](https://huggingface.co/spaces/evaluate-metric/accuracy) (IoU) metric (see the 🤗 Evaluate [quick tour](https://huggingface.co/docs/evaluate/a_quick_tour) to learn more about how to load and compute a metric):
+
+```py
+>>> import evaluate
+
+>>> metric = evaluate.load(""mean_iou"")Document 1:::
+## Training Procedure [optional]
+
+
+### Preprocessing
+
+
+`preprocessing`
+
+_Detail tokenization, resizing/rewriting (depending on the modality), etc._
+
+### Speeds, Sizes, Times
+
+
+`speeds_sizes_times`
+
+_Detail throughput, start/end time, checkpoint sizes, etc._
+
+
+# Evaluation
+
+**Section Overview:** This section describes the evaluation protocols, what is being measured in the evaluation, and provides the results.  Evaluation is ideally constructed with factors, such as domain and demographic subgroup, and metrics, such as accuracy, which are prioritized in light of foreseeable error contexts and groups. Target fairness metrics should be decided based on which errors are more likely to be problematic in light of the model use. 
+
+
+## Testing Data, Factors & Metrics
+
+### Testing Data
+
+`testing_data`
+
+_Ideally this links to a Dataset Card for the testing data._
+
+### Factors
+
+`testing_factors`Document 2:::
+```
+
+As we can see, the preprocessing added roughly 1,000 features. Our training set is now ready to be used -- let's dig into the preprocessing of the validation set!
+
+### Processing the validation data[[processing-the-validation-data]]
+
+Preprocessing the validation data will be slightly easier as we don't need to generate labels (unless we want to compute a validation loss, but that number won't really help us understand how good the model is). The real joy will be to interpret the predictions of the model into spans of the original context. For this, we will just need to store both the offset mappings and some way to match each created feature to the original example it comes from. Since there is an ID column in the original dataset, we'll use that ID.Document 3:::
+* Image augmentation alters images in a way that can help prevent overfitting and increase the robustness of the model. You can get creative in how you augment your data - adjust brightness and colors, crop, rotate, resize, zoom, etc. However, be mindful not to change the meaning of the images with your augmentations.
+* Image preprocessing guarantees that the images match the model’s expected input format. When fine-tuning a computer vision model, images must be preprocessed exactly as when the model was initially trained.
+
+You can use any library you like for image augmentation. For image preprocessing, use the `ImageProcessor` associated with the model.
+
+</Tip>
+
+Load the [food101](https://huggingface.co/datasets/food101) dataset (see the 🤗 [Datasets tutorial](https://huggingface.co/docs/datasets/load_hub) for more details on how to load a dataset) to see how you can use an image processor with computer vision datasets:
+
+<Tip>Document 4:::
+### preprocessing
+
+The task of preparing raw data into a format that can be easily consumed by machine learning models. For example, text is typically preprocessed by tokenization. To gain a better idea of what preprocessing looks like for other input types, check out the [Preprocess](https://huggingface.co/docs/transformers/preprocessing) tutorial.
+
+### pretrained model
+
+A model that has been pretrained on some data (for instance all of Wikipedia). Pretraining methods involve a
+self-supervised objective, which can be reading the text and trying to predict the next word (see [causal language
+modeling](#causal-language-modeling)) or masking some words and trying to predict them (see [masked language
+modeling](#masked-language-modeling-mlm)).","The documents discuss various aspects of data preprocessing in machine learning, but they don't explicitly compare methods for optimizing this process. Document 0 provides a general example of applying transformations to a dataset. Document 2 discusses the need to preprocess data for specific tasks, such as object detection. Document 3 mentions image augmentation and preprocessing to align images with the model's input format. Document 4 provides a general definition of preprocessing.  While the documents do not offer direct comparison of optimization methods, they collectively highlight the importance of tailoring preprocessing to the specific task and model requirements. Preprocessing directly impacts model accuracy by ensuring data is in a suitable format for training and by potentially introducing additional features or augmentations that can improve generalization and reduce overfitting. 
+"
+"How is tokenization used across different machine learning models to improve their performance, as described in the chunks?","
+Extracted documents:
+Document 0:::
+n these few videos, we'll take a look at the tokenizers. In Natural Language Processing, most of the data that we handle consists of raw text. However, machine learning models cannot read and understand text in its raw form they can only work with numbers. The tokenizer's objective will be to translate the text into numbers. There are several possible approaches to this conversion, and the objective is to find the most meaningful representation. We'll take a look at three distinct tokenization algorithms. We compare them one to one, so we recommend you look at the videos in the following order: Word-based, Character-based, and Subword-based.Document 1:::
+Subword tokenization allows the model to have a reasonable vocabulary size while being able to learn meaningful
+context-independent representations. In addition, subword tokenization enables the model to process words it has never
+seen before, by decomposing them into known subwords. For instance, the [`~transformers.BertTokenizer`] tokenizes
+`""I have a new GPU!""` as follows:
+
+```py
+>>> from transformers import BertTokenizer
+
+>>> tokenizer = BertTokenizer.from_pretrained(""bert-base-uncased"")
+>>> tokenizer.tokenize(""I have a new GPU!"")
+[""i"", ""have"", ""a"", ""new"", ""gp"", ""##u"", ""!""]Document 2:::
+```
+By loading the tokenizer and model from the same checkpoint, you ensure that inputs are tokenized
+in the way the model expects. If you pick a tokenizer from a different model, the input tokenization
+might be completely different, and the result will be that your model's performance will be seriously damaged. The term for this is a **distribution shift** - the model has been learning data from one distribution (the tokenization it was trained with), and suddenly it has shifted to a completely different one. 
+
+Whether you're fine-tuning a model or using it directly for inference, it's always a good idea to minimize these distribution shifts and keep the input you give it as similar as possible to the input it was trained on. With regular language models, it's relatively easy to do that - simply load your tokenizer and model from the same checkpoint, and you're good to go.Document 3:::
+A **tokenizer** defines how the text from the training dataset is converted to numbers (as a model is a mathematical function and therefore needs numbers as inputs). Tokenization is done by transforming text into sub-units called tokens (which can be words, sub-words, or characters, depending on tokenization methods). The vocabulary size of the tokenizer indicates how many different tokens it knows, typically between 32k and 200k. The size of a dataset is often measured as the **number of tokens** it contains once split in a sequence of these individual, ""atomistic"" units, and these days range from several hundred billion tokens to several trillion tokens!
+
+**Training hyperparameters** then define how the model is trained. How much should the parameters change to fit each new example? How fast should the model be updated?Document 4:::
+New in v2:
+
+- **Vocabulary** In v2 the tokenizer is changed to use a new vocabulary of size 128K built from the training data.
+  Instead of a GPT2-based tokenizer, the tokenizer is now
+  [sentencepiece-based](https://github.com/google/sentencepiece) tokenizer.
+- **nGiE(nGram Induced Input Encoding)** The DeBERTa-v2 model uses an additional convolution layer aside with the first
+  transformer layer to better learn the local dependency of input tokens.
+- **Sharing position projection matrix with content projection matrix in attention layer** Based on previous
+  experiments, this can save parameters without affecting the performance.
+- **Apply bucket to encode relative positions** The DeBERTa-v2 model uses log bucket to encode relative positions
+  similar to T5.
+- **900M model & 1.5B model** Two additional model sizes are available: 900M and 1.5B, which significantly improves the
+  performance of downstream tasks.","Tokenization converts text into numbers, which machine learning models can understand. Different tokenization methods, like word-based, character-based, and subword-based, are used to create meaningful representations of text. Subword tokenization helps models learn context-independent representations and process unseen words by breaking them into known subwords. It is important to use a tokenizer trained on the same distribution as the model to avoid performance degradation. By consistently using tokenization, models can better learn from text data and achieve higher accuracy on various downstream tasks. 
+"
+"What are the proposed methods for improving large-scale transcription efficiency, and how do they relate to each other?","
+Extracted documents:
+Document 0:::
+Parameter-Efficient Fine-Tuning (PEFT) methods enable efficient adaptation of pre-trained language models (PLMs) to various downstream applications without fine-tuning all the model's parameters. Fine-tuning large-scale PLMs is often prohibitively costly. In this regard, PEFT methods only fine-tune a small number of (extra) model parameters, thereby greatly decreasing the computational and storage costs. Recent State-of-the-Art PEFT techniques achieve performance comparable to that of full fine-tuning. 
+
+Seamlessly integrated with 🤗 Accelerate for large scale models leveraging DeepSpeed and Big Model Inference. 
+
+Supported methods:Document 1:::
+![efficiency](assets/74_tapex/tapex-efficiency.png)
+
+What about the efficiency? How efficient is such a pre-training method compared to the previous pre-training? The answer is given in the above figure: compared with previous table pre-training method TaBERT, TAPEX could yield 2% improvement only using 2% of the pre-training corpus, achieving a speedup of nearly **50** times! With a larger pre-training corpus (e.g., 5 million <SQL, Table, Execution Result> pairs), the performance on downstream datasets would be better.
+
+
+### ConclusionDocument 2:::
+The crux of these challenges lies in augmenting the computational and memory capabilities of LLMs, especially when handling expansive input sequences.
+
+In this guide, we will go over the effective techniques for efficient LLM deployment:
+
+1.  **Lower Precision:** Research has shown that operating at reduced numerical precision, namely [8-bit and 4-bit](./main_classes/quantization.md) can achieve computational advantages without a considerable decline in model performance.
+
+2.  **Flash Attention:** Flash Attention is a variation of the attention algorithm that not only provides a more memory-efficient approach but also realizes increased efficiency due to optimized GPU memory utilization.Document 3:::
+The main drawback of this approach is that it requires staggering amounts of GPU memory - almost an order of magnitude 
+larger than its dense equivalent. Various distillation and approaches are proposed to how to overcome the much higher memory requirements.
+
+There is direct trade-off though, you can use just a few experts with a 2-3x smaller base model instead of dozens or 
+hundreds experts leading to a 5x smaller model and thus increase the training speed moderately while increasing the 
+memory requirements moderately as well.
+
+Most related papers and implementations are built around Tensorflow/TPUs:
+
+- [GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding](https://arxiv.org/abs/2006.16668)
+- [Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity](https://arxiv.org/abs/2101.03961)
+- [GLaM: Generalist Language Model (GLaM)](https://ai.googleblog.com/2021/12/more-efficient-in-context-learning-with.html)Document 4:::
+has comparable performance on sequences' dependency alignment. (ii) the self-attention distilling highlights dominating attention by halving cascading layer input, and efficiently handles extreme long input sequences. (iii) the generative style decoder, while conceptually simple, predicts the long time-series sequences at one forward operation rather than a step-by-step way, which drastically improves the inference speed of long-sequence predictions. Extensive experiments on four large-scale datasets demonstrate that Informer significantly outperforms existing methods and provides a new solution to the LSTF problem.*","The document describes two methods for improving large-scale transcription efficiency: 
+
+1. **Lower Precision:** This approach uses reduced numerical precision, such as 8-bit and 4-bit, to achieve computational advantages without a considerable decline in model performance.
+2. **Flash Attention:** This variation of the attention algorithm optimizes GPU memory utilization, resulting in both memory and computational efficiency.
+
+These two methods are complementary and can be used in conjunction to optimize model performance. Lower precision reduces the memory footprint, while Flash Attention improves memory efficiency and reduces the computational cost of attention operations. 
+"
+How do the documents address challenges in creating scalable feature extraction frameworks for machine learning?,"
+Extracted documents:
+Document 0:::
+*Key information extraction (KIE) from document images requires understanding the contextual and spatial semantics of texts in two-dimensional (2D) space. Many recent studies try to solve the task by developing pre-trained language models focusing on combining visual features from document images with texts and their layout. On the other hand, this paper tackles the problem by going back to the basic: effective combination of text and layout. Specifically, we propose a pre-trained language model, named BROS (BERT Relying On Spatiality), that encodes relative positions of texts in 2D space and learns from unlabeled documents with area-masking strategy. With this optimized training scheme for understanding texts in 2D space, BROS shows comparable or better performance compared to previous methods on four KIE benchmarks (FUNSD, SROIE*, CORD, and SciTSR) without relying on visual features. This paper also reveals two real-world challenges in KIE tasks-(1) minimizing the error fromDocument 1:::
+*Recently, significant progress has been made applying machine learning to the problem of table structure inference and extraction from unstructured documents.
+However, one of the greatest challenges remains the creation of datasets with complete, unambiguous ground truth at scale. To address this, we develop a new, more
+comprehensive dataset for table extraction, called PubTables-1M. PubTables-1M contains nearly one million tables from scientific articles, supports multiple input
+modalities, and contains detailed header and location information for table structures, making it useful for a wide variety of modeling approaches. It also addresses a significant
+source of ground truth inconsistency observed in prior datasets called oversegmentation, using a novel canonicalization procedure. We demonstrate that these improvements lead to aDocument 2:::
+<Youtube id=""d_ixlCubqQw""/>
+
+### deep learning (DL)
+
+Machine learning algorithms which uses neural networks with several layers.
+
+## E
+
+### encoder models
+
+Also known as autoencoding models, encoder models take an input (such as text or images) and transform them into a condensed numerical representation called an embedding. Oftentimes, encoder models are pretrained using techniques like [masked language modeling](#masked-language-modeling-mlm), which masks parts of the input sequence and forces the model to create more meaningful representations.
+
+<Youtube id=""H39Z_720T5s""/>
+
+## F
+
+### feature extraction
+
+The process of selecting and transforming raw data into a set of features that are more informative and useful for machine learning algorithms. Some examples of feature extraction include transforming raw text into word embeddings and extracting important features such as edges or shapes from image/video data.
+
+### feed forward chunkingDocument 3:::
+```
+
+
+## Multi-scale Feature Maps (Feature Pyramid)
+
+Object detection, segmentation, keypoint, and a variety of dense pixel tasks require access to feature maps from the backbone network at multiple scales. This is often done by modifying the original classification network. Since each network varies quite a bit in structure, it's not uncommon to see only a few backbones supported in any given obj detection or segmentation library.
+
+`timm` allows a consistent interface for creating any of the included models as feature backbones that output feature maps for selected levels. 
+
+A feature backbone can be created by adding the argument `features_only=True` to any `create_model` call. By default 5 strides will be output from most models (not all have that many), with the first starting at 2 (some start at 1 or 4).
+
+### Create a feature map extraction modelDocument 4:::
+### Create a feature map extraction model
+
+```py
+>>> import torch
+>>> import timm
+>>> m = timm.create_model('resnest26d', features_only=True, pretrained=True)
+>>> o = m(torch.randn(2, 3, 224, 224))
+>>> for x in o:
+...     print(x.shape)","Document 3 describes a scalable feature extraction framework using the `timm` library. It allows for consistent creation of feature backbones from various models, enabling multi-scale feature maps for tasks like object detection and segmentation. 
+"
+"How is transcription accuracy ensured while maintaining processing efficiency, according to the documents?","
+Extracted documents:
+Document 0:::
+using a multimodal Transformer, can achieve 95% accuracy! These multimodal models are changing how practitioners solve Document AI use cases.Document 1:::
+While the transcription accuracy is exceptional, the inference time is very slow. A 1 hour audio clip takes upwards of 
+6 minutes to transcribe on a 16GB T4 GPU, even after leveraging inference optimisations like [flash attention](https://huggingface.co/docs/transformers/perf_infer_gpu_one#flashattention-2), 
+half-precision, and [chunking](https://huggingface.co/docs/transformers/main_classes/pipelines#transformers.AutomaticSpeechRecognitionPipeline.chunk_length_s).Document 2:::
+During inference, RNNs have some advantages in speed and memory efficiency. These advantages include simplicity, due to needing only matrix-vector operations, and memory efficiency, as the memory requirements do not grow during inference. Furthermore, the computation speed remains the same with context window length due to how computations only act on the current token and the state.
+
+## The RWKV architectureDocument 3:::
+Metric Card for Accuracy
+
+
+## Metric Description
+
+Accuracy is the proportion of correct predictions among the total number of cases processed. It can be computed with:
+Accuracy = (TP + TN) / (TP + TN + FP + FN)
+ Where:
+TP: True positive
+TN: True negative
+FP: False positive
+FN: False negative
+
+
+## How to Use
+
+At minimum, this metric requires predictions and references as inputs.
+
+```python
+>>> accuracy_metric = datasets.load_metric(""accuracy"")
+>>> results = accuracy_metric.compute(references=[0, 1], predictions=[0, 1])
+>>> print(results)
+{'accuracy': 1.0}Document 4:::
+```py
+>>> accuracy = evaluate.load(""accuracy"")
+>>> accuracy.description
+Accuracy is the proportion of correct predictions among the total number of cases processed. It can be computed with:
+Accuracy = (TP + TN) / (TP + TN + FP + FN)
+ Where:
+TP: True positive
+TN: True negative
+FP: False positive
+FN: False negative","The documents discuss tradeoffs between accuracy and processing efficiency in speech-to-text tasks.  Document 1 mentions that while a multimodal transformer achieves 95% accuracy, it takes a significant amount of time to transcribe a 1-hour audio clip.  Document 2 notes that RNNs offer advantages in speed and memory efficiency. However, there's no direct answer to how accuracy is maintained while improving efficiency. 
+"
+What are the benefits of using pre-trained models in audio transcription as described across the documents?,"
+Extracted documents:
+Document 0:::
+This quantity of labelled data enables Whisper to be pre-trained directly on the 
+_supervised_ task of speech recognition, learning a speech-to-text mapping from 
+the labelled audio-transcription pre-training data \\({}^1\\). As a consequence, 
+Whisper requires little additional fine-tuning to yield a performant ASR model.
+This is in contrast to Wav2Vec 2.0, which is pre-trained on the _unsupervised_ 
+task of masked prediction. Here, the model is trained to learn an intermediate 
+mapping from speech to hidden states from un-labelled audio only data. 
+While unsupervised pre-training yields high-quality representations of speech, 
+it does **not** learn a speech-to-text mapping. This mapping is only learned 
+during fine-tuning, thus requiring more fine-tuning to yield competitive 
+performance.Document 1:::
+*Most widely-used pre-trained language models operate on sequences of tokens corresponding to word or subword units.
+Encoding text as a sequence of tokens requires a tokenizer, which is typically created as an independent artifact from
+the model. Token-free models that instead operate directly on raw text (bytes or characters) have many benefits: they
+can process text in any language out of the box, they are more robust to noise, and they minimize technical debt by
+removing complex and error-prone text preprocessing pipelines. Since byte or character sequences are longer than token
+sequences, past work on token-free models has often introduced new model architectures designed to amortize the cost of
+operating directly on raw text. In this paper, we show that a standard Transformer architecture can be used with
+minimal modifications to process byte sequences. We carefully characterize the trade-offs in terms of parameter count,Document 2:::
+brings advantages such as in-context learning abilities and reusable self-supervised pretrained AudioMAE and latent diffusion models. Experiments on the major benchmarks of text-to-audio, text-to-music, and text-to-speech demonstrate state-of-the-art or competitive performance against previous approaches. Our code, pretrained model, and demo are available at [this https URL](https://audioldm.github.io/audioldm2).*Document 3:::
+We observe again that warm-starting the encoder-part gives a significant
+improvement over models with randomly-initialized encoders, which is
+especially visible for document-level abstraction tasks, *i.e.*
+CNN/Dailymail and BBC XSum. This shows that tasks requiring a high level
+of abstraction benefit more from a pre-trained encoder part than those
+requiring only sentence-level abstraction. Except for Gigaword
+GPT2-based encoder-decoder models seem to be unfit for summarization.Document 4:::
+🤗 Transformers provides APIs and tools to easily download and train state-of-the-art pretrained models. Using pretrained models can reduce your compute costs, carbon footprint, and save you the time and resources required to train a model from scratch. These models support common tasks in different modalities, such as:
+
+📝 **Natural Language Processing**: text classification, named entity recognition, question answering, language modeling, summarization, translation, multiple choice, and text generation.<br>
+🖼️ **Computer Vision**: image classification, object detection, and segmentation.<br>
+🗣️ **Audio**: automatic speech recognition and audio classification.<br>
+🐙 **Multimodal**: table question answering, optical character recognition, information extraction from scanned documents, video classification, and visual question answering.","Pre-trained models in audio transcription can reduce compute costs, carbon footprint, and the time and resources needed to train a model from scratch. They also offer advantages like in-context learning abilities and reusable self-supervised pretrained models. 
+"
+How do different feature extraction techniques across multiple chunks help improve the accuracy of machine learning models in speech recognition?,"
+Extracted documents:
+Document 0:::
+<Youtube id=""d_ixlCubqQw""/>
+
+### deep learning (DL)
+
+Machine learning algorithms which uses neural networks with several layers.
+
+## E
+
+### encoder models
+
+Also known as autoencoding models, encoder models take an input (such as text or images) and transform them into a condensed numerical representation called an embedding. Oftentimes, encoder models are pretrained using techniques like [masked language modeling](#masked-language-modeling-mlm), which masks parts of the input sequence and forces the model to create more meaningful representations.
+
+<Youtube id=""H39Z_720T5s""/>
+
+## F
+
+### feature extraction
+
+The process of selecting and transforming raw data into a set of features that are more informative and useful for machine learning algorithms. Some examples of feature extraction include transforming raw text into word embeddings and extracting important features such as edges or shapes from image/video data.
+
+### feed forward chunkingDocument 1:::
+```
+
+Great, XLS-R\'s feature extraction pipeline is thereby fully defined!
+
+For improved user-friendliness, the feature extractor and tokenizer are
+*wrapped* into a single `Wav2Vec2Processor` class so that one only needs
+a `model` and `processor` object.
+
+```python
+from transformers import Wav2Vec2Processor
+
+processor = Wav2Vec2Processor(feature_extractor=feature_extractor, tokenizer=tokenizer)
+```
+
+Next, we can prepare the dataset.
+
+### Preprocess Data
+
+So far, we have not looked at the actual values of the speech signal but
+just the transcription. In addition to `sentence`, our datasets include
+two more column names `path` and `audio`. `path` states the absolute
+path of the audio file. Let\'s take a look.
+
+```python
+common_voice_train[0][""path""]Document 2:::
+```
+
+Good! Everything looks fine - the data is a 1-dimensional array, the
+sampling rate always corresponds to 16kHz, and the target text is
+normalized.
+
+Finally, we can leverage `Wav2Vec2Processor` to process the data to the
+format expected by `Wav2Vec2ForCTC` for training. To do so let\'s make
+use of Dataset\'s
+[`map(...)`](https://huggingface.co/docs/datasets/package_reference/main_classes.html?highlight=map#datasets.DatasetDict.map)
+function.
+
+First, we load and resample the audio data, simply by calling
+`batch[""audio""]`. Second, we extract the `input_values` from the loaded
+audio file. In our case, the `Wav2Vec2Processor` only normalizes the
+data. For other speech models, however, this step can include more
+complex feature extraction, such as [Log-Mel feature
+extraction](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum).
+Third, we encode the transcriptions to label ids.Document 3:::
+```
+
+Good! Everything looks fine - the data is a 1-dimensional array, the sampling rate always corresponds to 16kHz, and the target text is normalized.
+
+Finally, we can leverage `Wav2Vec2Processor` to process the data to the format expected by `Wav2Vec2ForCTC` for training. To do so let's make use of Dataset's [`map(...)`](https://huggingface.co/docs/datasets/package_reference/main_classes.html?highlight=map#datasets.DatasetDict.map) function.
+
+First, we load and resample the audio data, simply by calling `batch[""audio""]`.
+Second, we extract the `input_values` from the loaded audio file. In our case, the `Wav2Vec2Processor` only normalizes the data. For other speech models, however, this step can include more complex feature extraction, such as [Log-Mel feature extraction](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum).
+Third, we encode the transcriptions to label ids.Document 4:::
+```
+</tf>
+</frameworkcontent>
+
+**5**. The dataset is now ready for training with your machine learning framework!
+
+## Resample audio signals
+
+Audio inputs like text datasets need to be divided into discrete data points. This is known as *sampling*; the sampling rate tells you how much of the speech signal is captured per second. It is important to make sure the sampling rate of your dataset matches the sampling rate of the data used to pretrain the model you're using. If the sampling rates are different, the pretrained model may perform poorly on your dataset because it doesn't recognize the differences in the sampling rate.
+
+**1**. Start by loading the [MInDS-14](https://huggingface.co/datasets/PolyAI/minds14) dataset, the [`Audio`] feature, and the feature extractor corresponding to a pretrained [Wav2Vec2](https://huggingface.co/facebook/wav2vec2-base-960h) model:
+
+```py
+>>> from transformers import AutoFeatureExtractor
+>>> from datasets import load_dataset, Audio","The provided text does not discuss the specific advantages of applying multiple feature extraction techniques across different chunks. 
+"
+How do batch processing and architectural modifications discussed in the documents enhance the scalability of machine learning models?,"
+Extracted documents:
+Document 0:::
+Often, to reduce the amount of synchronization and to stabilize the learning process, we can accumulate the gradients for N batches before averaging, which is equivalent to increasing the actual batch size N times. This approach, combined with the observation that most state-of-the-art language models use large batches, led us to a simple idea: let's accumulate one _very_ large batch across all volunteer devices before each optimizer step! Along with complete equivalence to regular distributed training and easy scalability, this method also has the benefit of built-in fault tolerance, which we illustrate below.Document 1:::
+```
+
+The second function can be used with `batch=True` and an appropriate `max_batch_size` parameter.
+
+**Recommendation**: If possible, write your function to accept batches of samples, and then set `batch` to `True` and the `max_batch_size` as high as possible based on your machine's memory limits.
+
+## Upgrading your Hardware (GPUs, TPUs, etc.)
+
+If you have done everything above, and your demo is still not fast enough, you can upgrade the hardware that your model is running on. Changing the model from running on CPUs to running on GPUs will usually provide a 10x-50x increase in inference time for deep learning models.
+
+It is particularly straightforward to upgrade your Hardware on Hugging Face Spaces. Simply click on the ""Settings"" tab in your Space and choose the Space Hardware you'd like.
+
+![](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/spaces-gpu-settings.png)Document 2:::
+<Tip>
+
+Using `num_proc` to speed up your processing is usually a great idea, as long as the function you are using is not already doing some kind of multiprocessing of its own.
+
+</Tip>
+
+All of this functionality condensed into a single method is already pretty amazing, but there's more! With `Dataset.map()` and `batched=True` you can change the number of elements in your dataset. This is super useful in many situations where you want to create several training features from one example, and we will need to do this as part of the preprocessing for several of the NLP tasks we'll undertake in [Chapter 7](/course/chapter7).
+
+<Tip>
+
+💡 In machine learning, an _example_ is usually defined as the set of _features_ that we feed to the model. In some contexts, these features will be the set of columns in a `Dataset`, but in others (like here and for question answering), multiple features can be extracted from a single example and belong to a single column.
+
+</Tip>Document 3:::
+Paradoxically, setting a `max_size` can often improve user experience because it prevents users from being dissuaded by very long queue wait times. Users who are more interested and invested in your demo will keep trying to join the queue, and will be able to get their results faster.
+
+**Recommendation**: For a better user experience, set a `max_size` that is reasonable given your expectations of how long users might be willing to wait for a prediction.
+
+### The `max_batch_size` parameter in events
+
+Another way to increase the parallelism of your Gradio demo is to write your function so that it can accept **batches** of inputs. Most deep learning models can process batches of samples more efficiently than processing individual samples.Document 4:::
+## Model Cards To-Date
+
+Since Model Cards were proposed by [Mitchell et al. (2018)](https://arxiv.org/abs/1810.03993), inspired by the major documentation framework efforts of Data Statements for Natural Language Processing [(Bender & Friedman, 2018)](https://aclanthology.org/Q18-1041/) and Datasheets for Datasets [(Gebru et al., 2018)](https://www.fatml.org/media/documents/datasheets_for_datasets.pdf), the landscape of machine learning documentation has expanded and evolved. A plethora of documentation tools and templates for data, models, and ML systems have been proposed and developed - reflecting the incredible work of hundreds of researchers, impacted community members, advocates, and other stakeholders. Important discussions about the relationship between ML documentation and theories of change in responsible AI have also shaped these developments in the ML documentation ecosystem.","Batch processing allows for more efficient processing of data, as deep learning models can process batches of samples more effectively than individual samples. This is particularly useful in scenarios where a large number of samples need to be processed. Architectural modifications, such as utilizing GPUs instead of CPUs, can significantly improve inference time and overall performance. This is achieved by leveraging the parallel processing capabilities of GPUs, leading to faster computation and improved model scalability. 
+"
+Compare the efficiency of different transcription methods across documents. How do these methods contribute to reducing processing time?,"
+Extracted documents:
+Document 0:::
+However, most Transformer models continued to trend towards more parameters, leading to new models focused on improving training efficiency. [ALBERT](model_doc/albert) reduces memory consumption by lowering the number of parameters in two ways: separating the larger vocabulary embedding into two smaller matrices and allowing layers to share parameters. [DeBERTa](model_doc/deberta) added a disentangled attention mechanism where the word and its position are separately encoded in two vectors. The attention is computed from these separate vectors instead of a single vector containing the word and position embeddings. [Longformer](model_doc/longformer) also focused on making attention more efficient, especially for processing documents with longer sequence lengths. It uses a combination of local windowed attention (attention only calculated from fixed window size around each token) and global attention (only for specific task tokens like `[CLS]` for classification) to create a sparseDocument 1:::
+In terms of efficiency, we calculate the frames per second (FPS) for each model using the average evaluation time across the entire dataset, considering pre and post-processing steps. Given the variability in GPU memory requirements for each model, we chose to evaluate with a batch size of 1 (this choice is also influenced by our pre-processing step, which we'll delve into later). However, it's worth noting that this approach may not align perfectly with real-world performance, as larger batch sizes (often containing several images), are commonly used for better efficiency. 
+
+Next, we will provide tips on choosing the best model based on the metrics and point out which parameters may interfere with the results. Understanding these nuances is crucial, as this might spark doubts and discussions within the community.
+
+
+### How to pick the best model based on the metrics?Document 2:::
+![efficiency](assets/74_tapex/tapex-efficiency.png)
+
+What about the efficiency? How efficient is such a pre-training method compared to the previous pre-training? The answer is given in the above figure: compared with previous table pre-training method TaBERT, TAPEX could yield 2% improvement only using 2% of the pre-training corpus, achieving a speedup of nearly **50** times! With a larger pre-training corpus (e.g., 5 million <SQL, Table, Execution Result> pairs), the performance on downstream datasets would be better.
+
+
+### ConclusionDocument 3:::
+```
+
+In a final step, we define all parameters related to training.
+To give more explanation on some of the parameters:
+
+-   `group_by_length` makes training more efficient by grouping training samples of similar input length into one batch. This can significantly speed up training time by heavily reducing the overall number of useless padding tokens that are passed through the model
+-   `learning_rate` was chosen to be 1e-3 which is a common default value for training with Adam. Other learning rates might work equally well.Document 4:::
+During inference, RNNs have some advantages in speed and memory efficiency. These advantages include simplicity, due to needing only matrix-vector operations, and memory efficiency, as the memory requirements do not grow during inference. Furthermore, the computation speed remains the same with context window length due to how computations only act on the current token and the state.
+
+## The RWKV architecture","The provided documents focus on model efficiency and pre-training methods, not on transcription methods. Therefore, the question cannot be answered from the given context. 
+"
+How do different documents address the role of pre-trained models in enhancing the performance of audio-to-text systems?,"
+Extracted documents:
+Document 0:::
+brings advantages such as in-context learning abilities and reusable self-supervised pretrained AudioMAE and latent diffusion models. Experiments on the major benchmarks of text-to-audio, text-to-music, and text-to-speech demonstrate state-of-the-art or competitive performance against previous approaches. Our code, pretrained model, and demo are available at [this https URL](https://audioldm.github.io/audioldm2).*Document 1:::
+*Contrastive learning has shown remarkable success in the field of multimodal representation learning. In this paper, we propose a pipeline of contrastive language-audio pretraining to develop an audio representation by combining audio data with natural language descriptions. To accomplish this target, we first release LAION-Audio-630K, a large collection of 633,526 audio-text pairs from different data sources. Second, we construct a contrastive language-audio pretraining model by considering different audio encoders and text encoders. We incorporate the feature fusion mechanism and keyword-to-caption augmentation into the model design to further enable the model to process audio inputs of variable lengths and enhance the performance. Third, we perform comprehensive experiments to evaluate our model across three tasks: text-to-audio retrieval, zero-shot audio classification, and supervised audio classification. The results demonstrate that our model achieves superior performance inDocument 2:::
+*Text-to-audio (TTA) system has recently gained attention for its ability to synthesize general audio based on text descriptions. However, previous studies in TTA have limited generation quality with high computational costs. In this study, we propose AudioLDM, a TTA system that is built on a latent space to learn the continuous audio representations from contrastive language-audio pretraining (CLAP) latents. The pretrained CLAP models enable us to train LDMs with audio embedding while providing text embedding as a condition during sampling. By learning the latent representations of audio signals and their compositions without modeling the cross-modal relationship, AudioLDM is advantageous in both generation quality and computational efficiency. Trained on AudioCaps with a single GPU, AudioLDM achieves state-of-the-art TTA performance measured by both objective and subjective metrics (e.g., frechet distance). Moreover, AudioLDM is the first TTA system that enables various text-guidedDocument 3:::
+audio classification. The results demonstrate that our model achieves superior performance in text-to-audio retrieval task. In audio classification tasks, the model achieves state-of-the-art performance in the zeroshot setting and is able to obtain performance comparable to models' results in the non-zero-shot setting. LAION-Audio-6*Document 4:::
+This quantity of labelled data enables Whisper to be pre-trained directly on the 
+_supervised_ task of speech recognition, learning a speech-to-text mapping from 
+the labelled audio-transcription pre-training data \\({}^1\\). As a consequence, 
+Whisper requires little additional fine-tuning to yield a performant ASR model.
+This is in contrast to Wav2Vec 2.0, which is pre-trained on the _unsupervised_ 
+task of masked prediction. Here, the model is trained to learn an intermediate 
+mapping from speech to hidden states from un-labelled audio only data. 
+While unsupervised pre-training yields high-quality representations of speech, 
+it does **not** learn a speech-to-text mapping. This mapping is only learned 
+during fine-tuning, thus requiring more fine-tuning to yield competitive 
+performance.","Document 4 highlights the importance of pre-trained models for speech recognition. It contrasts the supervised pre-training used in Whisper with the unsupervised pre-training in Wav2Vec 2.0, showing how supervised pre-training directly learns a speech-to-text mapping, leading to better performance with less fine-tuning. 
+"
+"What challenges are identified in maintaining transcription accuracy, and how are they addressed across different documents?","
+Extracted documents:
+Document 0:::
+**b. Reduction in code complexity:** Rules-based systems tend to get unwieldy as new rules are added, thereby increasing maintenance costs. For example, An ML-based language translation system is more accurate and robust with much fewer lines of code as compared to previous rules-based systems.
+
+**c. Better forecasting results in cost savings.** Being able to forecast more accurately helps in reducing backorders in the supply chain as well as cost savings due to a reduction in storage costs.
+
+
+#### **2. What are the biggest ML challenges within SaaS?**
+a. Productizing ML applications require a lot more than having a model. Being able to leverage the model for serving results, detecting and adapting to changes in statistics of data, etc. creates significant overhead in deploying and maintaining ML systems.Document 1:::
+#### **1. Favorite ML business application?**
+My favorite ML application is cybersecurity.
+
+Cybersecurity remains the most critical part for any company (government or non-government) with regard to data. Machine Learning helps identify cyber threats, fight cyber-crime, including cyberbullying, and allows for a faster response to security breaches. ML algorithms quickly analyze the most likely vulnerabilities and potential malware and spyware applications based on user data. They can spot distortion in endpoint entry patterns and identify it as a potential data breach.
+
+#### **2. What is your biggest ML challenge?**
+The biggest ML challenge is audio to text transcription in the Arabic Language. There are quite a few systems that can decipher Arabic but they lack accuracy. Arabic is the official language of 26 countries and has 247 million native speakers and 29 million non-native speakers. It is a complex language with a rich vocabulary and many dialects.Document 2:::
+using a multimodal Transformer, can achieve 95% accuracy! These multimodal models are changing how practitioners solve Document AI use cases.Document 3:::
+While the transcription accuracy is exceptional, the inference time is very slow. A 1 hour audio clip takes upwards of 
+6 minutes to transcribe on a 16GB T4 GPU, even after leveraging inference optimisations like [flash attention](https://huggingface.co/docs/transformers/perf_infer_gpu_one#flashattention-2), 
+half-precision, and [chunking](https://huggingface.co/docs/transformers/main_classes/pipelines#transformers.AutomaticSpeechRecognitionPipeline.chunk_length_s).Document 4:::
+Second, be flexible in your approaches. You may need to test several different methodologies to find the best solution. A great example is OCR, in which you can use an open-source product like Tesseract, a commercial solution like Cloud Vision API, or the OCR capability inside an open-source multimodal model like [Donut](https://huggingface.co/docs/transformers/model_doc/donut).
+
+Third, start small with annotating data and pick your tools wisely. In our experience, you can get good results with several hundred documents. So start small and carefully evaluate your performance. Once you have narrowed your overall approach, you can begin to scale up the data to maximize your predictive accuracy. When annotating, remember that some tasks like layout identification and document extraction require identifying a specific region within a document. You will want to ensure your annotation tool supports bounding boxes.
+
+</div>
+    </div>
+        </div>","The biggest challenge identified in maintaining transcription accuracy is the slow inference time. It takes 6 minutes to transcribe a 1-hour audio clip even with optimizations. This issue is addressed by using multimodal models like Donut, which are more efficient in solving Document AI use cases. 
+"
+How do the approaches discussed across documents improve the generalizability of language models in handling diverse audio inputs?,"
+Extracted documents:
+Document 0:::
+*Contrastive learning has shown remarkable success in the field of multimodal representation learning. In this paper, we propose a pipeline of contrastive language-audio pretraining to develop an audio representation by combining audio data with natural language descriptions. To accomplish this target, we first release LAION-Audio-630K, a large collection of 633,526 audio-text pairs from different data sources. Second, we construct a contrastive language-audio pretraining model by considering different audio encoders and text encoders. We incorporate the feature fusion mechanism and keyword-to-caption augmentation into the model design to further enable the model to process audio inputs of variable lengths and enhance the performance. Third, we perform comprehensive experiments to evaluate our model across three tasks: text-to-audio retrieval, zero-shot audio classification, and supervised audio classification. The results demonstrate that our model achieves superior performance inDocument 1:::
+*Although audio generation shares commonalities across different types of audio, such as speech, music, and sound effects, designing models for each type requires careful consideration of specific objectives and biases that can significantly differ from those of other types. To bring us closer to a unified perspective of audio generation, this paper proposes a framework that utilizes the same learning method for speech, music, and sound effect generation. Our framework introduces a general representation of audio, called ""language of audio"" (LOA). Any audio can be translated into LOA based on AudioMAE, a self-supervised pre-trained representation learning model. In the generation process, we translate any modalities into LOA by using a GPT-2 model, and we perform self-supervised audio generation learning with a latent diffusion model conditioned on LOA. The proposed framework naturally brings advantages such as in-context learning abilities and reusable self-supervised pretrainedDocument 2:::
+### Scaling up on other modalities
+
+Currently, language models dominate very large models. Leveraging this method on very large vision, audio, and multi-modal models might be an interesting thing to do for better accessibility in the coming years as these models become more accessible.
+
+## Credits
+
+Huge thanks to the following who contributed to improve the readability of the article as well as contributed in the integration procedure in `transformers` (listed in alphabetic order):
+JustHeuristic (Yozh),
+Michael Benayoun,
+Stas Bekman,
+Steven Liu,
+Sylvain Gugger,
+Tim DettmersDocument 3:::
+In a sequence-to-sequence model, the encoder transforms the audio inputs 
+into a set of hidden state representations, extracting important features 
+from the spoken speech. The decoder plays the role of a language model, 
+processing the hidden state representations and generating the corresponding 
+text transcriptions. Incorporating a language model **internally** in the 
+system architecture is termed _deep fusion_. This is in contrast to 
+_shallow fusion_, where a language model is combined **externally** with 
+an encoder, such as with CTC + \\(n\\)-gram (_c.f._ [Internal Language Model Estimation](https://arxiv.org/pdf/2011.01991.pdf)).
+With deep fusion, the entire system can be trained end-to-end with the 
+same training data and loss function, giving greater flexibility and generally 
+superior performance (_c.f._ [ESB Benchmark](https://arxiv.org/abs/2210.13352)).Document 4:::
+*Pretrained multilingual large language models have typically used heuristic temperature-based sampling to balance between different languages. However previous work has not systematically evaluated the efficacy of different pretraining language distributions across model scales. In this paper, we propose a new sampling method, UniMax, that delivers more uniform coverage of head languages while mitigating overfitting on tail languages by explicitly capping the number of repeats over each language's corpus. We perform an extensive series of ablations testing a range of sampling strategies on a suite of multilingual benchmarks, while varying model scale. We find that UniMax outperforms standard temperature-based sampling, and the benefits persist as scale increases. As part of our contribution, we release: (i) an improved and refreshed mC4 multilingual corpus consisting of 29 trillion characters across 107 languages, and (ii) a suite of pretrained umT5 model checkpoints trained with","Document 1 proposes a framework that utilizes the same learning method for speech, music, and sound effect generation by introducing a general representation of audio called ""language of audio"" (LOA). This approach potentially improves generalizability by unifying audio generation across different types, allowing for a more flexible and adaptable model.  Document 3 discusses the advantages of deep fusion, where a language model is integrated internally into the system architecture. Deep fusion allows for end-to-end training with the same data and loss function, resulting in greater flexibility and performance, ultimately contributing to improved generalizability. 
+"
+"What is the impact of batching techniques on model performance, as explained across multiple documents?","
+Extracted documents:
+Document 0:::
+#### 3. Cross dataset batches
+
+We concatenated multiple datasets to train our models. We built a large batch and gathered samples from the same batch dataset to limit the topic distribution and favor hard negatives. However, we also mix at least two datasets in the batch to learn a global structure between topics and not only a local structure within a topic.
+
+## Training infrastructure and data
+
+As mentioned earlier, the quantity of data and the batch size directly impact the model performances. As part of the project, we benefited from efficient hardware infrastructure. We trained our models on [TPUs](https://cloud.google.com/tpu) which are compute units developed by Google and super efficient for matrix multiplications. TPUs have some [hardware specificities](https://huggingface.co/docs/accelerate/quicktour.html#training-on-tpu) which might require some specific code implementation.Document 1:::
+```
+
+
+## 8. Batch size scaling - Improving throughput and latency with multiple parallel & independent model instances
+
+One another very interesting direction for scaling up inference is to actually put some more model instances into the pool 
+along with reducing the actual workload each instance receives proportionally.
+
+This method actually changes both the size of the problem (_batch size_), and the resources involved in the computation (_cores_).
+
+To illustrate, imagine you have a server with `C` CPU cores, and you want to run a workload containing B samples with S tokens.  
+You can represent this workload as a tensor of shape `[B, S]`, B being the size of the batch and S being the maximum sequence length within the B samples.  
+
+For all the instances (`N`), each of them executes on `C / N` cores and would receive a subset of the task `[B / N, S]`.Document 2:::
+Each instance doesn't receive the global batch but instead, they all receive a subset of it `[B / N, S]` thus the name **Batch Size Scaling**.  
+In order to highlight the benefits of such scaling method, the charts below reports both the latencies when scaling up model instances along with the effects on the throughput.
+
+When looking at the results, let's focus on the latency and the throughput aspects:  
+
+On one hand, we are taking the maximum latency over the pool of instances to reflect the time it takes to process all the samples in the batch.
+Putting it differently, as instances operate in a truly parallel fashion, the time it takes to gather all the batch chunks from all the instances
+is driven by the longest time it takes for individual instance in the pool to get their chunk done.Document 3:::
+Recently a really interesting [paper](https://arxiv.org/abs/2311.03285) came out, that described how to increase the throughput by performing batched inference on LoRA models. In short, all inference requests would be gathered in a batch, the computation related to the common base model would be done all at once, then the remaining adapter-specific products would be computed. We did not implement such a technique (close to the approach adopted in [text-generation-inference](https://github.com/huggingface/text-generation-inference/) for LLMs). Instead, we stuck to single sequential inference requests. The reason is that we observed that batching was not interesting for diffusers: throughput does not increase significantly with batch size. On the simple image generation benchmark we performed, it only increased 25% for a batch size of 8, in exchange for 6 times increased latency! Comparatively, batching is far more interesting for LLMs because you get 8 times the sequential throughputDocument 4:::
+```
+
+You may see a small performance boost in VAE decoding on multi-image batches, and there should be no performance impact on single-image batches.
+
+## Tiled VAE
+
+Tiled VAE processing also enables working with large images on limited VRAM (for example, generating 4k images on 8GB of VRAM) by splitting the image into overlapping tiles, decoding the tiles, and then blending the outputs together to compose the final image. You should also used tiled VAE with [`~ModelMixin.enable_xformers_memory_efficient_attention`] to reduce memory use further if you have xFormers installed.
+
+To use tiled VAE processing, call [`~StableDiffusionPipeline.enable_vae_tiling`] on your pipeline before inference:
+
+```python
+import torch
+from diffusers import StableDiffusionPipeline, UniPCMultistepScheduler","Batching techniques can impact model performance in different ways depending on the model and application. For LLMs, batching can significantly increase throughput, achieving up to 8 times the sequential throughput. However, batching was not found to be as beneficial for diffusers, as the throughput increase was only 25% for a batch size of 8, while latency increased 6 times. This difference is attributed to the nature of LLMs and diffusers, with LLMs benefiting from parallel processing of the common base model during inference. 
+"
+Describe the different optimization strategies for improving inference speed in speech recognition systems.,"
+Extracted documents:
+Document 0:::
+--
+title: ""Optimizing Bark using 🤗 Transformers"" 
+thumbnail: /blog/assets/bark_optimization/thumbnail.png
+authors:
+- user: ylacombe
+---
+
+# Optimizing a Text-To-Speech model using 🤗 Transformers
+
+
+<a target=""_blank"" href=""https://colab.research.google.com/github/ylacombe/notebooks/blob/main/Benchmark_Bark_HuggingFace.ipynb"">
+    <img src=""https://colab.research.google.com/assets/colab-badge.svg""/>
+</a>
+
+🤗 Transformers provides many of the latest state-of-the-art (SoTA) models across domains and tasks. To get the best performance from these models, they need to be optimized for inference speed and memory usage.
+
+The 🤗 Hugging Face ecosystem offers precisely such ready & easy to use optimization tools that can be applied across the board to all the models in the library. This makes it easy to **reduce memory footprint** and **improve inference** with just a few extra lines of code.Document 1:::
+</Tip>
+
+BetterTransformer accelerates inference with its fastpath (native PyTorch specialized implementation of Transformer functions) execution. The two optimizations in the fastpath execution are:
+
+1. fusion, which combines multiple sequential operations into a single ""kernel"" to reduce the number of computation steps
+2. skipping the inherent sparsity of padding tokens to avoid unnecessary computation with nested tensors
+
+BetterTransformer also converts all attention operations to use the more memory-efficient [scaled dot product attention (SDPA)](https://pytorch.org/docs/master/generated/torch.nn.functional.scaled_dot_product_attention), and it calls optimized kernels like [FlashAttention](https://huggingface.co/papers/2205.14135) under the hood.
+
+Before you start, make sure you have 🤗 Optimum [installed](https://huggingface.co/docs/optimum/installation).
+
+Then you can enable BetterTransformer with the [`PreTrainedModel.to_bettertransformer`] method:Document 2:::
+You'll learn how to use [BetterTransformer](https://pytorch.org/blog/a-better-transformer-for-fast-transformer-encoder-inference/) for faster inference, and how to convert your PyTorch code to [TorchScript](https://pytorch.org/tutorials/beginner/Intro_to_TorchScript_tutorial.html). If you're using an Intel CPU, you can also use [graph optimizations](https://intel.github.io/intel-extension-for-pytorch/cpu/latest/tutorials/features.html#graph-optimization) from [Intel Extension for PyTorch](https://intel.github.io/intel-extension-for-pytorch/cpu/latest/index.html) to boost inference speed even more. Finally, learn how to use 🤗 Optimum to accelerate inference with ONNX Runtime or OpenVINO (if you're using an Intel CPU).
+
+## BetterTransformer
+
+BetterTransformer accelerates inference with its fastpath (native PyTorch specialized implementation of Transformer functions) execution. The two optimizations in the fastpath execution are:Document 3:::
+The abstract from the paper is the following:
+
+*This paper is a study of performance-efficiency trade-offs in pre-trained models for automatic speech recognition
+(ASR). We focus on wav2vec 2.0, and formalize several architecture designs that influence both the model performance
+and its efficiency. Putting together all our observations, we introduce SEW (Squeezed and Efficient Wav2vec), a
+pre-trained model architecture with significant improvements along both performance and efficiency dimensions across a
+variety of training setups. For example, under the 100h-960h semi-supervised setup on LibriSpeech, SEW achieves a 1.9x
+inference speedup compared to wav2vec 2.0, with a 13.5% relative reduction in word error rate. With a similar inference
+time, SEW reduces word error rate by 25-50% across different model sizes.*
+
+This model was contributed by [anton-l](https://huggingface.co/anton-l).
+
+## Usage tipsDocument 4:::
+The abstract from the paper is the following:
+
+*This paper is a study of performance-efficiency trade-offs in pre-trained models for automatic speech recognition
+(ASR). We focus on wav2vec 2.0, and formalize several architecture designs that influence both the model performance
+and its efficiency. Putting together all our observations, we introduce SEW (Squeezed and Efficient Wav2vec), a
+pre-trained model architecture with significant improvements along both performance and efficiency dimensions across a
+variety of training setups. For example, under the 100h-960h semi-supervised setup on LibriSpeech, SEW achieves a 1.9x
+inference speedup compared to wav2vec 2.0, with a 13.5% relative reduction in word error rate. With a similar inference
+time, SEW reduces word error rate by 25-50% across different model sizes.*
+
+This model was contributed by [anton-l](https://huggingface.co/anton-l).
+
+## Usage tips","This paper explores the trade-off between performance and efficiency in pre-trained models for Automatic Speech Recognition (ASR).  It introduces SEW (Squeezed and Efficient Wav2vec), a pre-trained model architecture with significant improvements in both performance and efficiency compared to wav2vec 2.0. For instance, SEW achieves a 1.9x inference speedup under the 100h-960h semi-supervised setup on LibriSpeech, with a 13.5% relative reduction in word error rate. Across different model sizes, SEW reduces the word error rate by 25-50% with a similar inference time. 
+"
+How do different feature extraction methods contribute to enhancing the performance of ASR (Automatic Speech Recognition) systems?,"
+Extracted documents:
+Document 0:::
+```
+
+Common Voice is but one multilingual ASR dataset that we can download from the Hub - 
+there are plenty more available to us! To view the range of datasets available for speech recognition, 
+follow the link: [ASR Datasets on the Hub](https://huggingface.co/datasets?task_categories=task_categories:automatic-speech-recognition&sort=downloads).
+
+### Prepare Feature Extractor, Tokenizer and Data
+
+The ASR pipeline can be de-composed into three components: 
+1) A feature extractor which pre-processes the raw audio-inputs
+2) The model which performs the sequence-to-sequence mapping 
+3) A tokenizer which post-processes the model outputs to text formatDocument 1:::
+```
+
+
+## Prepare Data, Tokenizer, Feature Extractor
+
+ASR models transcribe speech to text, which means that we both need a feature extractor that processes the speech signal to the model's input format, *e.g.* a feature vector, and a tokenizer that processes the model's output format to text.
+
+In 🤗 Transformers, the MMS model is thus accompanied by both a feature extractor, called [Wav2Vec2FeatureExtractor](https://huggingface.co/transformers/master/model_doc/wav2vec2.html#wav2vec2featureextractor), and a tokenizer, called [Wav2Vec2CTCTokenizer](https://huggingface.co/transformers/master/model_doc/wav2vec2.html#wav2vec2ctctokenizer).
+
+Let's start by creating the tokenizer to decode the predicted output classes to the output transcription.
+
+
+### Create `Wav2Vec2CTCTokenizer`Document 2:::
+```
+
+------------------------------------------------------------------------
+
+\\( {}^1 \\) In the [paper](https://arxiv.org/pdf/2006.13979.pdf), the model
+was evaluated using the phoneme error rate (PER), but by far the most
+common metric in ASR is the word error rate (WER). To keep this notebook
+as general as possible we decided to evaluate the model using WER.
+
+Prepare Data, Tokenizer, Feature Extractor
+------------------------------------------
+
+ASR models transcribe speech to text, which means that we both need a
+feature extractor that processes the speech signal to the model\'s input
+format, *e.g.* a feature vector, and a tokenizer that processes the
+model\'s output format to text.Document 3:::
+Similar to [BERT's masked language modeling objective](http://jalammar.github.io/illustrated-bert/), MMS learns contextualized speech representations by randomly masking feature vectors before passing them to a transformer network during self-supervised pre-training.
+
+For ASR, the pretrained [`MMS-1B` checkpoint](https://huggingface.co/facebook/mms-1b) was further fine-tuned in a supervised fashion on 1000+ languages with a joint vocabulary output layer. As a final step, the joint vocabulary output layer was thrown away and language-specific adapter layers were kept instead. Each adapter layer contains **just** ~2.5M weights, consisting of small linear projection layers for each attention block as well as a language-specific vocabulary output layer.
+
+Three **MMS** checkpoints fine-tuned for speech recognition (ASR) have been released. They include 102, 1107, and 1162 adapter weights respectively (one for each language):Document 4:::
+In the script [`run_speech_recognition_seq2seq`], we load the warm-started model, 
+feature extractor, and tokenizer, process a speech recognition dataset, 
+and subsequently make use of the [`Seq2SeqTrainer`](https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.Seq2SeqTrainer) to train our system.
+Note that it is important to align the target transcriptions with the decoder's vocabulary. For example, the [`Librispeech`](https://huggingface.co/datasets/librispeech_asr) dataset only contains captilized letters in the transcriptions,
+whereas BART was pretrained mostly on normalized text. Thus, it is recommended to add the argument 
+`--do_lower_case` to the fine-tuning script when using a warm-started `SpeechEncoderDecoderModel`. 
+The model is fine-tuned on the standard cross-entropy language modeling
+loss for sequence-to-sequence (just like *T5* or *BART* in natural language processing).
+
+---
+**NOTE**","The provided text does not contain information on how different feature extraction methods contribute to the performance of Automatic Speech Recognition (ASR) systems. 
+"
+How are architectural changes across documents used to improve the handling of large datasets in machine learning models?,"
+Extracted documents:
+Document 0:::
+Once trained, the fundamental LLM architecture is difficult to change, so it is important to make considerations about the LLM's tasks beforehand and accordingly optimize the model's architecture.
+There are two important components of the model architecture that quickly become memory and/or performance bottlenecks for large input sequences.
+
+-   The positional embeddings
+-   The key-value cache
+
+Let's go over each component in more detail
+
+### 3.1 Improving positional embeddings of LLMs
+
+Self-attention puts each token in relation to each other's tokens.
+As an example, the \\( \text{Softmax}(\mathbf{QK}^T) \\) matrix of the text input sequence *""Hello"", ""I"", ""love"", ""you""* could look as follows:
+
+![](/blog/assets/163_optimize_llm/self_attn_tokens.png)Document 1:::
+Once trained, the fundamental LLM architecture is difficult to change, so it is important to make considerations about the LLM's tasks beforehand and accordingly optimize the model's architecture.
+There are two important components of the model architecture that quickly become memory and/or performance bottlenecks for large input sequences.
+
+-   The positional embeddings
+-   The key-value cache
+
+Let's go over each component in more detail
+
+### 3.1 Improving positional embeddings of LLMs
+
+Self-attention puts each token in relation to each other's tokens.
+As an example, the \\( \text{Softmax}(\mathbf{QK}^T) \\) matrix of the text input sequence *""Hello"", ""I"", ""love"", ""you""* could look as follows:
+
+![](/blog/assets/163_optimize_llm/self_attn_tokens.png)Document 2:::
+- **Diversity of training data:** One of the barriers to the GLAM using machine learning is the availability of relevant data for training and evaluation of machine learning models. Machine learning models that work well on benchmark datasets may not work as well on GLAM organizations' data. Building a community to share domain-specific datasets will ensure machine learning can be more effectively pursued in the GLAM sector.
+
+- **Climate change:** Training machine learning models produces a carbon footprint. The size of this footprint depends on various factors. One way we can collectively reduce this footprint is to share trained models with the community so that people aren't duplicating the same models (and generating more carbon emissions in the process).
+
+## Example uses of the Hugging Face Hub
+Individuals and organizations already use the Hugging Face hub to share machine learning models, datasets and demos related to the GLAM sector.Document 3:::
+Being at the heart of the open source AI community, we had thousands of conversations with machine learning and data science teams, giving us a unique perspective on the most common problems and challenges companies are facing when building machine learning. 
+
+Through these conversations, we discovered that the current workflow for building machine learning is broken. Duplicated efforts, poor feedback loops, high friction to collaborate across teams, non-standard processes and tools, and difficulty optimizing models for production are common and slow down ML development.
+
+We built the Private Hub to change this. Like Git and GitHub forever changed how companies build software, the Private Hub changes how companies build machine learning:Document 4:::
+Brief introduction to RL documentation
+
+In this advanced topic, we address the question: **how should we monitor and keep track of powerful reinforcement learning agents that we are training in the real world and
+interfacing with humans?**
+
+As machine learning systems have increasingly impacted modern life, the **call for the documentation of these systems has grown**.
+
+Such documentation can cover aspects such as the training data used — where it is stored, when it was collected, who was involved, etc.
+— or the model optimization framework — the architecture, evaluation metrics, relevant papers, etc. — and more.
+
+Today, model cards and datasheets are becoming increasingly available. For example, on the Hub
+(see documentation [here](https://huggingface.co/docs/hub/model-cards)).
+
+If you click on a [popular model on the Hub](https://huggingface.co/models), you can learn about its creation process.","The provided documents focus on the challenges of large input sequences and how to optimize model architecture for them, but don't address how architectural changes handle large datasets. 
+"
