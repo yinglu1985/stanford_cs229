@@ -1,15 +1,13 @@
 
 ########
-
+# Run Gemini Model
 generated_queries = pd.read_csv("more_queries.csv", header=0, index_col=False)
 
 query = generated_queries['question'][i]
 query_list.append(query)
 
-
 context = "\nExtracted documents:\n"
 context += "".join([f"Document {str(i)}:::\n" + doc for i, doc in enumerate(oracle)])
-
 
 genai.configure(api_key=API_KEY)
 
