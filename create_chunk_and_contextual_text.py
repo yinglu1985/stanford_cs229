@@ -95,7 +95,7 @@ def situate_context_gemini(original_doc, chunk_set, seq, doc_id):
     rag_response = model.generate_content(prompt, generation_config=genai.GenerationConfig(
 response_mime_type="application/json", response_schema=list[chunk_context]))
     converted_context = ast.literal_eval(rag_response.text)
-    final_context = [converted_context[i]['context'][0] if len(converted_context[i]['context'])>0 else " " for i in range(len(converted_context))]
+    final_context = [converted_context[i]['context'][0] if len(converted_context[i]['context']) > 0 else " " for i in range(len(converted_context))]
     return chunk, final_context
 
 
