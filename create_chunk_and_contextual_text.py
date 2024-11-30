@@ -67,15 +67,15 @@ def create_chunk(ds):
 #create contextual text
 
 def generate_prompt(doc, chunk, seq):
+    chunk_content = ""
+    for i in seq:
+        chunk_content += "here is the {seq}th chunk, the content is: {chunk} \n".format(seq=i, chunk = chunk[i].page_content)
     DOCUMENT_CONTEXT_PROMPT = """
     Here is the document
     <document>
     {doc_content}
     </document>
     """.format(doc_content=doc)
-    chunk_content = ""
-    for i in seq:
-        chunk_content += "here is the {seq}th chunk, the content is: {chunk} \n".format(seq=i, chunk = chunk[i].page_content)
     CHUNK_CONTEXT_PROMPT = """
     \n
     Please give a short succinct context to situate each chunk within the overall document for the purposes of improving search retrieval of the chunk.
