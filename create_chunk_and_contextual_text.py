@@ -80,10 +80,10 @@ def generate_prompt(doc, chunk, seq):
     \n
     Please give a short succinct context to situate each chunk within the overall document for the purposes of improving search retrieval of the chunk.
     Answer only with the succinct context and nothing else.
-    Please return a jason format where each element is the context of the each trunk situated within the document. 
-    If the context can not be generated from the trunk, set as empty string.
+    Please return a jason format where each element is the context of the each chunk situated within the document. 
+    If the context can not be generated from the chunk, set as empty string.
     Please provide the response in the form of a Python list. It should begin with “[“ and end with “]”.” 
-    Please make sure the length of the list of context is same as the length of the list of chunks.
+    Please make sure each chunk will generate a context, so chunk and context is 1:1 mapping. Therefore, the length of the list of context is same as the length of the list of chunks. 
     \n
     Here are the list of chunks we want to situate within the whole document
     <chunk>
@@ -117,6 +117,7 @@ def create_chunk_and_contextual_text(ds):
     for doc_id in range(num_docs):
         print(doc_id)
         _, context= situate_context_gemini(original_doc, chunk_set, seq, doc_id)
+        print(len(chunk_set[doc_id]), len(context))
         if len(context) < len(chunk_set[doc_id]):  # account for LLM giving results that not exactly matches the requirement
             context += [""] * (len(chunk_set[doc_id]) - len(context))
         chunk_plus_context = []
