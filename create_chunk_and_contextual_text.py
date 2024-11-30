@@ -117,7 +117,7 @@ def create_chunk_and_contextual_text(ds):
     for doc_id in range(num_docs):
         print(doc_id)
         _, context= situate_context_gemini(original_doc, chunk_set, seq, doc_id)
-        print(len(chunk_set[doc_id]), len(context))
+        print([len(chunk_set[doc_id]), len(context)])
         if len(context) < len(chunk_set[doc_id]):  # account for LLM giving results that not exactly matches the requirement
             context += [""] * (len(chunk_set[doc_id]) - len(context))
         chunk_plus_context = []
