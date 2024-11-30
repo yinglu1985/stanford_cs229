@@ -10,6 +10,10 @@ import datasets
 from transformers import AutoTokenizer
 from sentence_transformers import SentenceTransformer
 import ast
+import typing
+import google.generativeai as genai
+
+genai.configure(api_key=os.environ['API_KEY'])
 
 pd.set_option("display.max_colwidth", None) 
 
