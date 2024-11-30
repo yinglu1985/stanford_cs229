@@ -109,13 +109,13 @@ response_mime_type="application/json", response_schema=list[chunk_context]))
     final_context = [converted_context[i]['context'][0] if len(converted_context[i]['context']) > 0 else " " for i in range(len(converted_context))]
     return chunk, final_context
 
-def p95_chunk_count_dist(chunk_set):
+def p95_chunk_count_dist(chunk_set, doc_list, seq):
     len_chunk = [len(seq[doc_id]) for doc_id in doc_list]
     return np.percentile(len_chunk, q=95)
 
 def create_chunk_and_contextual_text(ds):
     original_doc, chunk_set, seq, doc_list = create_chunk(ds)
-    cutoff = p95_chunk_count_dist(chunk_set)
+    cutoff = p95_chunk_count_dist(chunk_set, doc_list, seq)
     num_docs = np.max(doc_list)
     chunk_plus_context_set =[]
     for doc_id in range(num_docs):
