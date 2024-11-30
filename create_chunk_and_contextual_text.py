@@ -44,8 +44,8 @@ def create_chunk(ds):
         "",
     ]
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,  # The maximum number of characters in a chunk: we selected this value arbitrarily
-        chunk_overlap=100,  # The number of characters to overlap between chunks
+        chunk_size=2000,  # The maximum number of characters in a chunk: we selected this value arbitrarily
+        chunk_overlap=200,  # The number of characters to overlap between chunks
         add_start_index=True,  # If `True`, includes chunk's start index in metadata
         strip_whitespace=True,  # If `True`, strips whitespace from the start and end of every document
         separators=MARKDOWN_SEPARATORS,
@@ -109,21 +109,28 @@ response_mime_type="application/json", response_schema=list[chunk_context]))
     final_context = [converted_context[i]['context'][0] if len(converted_context[i]['context']) > 0 else " " for i in range(len(converted_context))]
     return chunk, final_context
 
+def p90_chunk_count_dist(chunk_set):
+    len_chunk = [len(seq[doc_id]) for doc_id in doc_list]
+    return np.percentile(len_chunk, q=90)
 
 def create_chunk_and_contextual_text(ds):
     original_doc, chunk_set, seq, doc_list = create_chunk(ds)
+    cutoff = p90_chunk_count_dist(chunk_set)
     num_docs = np.max(doc_list)
     chunk_plus_context_set =[]
     for doc_id in range(num_docs):
         print(doc_id)
-        _, context= situate_context_gemini(original_doc, chunk_set, seq, doc_id)
-        print([len(chunk_set[doc_id]), len(context)])
-        if len(context) < len(chunk_set[doc_id]):  # account for LLM giving results that not exactly matches the requirement
-            context += [""] * (len(chunk_set[doc_id]) - len(context))
-        chunk_plus_context = []
-        for i in range(len(chunk_set[doc_id])): 
-            chunk_plus_context.append(LangchainDocument(page_content=chunk_set[doc_id][i].page_content + "\n the context is: \n" + context[i]))
-        chunk_plus_context_set.append(chunk_plus_context)
+        if len(seq[doc_id]) > cutoff: # too many chunks resulting in too large the context
+            chunk_plus_context_set.append(chunk_set[doc_id])
+        else:
+            _, context= situate_context_gemini(original_doc, chunk_set, seq, doc_id)
+            print([len(chunk_set[doc_id]), len(context)])
+            if len(context) < len(chunk_set[doc_id]):  # account for LLM giving results that not exactly matches the requirement
+                context += [""] * (len(chunk_set[doc_id]) - len(context))
+            chunk_plus_context = []
+            for i in range(len(chunk_set[doc_id])): 
+                chunk_plus_context.append(LangchainDocument(page_content=chunk_set[doc_id][i].page_content + "\n the context is: \n" + context[i]))
+            chunk_plus_context_set.append(chunk_plus_context)
     return original_doc, chunk_set, chunk_plus_context_set, seq, doc_list
 
 
