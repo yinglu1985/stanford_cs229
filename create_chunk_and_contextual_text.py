@@ -13,7 +13,7 @@ import ast
 import typing
 import google.generativeai as genai
 from langchain.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores.utils import DistanceStrategy
 import os
 import numpy as np
@@ -25,6 +25,7 @@ genai.configure(api_key=os.environ['API_KEY'])
 pd.set_option("display.max_colwidth", None) 
 
 ds = datasets.load_dataset("m-ric/huggingface_doc", split="train")
+ds = ds.select(range(2))
 
 def create_chunk(ds): 
     RAW_KNOWLEDGE_BASE = [
@@ -116,7 +117,7 @@ def p95_chunk_count_dist(chunk_set, doc_list, seq):
 def create_chunk_and_contextual_text(ds):
     original_doc, chunk_set, seq, doc_list = create_chunk(ds)
     cutoff = p95_chunk_count_dist(chunk_set, doc_list, seq)
-    num_docs = np.max(doc_list)
+    num_docs = len(doc_list)
     chunk_plus_context_set =[]
     for doc_id in range(num_docs):
         print(doc_id)
@@ -146,7 +147,7 @@ doc_list_flatten = np.array(flatten_comprehension([[doc_list[i]] * len(seq[i]) f
 chunk_plus_context_flatten = np.array(flatten_comprehension(chunk_plus_context_set))
 
 
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 EMBEDDING_MODEL_NAME = "thenlper/gte-small"
 
