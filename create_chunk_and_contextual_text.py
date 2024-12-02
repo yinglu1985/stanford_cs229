@@ -110,13 +110,13 @@ response_mime_type="application/json", response_schema=list[chunk_context]))
     final_context = [converted_context[i]['context'][0] if len(converted_context[i]['context']) > 0 else " " for i in range(len(converted_context))]
     return chunk, final_context
 
-def p95_chunk_count_dist(chunk_set, doc_list, seq):
+def p90_chunk_count_dist(chunk_set, doc_list, seq):
     len_chunk = [len(seq[doc_id]) for doc_id in doc_list]
-    return np.percentile(len_chunk, q=95)
+    return np.percentile(len_chunk, q=90)
 
 def create_chunk_and_contextual_text(ds):
     original_doc, chunk_set, seq, doc_list = create_chunk(ds)
-    cutoff = p95_chunk_count_dist(chunk_set, doc_list, seq)
+    cutoff = p90_chunk_count_dist(chunk_set, doc_list, seq)
     num_docs = len(doc_list)
     chunk_plus_context_set =[]
     for doc_id in range(num_docs):
@@ -145,7 +145,11 @@ index = np.arange(len(chunk_flatten))
 seq_flatten = np.array(flatten_comprehension(seq))
 doc_list_flatten = np.array(flatten_comprehension([[doc_list[i]] * len(seq[i]) for i in range(len(seq))]))
 chunk_plus_context_flatten = np.array(flatten_comprehension(chunk_plus_context_set))
-
+print(len(chunk_flatten))
+print(len(index))
+print(len(seq_flatten))
+print(len(doc_list_flatten))
+print(len(chunk_plus_context_flatten))
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
@@ -174,6 +178,9 @@ def convert_ndarray_to_list(matrix):
     for i in range(matrix.shape[0]):
         list_form.append(matrix[i,])
     return list_form
+
+print(len(convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk.index.reconstruct_n())))
+print(len(convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context.index.reconstruct_n())))
 
 
 data_embedding = {
