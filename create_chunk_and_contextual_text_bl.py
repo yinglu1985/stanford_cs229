@@ -136,7 +136,7 @@ def convert_ndarray_to_list(matrix):
     
 def main():
 
-    genai.configure(api_key="AIzaSyC9_iaeQjX9pye5GyEtrnk9YUtSXDv2RuI")
+    genai.configure(api_key=os.environ['API_KEY'])
     
     ds = datasets.load_dataset("m-ric/huggingface_doc", split="train")
     ds = ds.select(range(5))
