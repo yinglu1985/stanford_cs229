@@ -1,20 +1,31 @@
-from tqdm.auto import tqdm
+from tqdm.notebook import tqdm
 import pandas as pd
-import numpy as np
+from typing import Optional, List, Tuple
 from datasets import Dataset
+import matplotlib.pyplot as plt
+import numpy as np
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document as LangchainDocument
 import datasets
+from transformers import AutoTokenizer
+from sentence_transformers import SentenceTransformer
 import ast
 import typing
-import os
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_community.vectorstores.utils import DistanceStrategy
 import google.generativeai as genai
-from typing import TypedDict
-import typing_extensions
+from langchain.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores.utils import DistanceStrategy
+import os
+import numpy as np
+import pandas as pd
 
+
+genai.configure(api_key=os.environ['API_KEY'])
+
+pd.set_option("display.max_colwidth", None) 
+
+ds = datasets.load_dataset("m-ric/huggingface_doc", split="train")
+ds = ds.select(range(2))
 
 def create_chunk(ds): 
     RAW_KNOWLEDGE_BASE = [
@@ -86,7 +97,6 @@ def generate_prompt(doc, chunk, seq):
 
 
 def situate_context_gemini(original_doc, chunk_set, seq, doc_id):
-    #class chunk_context(typing_extensions.TypedDict):
     class chunk_context(typing.TypedDict):
         context: list[str]
     doc_content = original_doc[doc_id]
@@ -125,76 +135,67 @@ def create_chunk_and_contextual_text(ds):
     return original_doc, chunk_set, chunk_plus_context_set, seq, doc_list
 
 
+original_doc, chunk_set, chunk_plus_context_set, seq, doc_list = create_chunk_and_contextual_text(ds)
+
 def flatten_comprehension(matrix):
   return [item for row in matrix for item in row]
+
+def flatten_comprehension_doc(matrix):
+  return [item.page_content for row in matrix for item in row]
+
+chunk_flatten = np.array(flatten_comprehension_doc(chunk_set))
+index = np.arange(len(chunk_flatten))
+seq_flatten = np.array(flatten_comprehension(seq))
+doc_list_flatten = np.array(flatten_comprehension([[doc_list[i]] * len(seq[i]) for i in range(len(seq))]))
+chunk_plus_context_flatten = np.array(flatten_comprehension_doc(chunk_plus_context_set))
+print(len(chunk_flatten))
+print(len(index))
+print(len(seq_flatten))
+print(len(doc_list_flatten))
+print(len(chunk_plus_context_flatten))
+
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
+
+EMBEDDING_MODEL_NAME = "thenlper/gte-small"
+
+embedding_model = HuggingFaceEmbeddings(
+    model_name=EMBEDDING_MODEL_NAME,
+    multi_process=True,
+    model_kwargs={"device": "cpu"},
+    encode_kwargs={"normalize_embeddings": True},  # Set `True` for cosine similarity
+)
+
+KNOWLEDGE_VECTOR_DATABASE_chunk = FAISS.from_documents(
+    chunk_flatten, embedding_model, distance_strategy=DistanceStrategy.COSINE
+)
+
+KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context = FAISS.from_documents(
+    chunk_plus_context_flatten, embedding_model, distance_strategy=DistanceStrategy.COSINE
+)
+
+KNOWLEDGE_VECTOR_DATABASE_chunk.save_local("faiss_index_chunk")
+KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context.save_local("faiss_index_chunk_plus_context")
 
 def convert_ndarray_to_list(matrix):
     list_form = []
     for i in range(matrix.shape[0]):
         list_form.append(matrix[i,])
     return list_form
-    
-def main():
 
-    genai.configure(api_key=os.environ['API_KEY'])
-    
-    ds = datasets.load_dataset("m-ric/huggingface_doc", split="train")
-    ds = ds.select(range(5))
-    
-    original_doc, chunk_set, chunk_plus_context_set, seq, doc_list = create_chunk_and_contextual_text(ds)
-
-    chunk_flatten = np.array(flatten_comprehension(chunk_set))
-    index = np.arange(len(chunk_flatten))
-    seq_flatten = np.array(flatten_comprehension(seq))
-    doc_list_flatten = np.array(flatten_comprehension([[doc_list[i]] * len(seq[i]) for i in range(len(seq))]))
-    chunk_plus_context_flatten = np.array(flatten_comprehension(chunk_plus_context_set))
+print(len(convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk.index.reconstruct_n())))
+print(len(convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context.index.reconstruct_n())))
 
 
-    os.environ["TOKENIZERS_PARALLELISM"] = "true"
+data_embedding = {
+    'index': index,
+    'doc_list': doc_list_flatten,
+    'seq': seq_flatten, 
+    'chunk': chunk_flatten, 
+    'chunk_plus_context': chunk_plus_context_flatten,
+    'vector_store_chunk': convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk.index.reconstruct_n()),
+    'vector_store_chunk_plus_context':  convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context.index.reconstruct_n())
+}
 
-    EMBEDDING_MODEL_NAME = "thenlper/gte-small"
+df = pd.DataFrame(data_embedding)
 
-    embedding_model = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL_NAME,
-        multi_process=True,
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},  # Set `True` for cosine similarity
-    )
-
-    KNOWLEDGE_VECTOR_DATABASE_chunk = FAISS.from_documents(
-        chunk_flatten, embedding_model, distance_strategy=DistanceStrategy.COSINE
-    )
-
-    KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context = FAISS.from_documents(
-        chunk_plus_context_flatten, embedding_model, distance_strategy=DistanceStrategy.COSINE
-    )
-
-    KNOWLEDGE_VECTOR_DATABASE_chunk.save_local("faiss_index_chunk")
-    KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context.save_local("faiss_index_chunk_plus_context")
-
-    print(len(index))
-    print(len(doc_list_flatten))
-    print(len(seq_flatten))
-    print(len(chunk_flatten))
-    print(len(chunk_plus_context_flatten))
-    print(len(convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk.index.reconstruct_n())))
-    print(len(convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context.index.reconstruct_n())))
-
-
-    data_embedding = {
-        'index': index,
-        'doc_list': doc_list_flatten,
-        'seq': seq_flatten, 
-        'chunk': chunk_flatten, 
-        'chunk_plus_context': chunk_plus_context_flatten,
-        'vector_store_chunk': convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk.index.reconstruct_n()),
-        'vector_store_chunk_plus_context':  convert_ndarray_to_list(KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context.index.reconstruct_n())
-    }
-
-    df = pd.DataFrame(data_embedding)
-
-    df.to_csv("create_chunk_plus_context_embedding.csv", index=False)
-
-
-if __name__ == "__main__":
-    main()
+df.to_csv("create_chunk_plus_context_embedding.csv", index=False)
