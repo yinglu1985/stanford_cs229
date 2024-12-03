@@ -325,3 +325,336 @@
 - (2) Misleading, Advantage retains discount factors.  
 - (3) Incorrect, Advantage supplements rather than replaces state-value functions.  
 - (4) Misleading, Advantage is unrelated to off-policy learning.  
+
+---
+
+### Question 11:
+**Why does Advantage Actor-Critic (A2C) reduce training time compared to the Reinforce algorithm?**
+
+1. A2C uses a value function to estimate the advantage, reducing variance compared to Monte Carlo-based Reinforce.  
+2. A2C skips action-value function computations, using only state-value functions for updates.  
+3. A2C combines Monte Carlo sampling with dynamic programming to bypass trajectory dependency.  
+4. A2C replaces all policy updates with a single deterministic update per episode.
+
+**Correct Answer**: 1  
+**Reasoning**: A2C stabilizes training by using Advantage estimates based on the TD error, reducing variance inherent in Monte Carlo methods like Reinforce.  
+
+**Document Usage**:  
+- **Document 83**: Discusses value and policy-based methods, foundational to A2C.  
+- **Document 468**: Highlights RL goals of efficiency and stability.  
+- **Document 485**: Defines Monte Carlo methods and introduces variance challenges.  
+- **Document 729**: Explains TD approaches in Q-Learning, relevant to A2C.  
+- **Document 971**: Recaps policy learning with reduced variance as a goal.  
+- **Document 1306**: Explicitly describes A2C’s variance reduction strategies.  
+- **Document 1674**: Details recursive calculations (Bellman equations) that inform Advantage estimation.  
+- **Document 1954**: Quiz contrasts Reinforce with A2C.  
+- **Document 1968**: Differentiates Monte Carlo and TD methods.  
+- **Document 2011**: Links Bellman to faster learning strategies.  
+- **Document 2143**: Builds on Q-Learning TD methods to highlight differences.  
+- **Document 2451**: Recaps RL strategies, emphasizing efficient learning.  
+- **Document 2517**: Discusses A2C’s variance mitigation and time efficiency.  
+
+**Distractors**:  
+- (2) Incorrect, A2C uses both state and action-value functions.  
+- (3) Misleading, A2C does not combine Monte Carlo and dynamic programming.  
+- (4) Incorrect, A2C performs updates at every step, not once per episode.  
+
+---
+
+### Question 12:
+**How does the epsilon parameter in the Epsilon-Greedy Strategy impact Q-Learning’s ability to learn optimal policies?**
+
+1. A high epsilon ensures extensive exploration, which is critical in the early stages of training.  
+2. A high epsilon avoids overfitting by reducing reliance on the Q-function.  
+3. A low epsilon ensures more diverse trajectories, improving state-value coverage.  
+4. A low epsilon prevents premature convergence by encouraging more random actions.
+
+**Correct Answer**: 1  
+**Reasoning**: A high epsilon encourages exploration, allowing the agent to visit more states and learn their values early in training.  
+
+**Document Usage**:  
+- **Document 83**: Introduces Epsilon-Greedy policies for exploration.  
+- **Document 468**: Summarizes exploration-exploitation trade-offs.  
+- **Document 485**: Defines Epsilon-Greedy explicitly.  
+- **Document 729**: Details Q-Learning’s reliance on epsilon to explore state-action spaces.  
+- **Document 971**: Explains the need for exploration in RL.  
+- **Document 1306**: Differentiates A2C’s policy gradients from Q-Learning exploration.  
+- **Document 1674**: Bellman’s recursive updates rely on well-explored spaces.  
+- **Document 1954**: Includes quiz scenarios emphasizing epsilon decay.  
+- **Document 1968**: Discusses exploration in value-based methods.  
+- **Document 2011**: Highlights epsilon's role in Q-Learning dynamics.  
+- **Document 2143**: Describes Epsilon-Greedy’s importance in Q-Learning.  
+- **Document 2451**: Recaps exploration strategies like Epsilon-Greedy.  
+- **Document 2517**: Contrasts exploration needs of Q-Learning and A2C.  
+
+**Distractors**:  
+- (2) Incorrect, overfitting is unrelated to epsilon in Q-Learning.  
+- (3) Misleading, diverse trajectories depend on exploration, but high epsilon avoids premature exploitation.  
+- (4) Incorrect, a high epsilon supports exploration, not low epsilon.  
+
+---
+
+### Question 13:
+**Why does Q-Learning use the greedy policy for updates while still exploring during training?**
+
+1. The greedy policy ensures that the updates move toward optimal Q-values based on maximum future rewards.  
+2. The greedy policy minimizes variance by reducing dependency on stochastic policies.  
+3. Exploration during training compensates for the greedy policy’s deterministic action selection.  
+4. Greedy updates eliminate the need for Bellman-based calculations.
+
+**Correct Answer**: 1  
+**Reasoning**: The greedy policy focuses updates on maximizing future rewards, while exploration ensures sufficient state-action space coverage.  
+
+**Document Usage**:  
+- **Document 83**: Differentiates greedy policies from exploration strategies.  
+- **Document 468**: Summarizes policy and value interactions in RL.  
+- **Document 485**: Defines off-policy and greedy updates.  
+- **Document 729**: Explains Q-Learning’s use of greedy policies for updates.  
+- **Document 971**: Highlights the importance of balancing deterministic and exploratory strategies.  
+- **Document 1306**: Contrasts greedy updates with A2C’s probabilistic policies.  
+- **Document 1674**: Discusses Bellman equations supporting greedy updates.  
+- **Document 1954**: Reinforces Q-learning’s greedy policy in quizzes.  
+- **Document 1968**: Explains policy derivation from value functions.  
+- **Document 2011**: Highlights greedy policy usage during updates.  
+- **Document 2143**: Describes exploration-exploitation in Q-Learning.  
+- **Document 2451**: Recaps the integration of greedy updates with exploration.  
+- **Document 2517**: Contrasts deterministic updates in Q-Learning with A2C.  
+
+**Distractors**:  
+- (2) Misleading, greedy updates do not address variance.  
+- (3) Partial truth, but greedy updates are for optimization, not compensating exploration.  
+- (4) Incorrect, Bellman calculations are integral to Q-Learning.  
+
+---
+
+### Question 14:
+**What is the primary reason Advantage functions are used in A2C instead of raw Q-values?**
+
+1. Advantage functions reduce variance by focusing on relative action quality rather than absolute values.  
+2. Q-values require additional normalization, making them less efficient for training.  
+3. Advantage functions eliminate the need for state-value functions in Actor-Critic.  
+4. Q-values cannot be estimated dynamically, unlike Advantage functions.
+
+**Correct Answer**: 1  
+**Reasoning**: Advantage functions highlight relative benefits, stabilizing learning and reducing variance.  
+
+**Document Usage**:  
+- **Document 83**: Discusses action-value relationships.  
+- **Document 468**: Highlights value-based method stability needs.  
+- **Document 485**: Introduces Advantage functions.  
+- **Document 729**: Explains Q-value limitations.  
+- **Document 971**: Emphasizes policy learning goals.  
+- **Document 1306**: Describes Advantage in A2C.  
+- **Document 1674**: Bellman relevance for relative estimations.  
+- **Document 1954**: Quiz contrasts Q-value and Advantage methods.  
+- **Document 1968**: Explains the role of Advantage in policy updates.  
+- **Document 2011**: Reinforces Q-value shortcomings for variance.  
+- **Document 2143**: Contrasts Q-value reliance with A2C.  
+- **Document 2451**: Recaps Advantage's role in learning efficiency.  
+- **Document 2517**: Highlights variance reduction with Advantage.  
+
+**Distractors**:  
+- (2) Incorrect, normalization is not a Q-value limitation.  
+- (3) Misleading, state-value functions are still used in A2C.  
+- (4) Incorrect, Q-values are dynamically estimated in Q-Learning.  
+
+---
+
+### Question 15:
+**Why is the Bellman equation critical in estimating future rewards in both Q-Learning and A2C?**
+
+1. It recursively decomposes future rewards into immediate rewards and the discounted value of future states.  
+2. It simplifies the computation of policies by eliminating the need for action-value functions.  
+3. It ensures variance reduction by averaging rewards over complete episodes.  
+4. It eliminates the need for exploration in Q-Learning and A2C.
+
+**Correct Answer**: 1  
+**Reasoning**: The Bellman equation provides a recursive framework that connects immediate rewards to the expected discounted future rewards, crucial for both Q-Learning and A2C.  
+
+**Document Usage**:  
+- **Document 83**: Discusses how Bellman simplifies value function calculations.  
+- **Document 468**: Summarizes Bellman’s importance in RL.  
+- **Document 485**: Highlights Bellman’s relevance for recursive updates.  
+- **Document 729**: Explains its direct application in Q-Learning.  
+- **Document 971**: Describes the importance of estimating cumulative rewards.  
+- **Document 1306**: Details its role in Advantage estimation for A2C.  
+- **Document 1674**: Elaborates on Bellman equation dynamics.  
+- **Document 1954**: Quiz emphasizes Bellman’s role in policy learning.  
+- **Document 1968**: Explains Bellman’s application in value-based methods.  
+- **Document 2011**: Highlights its role in RL computations.  
+- **Document 2143**: Reinforces its necessity for future reward estimation.  
+- **Document 2451**: Recaps its centrality in value-based RL.  
+- **Document 2517**: Connects Bellman to efficient learning in A2C.  
+
+**Distractors**:  
+- (2) Incorrect, Bellman does not eliminate action-value functions.  
+- (3) Misleading, Bellman focuses on step-based updates, not averaging.  
+- (4) Incorrect, exploration remains necessary in RL.  
+
+---
+
+### Question 16:
+**What differentiates A2C’s Advantage function from the Q-values used in Q-Learning?**
+
+1. The Advantage function calculates the relative benefit of actions, whereas Q-values estimate absolute value for state-action pairs.  
+2. Q-values require Monte Carlo sampling, while the Advantage function does not.  
+3. The Advantage function is derived from TD error, whereas Q-values are not.  
+4. Q-values cannot be used for policy updates, while the Advantage function is designed for this purpose.
+
+**Correct Answer**: 1  
+**Reasoning**: The Advantage function highlights the relative benefit of actions compared to the state’s average value, while Q-values estimate the total expected return of state-action pairs.  
+
+**Document Usage**:  
+- **Document 83**: Discusses Q-values in value-based methods.  
+- **Document 468**: Summarizes RL goals of stability and efficiency.  
+- **Document 485**: Introduces the Advantage function and Q-values.  
+- **Document 729**: Explains Q-value updates in Q-Learning.  
+- **Document 971**: Differentiates absolute and relative value concepts.  
+- **Document 1306**: Details Advantage’s role in A2C.  
+- **Document 1674**: Relates Bellman recursion to Advantage and Q-value calculations.  
+- **Document 1954**: Quiz explores Advantage versus Q-value distinctions.  
+- **Document 1968**: Explains policy updates via value functions.  
+- **Document 2011**: Highlights Q-values in Q-Learning.  
+- **Document 2143**: Connects Advantage and Q-value applications.  
+- **Document 2451**: Recaps relative versus absolute value learning.  
+- **Document 2517**: Emphasizes Advantage’s benefits in reducing variance.  
+
+**Distractors**:  
+- (2) Incorrect, Q-values do not depend on Monte Carlo sampling.  
+- (3) Misleading, both Advantage and Q-values can involve TD error.  
+- (4) Incorrect, Q-values are integral to policy derivation in Q-Learning.  
+
+---
+
+### Question 17:
+**Why does the Advantage function require a state-value function to calculate relative benefits in A2C?**
+
+1. The state-value function provides the baseline against which action values are compared.  
+2. It normalizes the action-value function to ensure variance reduction.  
+3. It replaces the need for Bellman-based updates in A2C.  
+4. It ensures on-policy learning by restricting updates to current states.
+
+**Correct Answer**: 1  
+**Reasoning**: The state-value function serves as a baseline, allowing the Advantage function to calculate the relative benefit of actions at a state.  
+
+**Document Usage**:  
+- **Document 83**: Explains state-value functions as key to RL.  
+- **Document 468**: Summarizes state-value functions' role in learning.  
+- **Document 485**: Defines the connection between state-value and action-value functions.  
+- **Document 729**: Details Q-value derivation from state-action values.  
+- **Document 971**: Emphasizes baselines in learning efficiency.  
+- **Document 1306**: Details Advantage calculation in A2C.  
+- **Document 1674**: Relates state-value functions to Bellman equations.  
+- **Document 1954**: Explores state-value and Advantage connections.  
+- **Document 1968**: Discusses baseline concepts in policy learning.  
+- **Document 2011**: Reinforces baseline’s importance in RL.  
+- **Document 2143**: Connects baselines to Advantage variance reduction.  
+- **Document 2451**: Recaps state-value function applications.  
+- **Document 2517**: Highlights baselines' importance in A2C.  
+
+**Distractors**:  
+- (2) Incorrect, normalization is not the primary role.  
+- (3) Incorrect, Bellman updates remain central.  
+- (4) Misleading, on-policy learning is not ensured by state-value functions alone.  
+
+---
+
+### Question 18:
+**Why is the Epsilon-Greedy Strategy necessary in Q-Learning but not in A2C?**
+
+1. Q-Learning relies on exploration to discover optimal state-action pairs, while A2C explores naturally through stochastic policies.  
+2. A2C directly optimizes actions using Advantage values, bypassing exploration needs.  
+3. Epsilon-Greedy encourages on-policy learning, which A2C already implements.  
+4. Q-Learning requires additional randomness to offset deterministic Bellman updates.
+
+**Correct Answer**: 1  
+**Reasoning**: Q-Learning requires explicit exploration (Epsilon-Greedy) since it derives deterministic policies, while A2C’s stochastic policies inherently explore.  
+
+**Document Usage**:  
+- **Document 83**: Differentiates exploration in policy and value methods.  
+- **Document 468**: Summarizes Epsilon-Greedy’s necessity in Q-Learning.  
+- **Document 485**: Introduces Epsilon-Greedy strategies.  
+- **Document 729**: Highlights exploration challenges in Q-Learning.  
+- **Document 971**: Discusses exploration as critical in RL.  
+- **Document 1306**: Contrasts exploration in Q-Learning and A2C.  
+- **Document 1674**: Relates exploration to Bellman updates.  
+- **Document 1954**: Quiz reinforces Epsilon-Greedy’s role.  
+- **Document 1968**: Explains exploration-exploitation trade-offs.  
+- **Document 2011**: Highlights deterministic nature of Q-Learning policies.  
+- **Document 2143**: Discusses Epsilon-Greedy applications in Q-Learning.  
+- **Document 2451**: Recaps Q-Learning’s need for explicit exploration.  
+- **Document 2517**: Explores A2C’s inherent stochasticity.  
+
+**Distractors**:  
+- (2) Misleading, Advantage does not eliminate exploration needs.  
+- (3) Incorrect, Epsilon-Greedy does not enforce on-policy learning.  
+- (4) Misleading, randomness offsets deterministic policies but is not Bellman-specific.  
+
+---
+
+### Question 19:
+**What is a key reason Q-Learning is considered an off-policy algorithm?**
+
+1. It updates Q-values using a greedy policy while acting based on an exploratory policy.  
+2. It calculates values for all state-action pairs regardless of the current policy.  
+3. It alternates between on-policy and off-policy learning during updates.  
+4. It does not use a Bellman-based recursive update formula.
+
+**Correct Answer**: 1  
+**Reasoning**: Q-Learning uses an exploratory policy for actions during training but updates Q-values using a greedy policy, making it off-policy.  
+
+**Document Usage**:  
+- **Document 83**: Explains policy behavior in value-based methods.  
+- **Document 468**: Defines off-policy algorithms.  
+- **Document 485**: Differentiates Q-Learning as off-policy.  
+- **Document 729**: Highlights Q-Learning’s greedy update mechanism.  
+- **Document 971**: Explains off-policy characteristics.  
+- **Document 1306**: Contrasts A2C on-policy nature with Q-Learning.  
+- **Document 1674**: Discusses recursive updates and policies.  
+- **Document 1954**: Quiz reinforces off-policy mechanisms.  
+- **Document 1968
+
+**: Explains policy differences in RL.  
+- **Document 2011**: Links Q-Learning to off-policy definitions.  
+- **Document 2143**: Explains policy differences in Q-Learning.  
+- **Document 2451**: Recaps on-policy versus off-policy distinctions.  
+- **Document 2517**: Highlights Q-Learning’s update dynamics.  
+
+**Distractors**:  
+- (2) Incorrect, value updates depend on the current policy indirectly.  
+- (3) Misleading, Q-Learning is consistently off-policy.  
+- (4) Incorrect, Bellman updates are used in Q-Learning.  
+
+---
+
+### Question 20:
+**What is the primary goal of reducing variance in A2C using Advantage functions?**
+
+1. To stabilize training by improving gradient estimates for policy updates.  
+2. To eliminate the need for state-action values in learning.  
+3. To simplify the Bellman equation by avoiding recursion.  
+4. To ensure policies converge to deterministic actions.
+
+**Correct Answer**: 1  
+**Reasoning**: Reducing variance improves policy gradient estimates, stabilizing training.  
+
+**Document Usage**:  
+- **Document 83**: Highlights the importance of value-based stability.  
+- **Document 468**: Emphasizes stability in RL.  
+- **Document 485**: Connects variance reduction to Advantage functions.  
+- **Document 729**: Links Bellman updates to training stability.  
+- **Document 971**: Describes the importance of variance reduction in learning.  
+- **Document 1306**: Details Advantage’s role in A2C variance reduction.  
+- **Document 1674**: Explains Bellman equations and their impact on variance.  
+- **Document 1954**: Quiz links variance reduction to A2C success.  
+- **Document 1968**: Highlights Advantage in policy stability.  
+- **Document 2011**: Relates Bellman equations to training variance.  
+- **Document 2143**: Contrasts Q-Learning and A2C on variance issues.  
+- **Document 2451**: Recaps variance reduction strategies.  
+- **Document 2517**: Highlights Advantage’s impact on A2C efficiency.  
+
+**Distractors**:  
+- (2) Incorrect, state-action values remain central to A2C.  
+- (3) Incorrect, recursion remains key.  
+- (4) Misleading, deterministic convergence is not a primary goal.  
+
