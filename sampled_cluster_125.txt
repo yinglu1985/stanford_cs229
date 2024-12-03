@@ -1,0 +1,1860 @@
+Unique Document Numbers: 207, 236, 538, 1009, 1187, 1291, 1533, 1572, 1639, 1677, 1700, 1919, 1993, 2636
+
+Document 207: # Simulate with Godot
+
+### Install in Godot 4
+This integration has been developed for Godot 4.x. You can install Godot from [this page](https://godotengine.org/article/dev-snapshot-godot-4-0-alpha-11).
+Currently Godot4 is still in early alpha stage, therefore you will be able to find updates pretty often. Another solution is to build the engine from source using [this guide](https://docs.godotengine.org/en/latest/development/compiling/).
+
+The integration provided is a simple Godot scene containing a default setup (with a directional light and free camera) to connect to the TCP server and load commands sent from the Simulate API.
+To load it:
+- Launch your Godot 4 installation
+- On the Project Manager, select `Import > Browse`
+- Navigate to the path of this repository and select the `integrations/Godot/simulate-godot/project.godot` file
+- Finally click `Import & Edit`
+
+You can also copy the simulate-godot folder to a different place and load it from there.
+
+### Use the scene
+- Create the `simulate` scene with a `'Godot'` engine, for example:
+```
+import simulate as sm
+
+scene = sm.Scene(engine="godot")
+scene += sm.Sphere()
+scene.render()
+```
+- Run the python script. It should print "Waiting for connection...", meaning that it has spawned a websocket server, and is waiting for a connection from the Godot client.
+- Press Play (F5) in Godot. It should connect to the Python client, then display a basic Sphere. The python script should finish execution.
+
+
+
+Document 236:  gradio-ui
+
+This folder contains all of the Gradio UI and component source code.
+
+- [set up](#setup)
+- [running the application](#running-the-application)
+- [local development](#local-development)
+- [building for production](#building-for-production)
+- [quality checks](#quality-checks)
+- [ci checks](#ci-checks)
+
+## setup
+
+This folder is managed as 'monorepo' a multi-package repository which make dependency management very simple. In order to do this we use `pnpm` as our package manager.
+
+Make sure [`pnpm`](https://pnpm.io/) is installed by [following the installation instructions for your system](https://pnpm.io/installation).
+
+You will also need `node` which you probably already have
+
+## running the application
+
+Install all dependencies:
+
+```bash
+pnpm i
+```
+
+This will install the dependencies for all packages and link any local packages
+
+## local development
+
+To develop locally, open two terminal tabs from the root of the repository.
+
+Run the python test server, from the root directory:
+
+```bash
+cd demo/kitchen_sink
+python run.py
+```
+
+This will start a development server on port `7860` that the web app is expecting.
+
+Run the web app:
+
+```bash
+pnpm dev
+```
+
+## building for production
+
+Run the build:
+
+```bash
+pnpm build
+```
+
+This will create the necessary files in `js/app/public` and also in `gradio/templates/frontend`.
+
+## quality checks
+
+The repos currently has two quality checks that can be run locally and are run in CI.
+
+### formatting
+
+Formatting is handled by [`prettier`](https://prettier.io/) to ensure consistent formatting and prevent style-focused conversations. Formatting failures will fails CI and should be reoslve before merging.
+
+To check formatting:
+
+```bash
+pnpm format:check
+```
+
+If you have formatting failures then you can run the following command to fix them:
+
+```bash
+pnpm format:write
+```
+
+### type checking
+
+We use [TypeScript](https://www.typescriptlang.org/) to provide static types to javascript code. These checks are also run in CI.
+
+to typecheck the code:
+
+```bash
+pnpm ts:check
+```
+
+## ci checks
+
+Currently the following checks are run in CI:
+
+### static checks
+
+- Format check (`pnpm format:check`)
+- Build css (`pnpm css`)
+- Build client (`pnpm build`)
+- Type check (`pnpm ts:check`)
+- Unit tests (`pnpm test:run`)
+
+### functional test
+
+```
+pip install -r demo/outbreak_forecast/requirements.txt
+pnpm exec playwright install chromium
+pnpm exec playwright install-deps chromium
+pnpm test:browser:full
+```
+
+
+Document 538: # Unity Integration
+
+### Install with the Unity editor
+Currently we use Unity version `2021.3.2f1` as the development version.
+
+To install and run the project in Unity:
+- First install Unity `2021.3.2f1` using the Unity Hub if you don't have it. 
+- From the Unity Hub, open the project at `./integrations/Unity/simulate-unity`
+- Open the Sample Scene or create a new scene with an empty GameObject with a `Client.cs` component attached
+
+(Note that installation of this specific version on Apple Silicon Mac's has been tricky -- to do so, first install Unity Hub, then download the [source](https://unity3d.com/get-unity/download/archive) package from Unity directly, then install the package. 
+It is easiest to do this from a fresh Unity install; detecting the second from-source Unity editor version is more challenging.)
+
+### Run with the Unity engine
+1. If it's not already opened, open the Unity project with Scene with a GameObject with a `Client.cs` component attached.
+2. Create the `simulate` scene with a `'Unity'` engine, for example:
+```
+import simulate as sm
+
+scene = sm.Scene(engine="unity")
+scene += sm.Sphere()
+scene.render()
+```
+3. Run the python script. It should print "Waiting for connection...", meaning that it has spawned a websocket server, and is waiting for a connection from the Unity client.
+4. Press Play in Unity. It should connect to the Python client, then display a basic Sphere. The python script should finish execution.
+
+### Creating Custom Functionality
+Communication with the backend is through JSON messages over a socket connection. A socket command has the following format:
+```
+{
+    "type": "MyCommand",
+    "contents": json.dumps({
+        "message": "hello from python API"
+    })
+}
+```
+The `type` and `contents` dict is a wrapper around each command. The internal contents of the command are an embedded JSON string in `contents`.
+
+The above example will only work if `MyCommand` is implemented in the backend. To implement this in the backend, add the following script in the Unity project:
+```
+using UnityEngine.Events;
+using Simulate;
+
+public class MyCommand : Command {
+    public string message;
+    
+    public override void Execute(UnityAction<string> callback) {
+        Debug.Log(message);
+        callback("{}");
+    }
+}
+```
+
+Simply adding the script to the project should be sufficient to make it work. Any public fields defined in a `Command` can be passed through your `contents` JSON. Only simple types (i.e. `int`, `float`, `string`) and arrays are supported, not Lists, Vector3, etc., since it uses Unity's built-in JSON serialization. You need to serialize/deserialize these yourself.
+
+### Colliders Extension
+The HF_colliders extension is based loosely on the PANDA3D_physics_collision_shapes extension: https://github.com/Moguri/glTF/tree/panda3d_physics_collision_shapes/extensions/2.0/Vendor/PANDA3D_collision_shapes
+
+This extension is defined both at the scene-level (storing the colliders) and the node-level (storing pointers to the colliders). For example, a node with a box collider:
+```
+{
+    "extensions": {
+        "HF_colliders": {
+            collider: {
+                "type": "BOX",
+                "boundingBox": [
+                    0.5,
+                    0.5,
+                    0.5
+                ]
+            }
+        }
+    }
+}
+```
+
+This currently only supports Box, Sphere, and Capsule colliders (the Unity/PhysX colliders).
+
+Differences from the PANDA3D extension:
+- Properties `group` and `mask` are removed, since layer interactions are defined engine-wide, not per-object, in Unity. Layer interaction will need to be defined a different way if added, or throw an error if there are conflicting layer interactions per-object.
+- `Intangible` moved from outer class to shape class, because there can be a mix of intangible and tangible colliders on an object.
+- Removed redundant features (offset rotation, scale, matrix, axis) that can be represented through other properties.
+- Removed support for multiple shapes. Multiple collision shapes can be equivalently represented with child nodes.
+
+Collider TODOs:
+- Add mesh collider support.
+- Add support for other collider shapes, i.e. bullet has cylinders and cones. This isn't natively in Unity/PhysX, but could be approximated on import.
+
+
+Document 1009:  Gradio Demo: markdown_example
+
+
+```
+!pip install -q gradio 
+```
+
+
+```
+import gradio as gr
+
+css = (
+    "footer {display: none !important;} .gradio-container {min-height: 0px !important;}"
+)
+
+# sample md stolen from https://dillinger.io/
+
+md = """# Dillinger
+## _The Last Markdown Editor, Ever_
+
+This is some `inline code`, it is good.
+
+[![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
+
+Dillinger is a cloud-enabled, mobile-ready, offline-storage compatible,
+AngularJS-powered HTML5 Markdown editor.
+
+- Type some Markdown on the left
+- See HTML in the right
+- ✨Magic ✨
+
+## Features
+
+- Import a HTML file and watch it magically convert to Markdown
+- Drag and drop images (requires your Dropbox account be linked)
+- Import and save files from GitHub, Dropbox, Google Drive and One Drive
+- Drag and drop markdown and HTML files into Dillinger
+- Export documents as Markdown, HTML and PDF
+
+Markdown is a lightweight markup language based on the formatting conventions
+that people naturally use in email.
+As [John Gruber] writes on the [Markdown site][df1]
+
+> The overriding design goal for Markdown's
+> formatting syntax is to make it as readable
+> as possible. The idea is that a
+> Markdown-formatted document should be
+> publishable as-is, as plain text, without
+> looking like it's been marked up with tags
+> or formatting instructions.
+
+This text you see here is *actually- written in Markdown! To get a feel
+for Markdown's syntax, type some text into the left window and
+watch the results in the right.
+
+## Tech
+
+Dillinger uses a number of open source projects to work properly:
+
+- [AngularJS] - HTML enhanced for web apps!
+- [Ace Editor] - awesome web-based text editor
+- [markdown-it] - Markdown parser done right. Fast and easy to extend.
+- [Twitter Bootstrap] - great UI boilerplate for modern web apps
+- [node.js] - evented I/O for the backend
+- [Express] - fast node.js network app framework [@tjholowaychuk]
+- [Gulp] - the streaming build system
+- [Breakdance](https://breakdance.github.io/breakdance/) - HTML
+to Markdown converter
+- [jQuery] - duh
+
+And of course Dillinger itself is open source with a [public repository][dill]
+ on GitHub.
+
+## Installation
+
+Dillinger requires [Node.js](https://nodejs.org/) v10+ to run.
+
+Install the dependencies and devDependencies and start the server.
+
+```bash
+cd dillinger
+npm i
+node app
+```
+
+For production environments...
+
+```bash
+npm install --production
+NODE_ENV=production node app
+```
+
+## Plugins
+
+Dillinger is currently extended with the following plugins.
+Instructions on how to use them in your own application are linked below.
+
+| Plugin | README |
+| ------ | ------ |
+| Dropbox | [plugins/dropbox/README.md][PlDb] |
+| GitHub | [plugins/github/README.md][PlGh] |
+| Google Drive | [plugins/googledrive/README.md][PlGd] |
+| OneDrive | [plugins/onedrive/README.md][PlOd] |
+| Medium | [plugins/medium/README.md][PlMe] |
+| Google Analytics | [plugins/googleanalytics/README.md][PlGa] |
+
+## Development
+
+Want to contribute? Great!
+
+Dillinger uses Gulp + Webpack for fast developing.
+Make a change in your file and instantaneously see your updates!
+
+Open your favorite Terminal and run these commands.
+
+First Tab:
+
+```bash
+node app
+```
+
+Second Tab:
+
+```bash
+gulp watch
+```
+
+(optional) Third:
+
+```bash
+karma test
+```
+
+#### Building for source
+
+For production release:
+
+```bash
+gulp build --prod
+```
+
+Generating pre-built zip archives for distribution:
+
+```bash
+gulp build dist --prod
+```
+
+## Docker
+
+Dillinger is very easy to install and deploy in a Docker container.
+
+By default, the Docker will expose port 8080, so change this within the
+Dockerfile if necessary. When ready, simply use the Dockerfile to
+build the image.
+
+```bash
+cd dillinger
+docker build -t <youruser>/dillinger:${package.json.version} .
+```
+
+This will create the dillinger image and pull in the necessary dependencies.
+Be sure to swap out `${package.json.version}` with the actual
+version of Dillinger.
+
+Once done, run the Docker image and map the port to whatever you wish on
+your host. In this example, we simply map port 8000 of the host to
+port 8080 of the Docker (or whatever port was exposed in the Dockerfile):
+
+```bash
+docker run -d -p 8000:8080 --restart=always --cap-add=SYS_ADMIN --name=dillinger <youruser>/dillinger:${package.json.version}
+```
+
+> Note: `--capt-add=SYS-ADMIN` is required for PDF rendering.
+
+Verify the deployment by navigating to your server address in
+your preferred browser.
+
+```bash
+127.0.0.1:8000
+```
+
+```python
+import gradio as gr
+
+gr.Blocks() as demo:
+    gr.Markdown(value=md)
+
+demo.launch()
+```
+
+```js
+function fancyAlert(arg) {
+    if(arg) {
+        $.facebox({div:'#foo'})
+    }
+}
+```
+
+## License
+
+MIT
+
+**Free Software, Hell Yeah!**
+
+[//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
+
+   [dill]: <https://github.com/joemccann/dillinger>
+   [git-repo-url]: <https://github.com/joemccann/dillinger.git>
+   [john gruber]: <http://daringfireball.net>
+   [df1]: <http://daringfireball.net/projects/markdown/>
+   [markdown-it]: <https://github.com/markdown-it/markdown-it>
+   [Ace Editor]: <http://ace.ajax.org>
+   [node.js]: <http://nodejs.org>
+   [Twitter Bootstrap]: <http://twitter.github.com/bootstrap/>
+   [jQuery]: <http://jquery.com>
+   [@tjholowaychuk]: <http://twitter.com/tjholowaychuk>
+   [express]: <http://expressjs.com>
+   [AngularJS]: <http://angularjs.org>
+   [Gulp]: <http://gulpjs.com>
+
+   [PlDb]: <https://github.com/joemccann/dillinger/tree/master/plugins/dropbox/README.md>
+   [PlGh]: <https://github.com/joemccann/dillinger/tree/master/plugins/github/README.md>
+   [PlGd]: <https://github.com/joemccann/dillinger/tree/master/plugins/googledrive/README.md>
+   [PlOd]: <https://github.com/joemccann/dillinger/tree/master/plugins/onedrive/README.md>
+   [PlMe]: <https://github.com/joemccann/dillinger/tree/master/plugins/medium/README.md>
+   [PlGa]: <https://github.com/RahulHP/dillinger/blob/master/plugins/googleanalytics/README.md>
+
+"""
+with gr.Blocks(css=css) as demo:
+    gr.Markdown(value=md, header_links=True)
+
+demo.launch()
+
+```
+
+
+Document 1187: # Blender Integration
+
+### Install addon in Blender
+This integration has been developed for Blender 3.2. You can install Blender from [this page](https://www.blender.org/download/)
+
+- Launch Blender
+- Go to `Edit > Preferences > Add-ons > Install...`  
+- Select the `simulate_blender.zip` file next to this README.md file
+
+### Run in Blender
+- You might need to run Blender with admin rights
+- You can find an example script using the `simulate` API in `simulate/examples/blender_example.py` to create a scene
+- Run the python script. It should print "Waiting for connection...", meaning that it has spawned a websocket server, and is waiting for a connection from the Blender client
+- In Blender, open the submenus (little arrow in the top right)
+- Go in the `Simulation` category and click on `Import Scene`. It should connect to the Python client, then display the scene. The python script should finish execution
+- If you call `scene.render(path)`, Blender might freeze for a bit while rendering the scene to an image
+
+
+
+Document 1291: !---
+Copyright 2022 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+⚠️ Note that this file is in Markdown but contain specific syntax for our doc-builder (similar to MDX) that may not be
+rendered properly in your Markdown viewer.
+
+-->
+
+# Installation
+
+Install 🤗 Transformers for whichever deep learning library you're working with, setup your cache, and optionally configure 🤗 Transformers to run offline.
+
+🤗 Transformers is tested on Python 3.6+, PyTorch 1.1.0+, TensorFlow 2.0+, and Flax. Follow the installation instructions below for the deep learning library you are using:
+
+* [PyTorch](https://pytorch.org/get-started/locally/) installation instructions.
+* [TensorFlow 2.0](https://www.tensorflow.org/install/pip) installation instructions.
+* [Flax](https://flax.readthedocs.io/en/latest/) installation instructions.
+
+## Install with pip
+
+You should install 🤗 Transformers in a [virtual environment](https://docs.python.org/3/library/venv.html). If you're unfamiliar with Python virtual environments, take a look at this [guide](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/). A virtual environment makes it easier to manage different projects, and avoid compatibility issues between dependencies.
+
+Start by creating a virtual environment in your project directory:
+
+```bash
+python -m venv .env
+```
+
+Activate the virtual environment. On Linux and MacOs:
+
+```bash
+source .env/bin/activate
+```
+Activate Virtual environment on Windows
+
+```bash
+.env/Scripts/activate
+```
+
+Now you're ready to install 🤗 Transformers with the following command:
+
+```bash
+pip install transformers
+```
+
+For CPU-support only, you can conveniently install 🤗 Transformers and a deep learning library in one line. For example, install 🤗 Transformers and PyTorch with:
+
+```bash
+pip install 'transformers[torch]'
+```
+
+🤗 Transformers and TensorFlow 2.0:
+
+```bash
+pip install 'transformers[tf-cpu]'
+```
+
+<Tip warning={true}>
+
+M1 / ARM Users
+    
+You will need to install the following before installing TensorFLow 2.0
+```
+brew install cmake
+brew install pkg-config
+```
+
+</Tip>
+
+🤗 Transformers and Flax:
+
+```bash
+pip install 'transformers[flax]'
+```
+
+Finally, check if 🤗 Transformers has been properly installed by running the following command. It will download a pretrained model:
+
+```bash
+python -c "from transformers import pipeline; print(pipeline('sentiment-analysis')('we love you'))"
+```
+
+Then print out the label and score:
+
+```bash
+[{'label': 'POSITIVE', 'score': 0.9998704791069031}]
+```
+
+## Install from source
+
+Install 🤗 Transformers from source with the following command:
+
+```bash
+pip install git+https://github.com/huggingface/transformers
+```
+
+This command installs the bleeding edge `main` version rather than the latest `stable` version. The `main` version is useful for staying up-to-date with the latest developments. For instance, if a bug has been fixed since the last official release but a new release hasn't been rolled out yet. However, this means the `main` version may not always be stable. We strive to keep the `main` version operational, and most issues are usually resolved within a few hours or a day. If you run into a problem, please open an [Issue](https://github.com/huggingface/transformers/issues) so we can fix it even sooner!
+
+Check if 🤗 Transformers has been properly installed by running the following command:
+
+```bash
+python -c "from transformers import pipeline; print(pipeline('sentiment-analysis')('I love you'))"
+```
+
+## Editable install
+
+You will need an editable install if you'd like to:
+
+* Use the `main` version of the source code.
+* Contribute to 🤗 Transformers and need to test changes in the code.
+
+Clone the repository and install 🤗 Transformers with the following commands:
+
+```bash
+git clone https://github.com/huggingface/transformers.git
+cd transformers
+pip install -e .
+```
+
+These commands will link the folder you cloned the repository to and your Python library paths. Python will now look inside the folder you cloned to in addition to the normal library paths. For example, if your Python packages are typically installed in `~/anaconda3/envs/main/lib/python3.7/site-packages/`, Python will also search the folder you cloned to: `~/transformers/`.
+
+<Tip warning={true}>
+
+You must keep the `transformers` folder if you want to keep using the library.
+
+</Tip>
+
+Now you can easily update your clone to the latest version of 🤗 Transformers with the following command:
+
+```bash
+cd ~/transformers/
+git pull
+```
+
+Your Python environment will find the `main` version of 🤗 Transformers on the next run.
+
+## Install with conda
+
+Install from the conda channel `huggingface`:
+
+```bash
+conda install -c huggingface transformers
+```
+
+## Cache setup
+
+Pretrained models are downloaded and locally cached at: `~/.cache/huggingface/hub`. This is the default directory given by the shell environment variable `TRANSFORMERS_CACHE`. On Windows, the default directory is given by `C:\Users\username\.cache\huggingface\hub`. You can change the shell environment variables shown below - in order of priority - to specify a different cache directory:
+
+1. Shell environment variable (default): `HUGGINGFACE_HUB_CACHE` or `TRANSFORMERS_CACHE`.
+2. Shell environment variable: `HF_HOME`.
+3. Shell environment variable: `XDG_CACHE_HOME` + `/huggingface`.
+
+<Tip>
+
+🤗 Transformers will use the shell environment variables `PYTORCH_TRANSFORMERS_CACHE` or `PYTORCH_PRETRAINED_BERT_CACHE` if you are coming from an earlier iteration of this library and have set those environment variables, unless you specify the shell environment variable `TRANSFORMERS_CACHE`.
+
+</Tip>
+
+## Offline mode
+
+Run 🤗 Transformers in a firewalled or offline environment with locally cached files by setting the environment variable `TRANSFORMERS_OFFLINE=1`.
+
+<Tip>
+
+Add [🤗 Datasets](https://huggingface.co/docs/datasets/) to your offline training workflow with the environment variable `HF_DATASETS_OFFLINE=1`.
+
+</Tip>
+
+```bash
+HF_DATASETS_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+python examples/pytorch/translation/run_translation.py --model_name_or_path t5-small --dataset_name wmt16 --dataset_config ro-en ...
+```
+
+This script should run without hanging or waiting to timeout because it won't attempt to download the model from the Hub.
+
+You can also bypass loading a model from the Hub from each [`~PreTrainedModel.from_pretrained`] call with the [`local_files_only`] parameter. When set to `True`, only local files are loaded:
+
+```py
+from transformers import T5Model
+
+model = T5Model.from_pretrained("./path/to/local/directory", local_files_only=True)
+```
+
+### Fetch models and tokenizers to use offline
+
+Another option for using 🤗 Transformers offline is to download the files ahead of time, and then point to their local path when you need to use them offline. There are three ways to do this:
+
+* Download a file through the user interface on the [Model Hub](https://huggingface.co/models) by clicking on the ↓ icon.
+
+    ![download-icon](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/download-icon.png)
+
+* Use the [`PreTrainedModel.from_pretrained`] and [`PreTrainedModel.save_pretrained`] workflow:
+
+    1. Download your files ahead of time with [`PreTrainedModel.from_pretrained`]:
+
+    ```py
+    >>> from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+    >>> tokenizer = AutoTokenizer.from_pretrained("bigscience/T0_3B")
+    >>> model = AutoModelForSeq2SeqLM.from_pretrained("bigscience/T0_3B")
+    ```
+
+    2. Save your files to a specified directory with [`PreTrainedModel.save_pretrained`]:
+
+    ```py
+    >>> tokenizer.save_pretrained("./your/path/bigscience_t0")
+    >>> model.save_pretrained("./your/path/bigscience_t0")
+    ```
+
+    3. Now when you're offline, reload your files with [`PreTrainedModel.from_pretrained`] from the specified directory:
+
+    ```py
+    >>> tokenizer = AutoTokenizer.from_pretrained("./your/path/bigscience_t0")
+    >>> model = AutoModel.from_pretrained("./your/path/bigscience_t0")
+    ```
+
+* Programmatically download files with the [huggingface_hub](https://github.com/huggingface/huggingface_hub/tree/main/src/huggingface_hub) library:
+
+    1. Install the `huggingface_hub` library in your virtual environment:
+
+    ```bash
+    python -m pip install huggingface_hub
+    ```
+
+    2. Use the [`hf_hub_download`](https://huggingface.co/docs/hub/adding-a-library#download-files-from-the-hub) function to download a file to a specific path. For example, the following command downloads the `config.json` file from the [T0](https://huggingface.co/bigscience/T0_3B) model to your desired path:
+
+    ```py
+    >>> from huggingface_hub import hf_hub_download
+
+    >>> hf_hub_download(repo_id="bigscience/T0_3B", filename="config.json", cache_dir="./your/path/bigscience_t0")
+    ```
+
+Once your file is downloaded and locally cached, specify it's local path to load and use it:
+
+```py
+>>> from transformers import AutoConfig
+
+>>> config = AutoConfig.from_pretrained("./your/path/bigscience_t0/config.json")
+```
+
+<Tip>
+
+See the [How to download files from the Hub](https://huggingface.co/docs/hub/how-to-downstream) section for more details on downloading files stored on the Hub.
+
+</Tip>
+
+
+Document 1533:  Models Download Stats
+
+## How are download stats generated for models?
+
+Counting the number of downloads for models is not a trivial task as a single model repository might contain multiple files, including multiple model weight files (e.g., with sharded models), and different formats depending on the library. To avoid double counting downloads (e.g., counting a single download of a model as multiple downloads), the Hub uses a set of query files that are employed for download counting. No information is sent from the user, and no additional calls are made for this. The count is done server-side as we serve files for downloads.
+
+Every HTTP request to these files, including `GET` and `HEAD` will be counted as a download. By default, when no library is specified, the Hub uses `config.json` as the default query file. Otherwise, the query file depends on each library, and the Hub might examine files such as `pytorch_model.bin` and `adapter_config.json`. 
+
+## Which are the query files for different libraries?
+
+By default, the Hub looks at `config.json`, `config.yaml`, `hyperparams.yaml`, and `meta.yaml`. For the following set of libraries, there are specific query files
+
+```json
+{
+    "adapter-transformers": {
+        filter: [
+            {
+                term: { path: "adapter_config.json" },
+            },
+        ],
+    },
+    "asteroid": {
+        filter: [
+            {
+                term: { path: "pytorch_model.bin" },
+            },
+        ],
+    },
+    "flair": {
+        filter: [
+            {
+                term: { path: "pytorch_model.bin" },
+            },
+        ],
+    },
+    "keras": {
+        filter: [
+            {
+                term: { path: "saved_model.pb" },
+            },
+        ],
+    },
+    "ml-agents": {
+        filter: [
+            {
+                wildcard: { path: "*.onnx" },
+            },
+        ],
+    },
+    "nemo": {
+        filter: [
+            {
+                wildcard: { path: "*.nemo" },
+            },
+        ],
+    },
+    "open_clip": {
+        filter: [
+            {
+                wildcard: { path: "*pytorch_model.bin" },
+            },
+        ],
+    },
+    "sample-factory": {
+        filter: [
+            {
+                term: { path: "cfg.json" },
+            },
+        ],
+    },
+    "paddlenlp": {
+        filter: [
+            {
+                term: { path: "model_config.json" },
+            },
+        ],
+    },
+    "speechbrain": {
+        filter: [
+            {
+                term: { path: "hyperparams.yaml" },
+            },
+        ],
+    },
+    "sklearn": {
+        filter: [
+            {
+                term: { path: "sklearn_model.joblib" },
+            },
+        ],
+    },
+    "spacy": {
+        filter: [
+            {
+                wildcard: { path: "*.whl" },
+            },
+        ],
+    },
+    "stanza": {
+        filter: [
+            {
+                term: { path: "models/default.zip" },
+            },
+        ],
+    },
+    "stable-baselines3": {
+        filter: [
+            {
+                wildcard: { path: "*.zip" },
+            },
+        ],
+    },
+    "timm": {
+        filter: [
+            {
+                terms: { path: ["pytorch_model.bin", "model.safetensors"] },
+            },
+        ],
+    },
+    "diffusers": {
+        /// Filter out nested safetensors and pickle weights to avoid double counting downloads from the diffusers lib
+        must_not: [
+            {
+                wildcard: { path: "*/*.safetensors" },
+            },
+            {
+                wildcard: { path: "*/*.bin" },
+            },
+        ],
+        /// Include documents that match at least one of the following rules
+        should: [
+            /// Downloaded from diffusers lib
+            {
+                term: { path: "model_index.json" },
+            },
+            /// Direct downloads (LoRa, Auto1111 and others)
+            {
+                wildcard: { path: "*.safetensors" },
+            },
+            {
+                wildcard: { path: "*.ckpt" },
+            },
+            {
+                wildcard: { path: "*.bin" },
+            },
+        ],
+        minimum_should_match: 1,
+    },
+    "peft": {
+        filter: [
+            {
+                term: { path: "adapter_config.json" },
+            },
+        ],
+    }
+}
+```
+
+
+Document 1572:  Testing mixed int8 quantization
+
+![HFxbitsandbytes.png](https://cdn-uploads.huggingface.co/production/uploads/1660567705337-62441d1d9fdefb55a0b7d12c.png)
+
+The following is the recipe on how to effectively debug `bitsandbytes` integration on Hugging Face `transformers`.
+
+## Library requirements
+
++ `transformers>=4.22.0`
++ `accelerate>=0.12.0` 
++ `bitsandbytes>=0.31.5`.
+## Hardware requirements
+
+The following instructions are tested with 2 NVIDIA-Tesla T4 GPUs. To run successfully `bitsandbytes` you would need a 8-bit core tensor supported GPU. Note that Turing, Ampere or newer architectures - e.g. T4, RTX20s RTX30s, A40-A100, A6000 should be supported. 
+
+## Virutal envs
+
+```bash
+conda create --name int8-testing python==3.8
+pip install bitsandbytes>=0.31.5
+pip install accelerate>=0.12.0
+pip install transformers>=4.23.0
+```
+if `transformers>=4.23.0` is not released yet, then use:
+```
+pip install git+https://github.com/huggingface/transformers.git
+```
+
+## Troubleshooting
+
+A list of common errors:
+
+### Torch does not correctly do the operations on GPU
+
+First check that:
+
+```py
+import torch
+
+vec = torch.randn(1, 2, 3).to(0)
+```
+
+Works without any error. If not, install torch using `conda` like:
+
+```bash
+conda create --name int8-testing python==3.8
+conda install pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch -c conda-forge
+pip install bitsandbytes>=0.31.5
+pip install accelerate>=0.12.0
+pip install transformers>=4.23.0
+```
+For the latest pytorch instructions please see [this](https://pytorch.org/get-started/locally/)
+
+and the snippet above should work.
+
+### ` bitsandbytes operations are not supported under CPU!`
+
+This happens when some Linear weights are set to the CPU when using `accelerate`. Please check carefully `model.hf_device_map` and make sure that there is no `Linear` module that is assigned to CPU. It is fine to have the last module (usually the Lm_head) set on CPU.
+
+### `To use the type as a Parameter, please correct the detach() semantics defined by __torch_dispatch__() implementation.`
+
+Use the latest version of `accelerate` with a command such as: `pip install -U accelerate` and the problem should be solved.
+
+### `Parameter has no attribue .CB` 
+
+Same solution as above.
+
+### `RuntimeError: CUDA error: an illegal memory access was encountered ... consider passing CUDA_LAUNCH_BLOCKING=1`
+
+Run your script by pre-pending `CUDA_LAUNCH_BLOCKING=1` and you should observe an error as described in the next section.
+
+### `CUDA illegal memory error: an illegal memory access at line...`:
+
+Check the CUDA verisons with:
+```
+nvcc --version
+```
+and confirm it is the same version as the one detected by `bitsandbytes`. If not, run:
+```
+ls -l $CONDA_PREFIX/lib/libcudart.so
+```
+or 
+```
+ls -l $LD_LIBRARY_PATH
+```
+Check if `libcudart.so` has a correct symlink that is set. Sometimes `nvcc` detects the correct CUDA version but `bitsandbytes` doesn't. You have to make sure that the symlink that is set for the file `libcudart.so` is redirected to the correct CUDA file. 
+
+Here is an example of a badly configured CUDA installation:
+
+`nvcc --version` gives:
+
+![Screenshot 2022-08-15 at 15.12.23.png](https://cdn-uploads.huggingface.co/production/uploads/1660569220888-62441d1d9fdefb55a0b7d12c.png)
+
+which means that the detected CUDA version is 11.3 but `bitsandbytes` outputs:
+
+![image.png](https://cdn-uploads.huggingface.co/production/uploads/1660569284243-62441d1d9fdefb55a0b7d12c.png)
+
+First check:
+
+```bash
+echo $LD_LIBRARY_PATH
+```
+
+If this contains multiple paths separated by `:`. Then you have to make sure that the correct CUDA version is set. By doing:
+
+```bash
+ls -l $path/libcudart.so
+```
+
+On each path (`$path`) separated by `:`.
+If not, simply run
+```bash
+ls -l $LD_LIBRARY_PATH/libcudart.so
+```
+
+and you can see
+
+![Screenshot 2022-08-15 at 15.12.33.png](https://cdn-uploads.huggingface.co/production/uploads/1660569176504-62441d1d9fdefb55a0b7d12c.png)
+
+If you see that the file is linked to the wrong CUDA version (here 10.2), find the correct location for `libcudart.so` (`find --name libcudart.so`) and replace the environment variable `LD_LIBRARY_PATH` with the one containing the correct `libcudart.so` file.
+
+Document 1639: # Requirements
+
+In order to generate the documentation, it is necessary to have a Python environment with the
+following:
+```python
+pip install sphinx sphinx_rtd_theme setuptools_rust
+```
+
+It is also necessary to have the `tokenizers` library in this same environment, for Sphinx to
+generate all the API Reference and links properly.  If you want to visualize the documentation with
+some modifications made to the Python bindings, make sure you build it from source.
+
+## Building the documentation
+
+Once everything is setup, you can build the documentation automatically for all the languages
+using the following command in the `/docs` folder:
+
+```bash
+make html_all
+```
+
+If you want to build only for a specific language, you can use:
+
+```bash
+make html O="-t python"
+```
+
+(Replacing `python` by the target language among `rust`, `node`, and `python`)
+
+
+**NOTE**
+
+If you are making any structural change to the documentation, it is recommended to clean the build
+directory before rebuilding:
+
+```bash
+make clean && make html_all
+```
+
+
+Document 1677: --
+title: "Deploying Hugging Face Models with BentoML: DeepFloyd IF in Action" 
+thumbnail: /blog/assets/deploy-deepfloydif-using-bentoml/thumbnail.png
+authors:
+- user: Sherlockk
+  guest: true
+- user: larme
+  guest: true
+---
+
+# Deploying Hugging Face Models with BentoML: DeepFloyd IF in Action
+
+
+Hugging Face provides a Hub platform that allows you to upload, share, and deploy your models with ease. It saves developers the time and computational resources required to train models from scratch. However, deploying models in a real-world production environment or in a cloud-native way can still present challenges.
+
+This is where BentoML comes into the picture. BentoML is an open-source platform for machine learning model serving and deployment. It is a unified framework for building, shipping, and scaling production-ready AI applications incorporating traditional, pre-trained, and generative models as well as Large Language Models. Here is how you use the BentoML framework from a high-level perspective:
+
+1. **Define a model**: Before you can use BentoML, you need a machine learning model (or multiple models). This model can be trained using a machine learning library such as TensorFlow and PyTorch.
+2. **Save the model**: Once you have a trained model, save it to the BentoML local Model Store, which is used for managing all your trained models locally as well as accessing them for serving.
+3. **Create a BentoML Service**: You create a `service.py` file to wrap the model and define the serving logic. It specifies [Runners](https://docs.bentoml.org/en/latest/concepts/runner.html) for models to run model inference at scale and exposes APIs to define how to process inputs and outputs.
+4. **Build a Bento**: By creating a configuration YAML file, you package all the models and the [Service](https://docs.bentoml.org/en/latest/concepts/service.html) into a [Bento](https://docs.bentoml.org/en/latest/concepts/bento.html), a deployable artifact containing all the code and dependencies.
+5. **Deploy the Bento**: Once the Bento is ready, you can containerize the Bento to create a Docker image and run it on Kubernetes. Alternatively, deploy the Bento directly to Yatai, an open-source, end-to-end solution for automating and running machine learning deployments on Kubernetes at scale.
+
+In this blog post, we will demonstrate how to integrate [DeepFloyd IF](https://huggingface.co/docs/diffusers/api/pipelines/if) with BentoML by following the above workflow.
+
+## Table of contents
+
+- [A brief introduction to DeepFloyd IF](#a-brief-introduction-to-deepfloyd-if)
+- [Preparing the environment](#preparing-the-environment)
+- [Downloading the model to the BentoML Model Store](#downloading-the-model-to-the-bentoml-model-store)
+- [Starting a BentoML Service](#starting-a-bentoml-service)
+- [Building and serving a Bento](#building-and-serving-a-bento)
+- [Testing the server](#testing-the-server)
+- [What's next](#whats-next)
+
+## A brief introduction to DeepFloyd IF
+
+DeepFloyd IF is a state-of-the-art, open-source text-to-image model. It stands apart from latent diffusion models like Stable Diffusion due to its distinct operational strategy and architecture.
+
+DeepFloyd IF delivers a high degree of photorealism and sophisticated language understanding. Unlike Stable Diffusion, DeepFloyd IF works directly in pixel space, leveraging a modular structure that encompasses a frozen text encoder and three cascaded pixel diffusion modules. Each module plays a unique role in the process: Stage 1 is responsible for the creation of a base 64x64 px image, which is then progressively upscaled to 1024x1024 px across Stage 2 and Stage 3. Another critical aspect of DeepFloyd IF’s uniqueness is its integration of a Large Language Model (T5-XXL-1.1) to encode prompts, which offers superior understanding of complex prompts. For more information, see this [Stability AI blog post about DeepFloyd IF](https://stability.ai/blog/deepfloyd-if-text-to-image-model).
+
+To make sure your DeepFloyd IF application runs in high performance in production, you may want to allocate and manage your resources wisely. In this respect, BentoML allows you to scale the Runners independently for each Stage. For example, you can use more Pods for your Stage 1 Runners or allocate more powerful GPU servers to them.
+
+## Preparing the environment
+
+[This GitHub repository](https://github.com/bentoml/IF-multi-GPUs-demo) stores all necessary files for this project. To run this project locally, make sure you have the following:
+
+- Python 3.8+
+- `pip` installed
+- At least 2x16GB VRAM GPU or 1x40 VRAM GPU. For this project, we used a machine of type `n1-standard-16` from Google Cloud plus 64 GB of RAM and 2 NVIDIA T4 GPUs. Note that while it is possible to run IF on a single T4, it is not recommended for production-grade serving
+
+Once the prerequisites are met, clone the project repository to your local machine and navigate to the target directory.
+
+```bash
+git clone https://github.com/bentoml/IF-multi-GPUs-demo.git
+cd IF-multi-GPUs-demo
+```
+
+Before building the application, let’s briefly explore the key files within this directory:
+
+- `import_models.py`: Defines the models for each stage of the [`IFPipeline`](https://huggingface.co/docs/diffusers/api/pipelines/if). You use this file to download all the models to your local machine so that you can package them into a single Bento.
+- `requirements.txt`: Defines all the packages and dependencies required for this project.
+- `service.py`: Defines a BentoML Service, which contains three Runners created using the `to_runner` method and exposes an API for generating images. The API takes a JSON object as input (i.e. prompts and negative prompts) and returns an image as output by using a sequence of models.
+- `start-server.py`: Starts a BentoML HTTP server through the Service defined in `service.py` and creates a Gradio web interface for users to enter prompts to generate images.
+- `bentofile.yaml`: Defines the metadata of the Bento to be built, including the Service, Python packages, and models.
+
+We recommend you create a Virtual Environment for dependency isolation. For example, run the following command to activate `myenv`:
+
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+If you haven’t previously downloaded models from Hugging Face using the command line, you must log in first:
+
+```bash
+pip install -U huggingface_hub
+huggingface-cli login
+```
+
+## Downloading the model to the BentoML Model Store
+
+As mentioned above, you need to download all the models used by each DeepFloyd IF stage. Once you have set up the environment, run the following command to download models to your local Model store. The process may take some time.
+
+```bash
+python import_models.py
+```
+
+Once the downloads are complete, view the models in the Model store.
+
+```bash
+$ bentoml models list
+
+Tag                                                                 Module                Size       Creation Time
+sd-upscaler:bb2ckpa3uoypynry                                        bentoml.diffusers     16.29 GiB  2023-07-06 10:15:53
+if-stage2:v1.0                                                      bentoml.diffusers     13.63 GiB  2023-07-06 09:55:49
+if-stage1:v1.0                                                      bentoml.diffusers     19.33 GiB  2023-07-06 09:37:59
+```
+
+## Starting a BentoML Service
+
+You can directly run the BentoML HTTP server with a web UI powered by Gradio using the `start-server.py` file, which is the entry point of this application. It provides various options for customizing the execution and managing GPU allocation among different Stages. You may use different commands depending on your GPU setup:
+
+- For a GPU with over 40GB VRAM, run all models on the same GPU.
+
+  ```bash
+  python start-server.py
+  ```
+
+- For two Tesla T4 with 15GB VRAM each, assign the Stage 1 model to the first GPU, and the Stage 2 and Stage 3 models to the second GPU.
+
+  ```bash
+  python start-server.py --stage1-gpu=0 --stage2-gpu=1 --stage3-gpu=1
+  ```
+
+- For one Tesla T4 with 15GB VRAM and two additional GPUs with smaller VRAM size, assign the Stage 1 model to T4, and Stage 2 and Stage 3 models to the second and third GPUs respectively.
+
+  ```bash
+  python start-server.py --stage1-gpu=0 --stage2-gpu=1 --stage3-gpu=2
+  ```
+
+To see all customizable options (like the server’s port), run:
+
+```bash
+python start-server.py --help
+```
+
+## Testing the server
+
+Once the server starts, you can visit the web UI at http://localhost:7860. The BentoML API endpoint is also accessible at http://localhost:3000. Here is an example of a prompt and a negative prompt.
+
+Prompt:
+
+> orange and black, head shot of a woman standing under street lights, dark theme, Frank Miller, cinema, ultra realistic, ambiance, insanely detailed and intricate, hyper realistic, 8k resolution, photorealistic, highly textured, intricate details
+
+Negative prompt:
+
+> tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, mutation, mutated, extra limbs, extra legs, extra arms, disfigured, deformed, cross-eye, body out of frame, blurry, bad art, bad anatomy, blurred, text, watermark, grainy
+
+Result:
+
+![Output image](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/deploy-deepfloydif-using-bentoml/output-image.png)
+
+## Building and serving a Bento
+
+Now that you have successfully run DeepFloyd IF locally, you can package it into a Bento by running the following command in the project directory.
+
+```bash
+$ bentoml build
+
+Converting 'IF-stage1' to lowercase: 'if-stage1'.
+Converting 'IF-stage2' to lowercase: 'if-stage2'.
+Converting DeepFloyd-IF to lowercase: deepfloyd-if.
+Building BentoML service "deepfloyd-if:6ufnybq3vwszgnry" from build context "/Users/xxx/Documents/github/IF-multi-GPUs-demo".
+Packing model "sd-upscaler:bb2ckpa3uoypynry"
+Packing model "if-stage1:v1.0"
+Packing model "if-stage2:v1.0"
+Locking PyPI package versions.
+
+██████╗░███████╗███╗░░██╗████████╗░█████╗░███╗░░░███╗██╗░░░░░
+██╔══██╗██╔════╝████╗░██║╚══██╔══╝██╔══██╗████╗░████║██║░░░░░
+██████╦╝█████╗░░██╔██╗██║░░░██║░░░██║░░██║██╔████╔██║██║░░░░░
+██╔══██╗██╔══╝░░██║╚████║░░░██║░░░██║░░██║██║╚██╔╝██║██║░░░░░
+██████╦╝███████╗██║░╚███║░░░██║░░░╚█████╔╝██║░╚═╝░██║███████╗
+╚═════╝░╚══════╝╚═╝░░╚══╝░░░╚═╝░░░░╚════╝░╚═╝░░░░░╚═╝╚══════╝
+
+Successfully built Bento(tag="deepfloyd-if:6ufnybq3vwszgnry").
+```
+
+View the Bento in the local Bento Store.
+
+```bash
+$ bentoml list
+
+Tag                               Size       Creation Time
+deepfloyd-if:6ufnybq3vwszgnry     49.25 GiB  2023-07-06 11:34:52
+```
+
+The Bento is now ready for serving in production.
+
+```bash
+bentoml serve deepfloyd-if:6ufnybq3vwszgnry
+```
+
+To deploy the Bento in a more cloud-native way, generate a Docker image by running the following command:
+
+```bash
+bentoml containerize deepfloyd-if:6ufnybq3vwszgnry
+```
+
+You can then deploy the model on Kubernetes.
+
+## What’s next?
+
+[BentoML](https://github.com/bentoml/BentoML) provides a powerful and straightforward way to deploy Hugging Face models for production. With its support for a wide range of ML frameworks and easy-to-use APIs, you can ship your model to production in no time. Whether you’re working with the DeepFloyd IF model or any other model on the Hugging Face Model Hub, BentoML can help you bring your models to life.
+
+Check out the following resources to see what you can build with BentoML and its ecosystem tools, and stay tuned for more information about BentoML.
+
+- [OpenLLM](https://github.com/bentoml/OpenLLM) - An open platform for operating Large Language Models (LLMs) in production.
+- [StableDiffusion](https://github.com/bentoml/stable-diffusion-bentoml) - Create your own text-to-image service with any diffusion models.
+- [Transformer NLP Service](https://github.com/bentoml/transformers-nlp-service) - Online inference API for Transformer NLP models.
+- Join the [BentoML community on Slack](https://l.bentoml.com/join-slack).
+- Follow us on [Twitter](https://twitter.com/bentomlai) and [LinkedIn](https://www.linkedin.com/company/bentoml/).
+
+Document 1700:  Developer guide
+
+This document is intended for developers who want to install, test or contribute to the code.
+
+## Install
+
+To start working on the project:
+
+```bash
+git clone git@github.com:huggingface/datasets-server.git
+cd datasets-server
+```
+
+Install docker (see https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository and https://docs.docker.com/engine/install/linux-postinstall/)
+
+Run the project locally:
+
+```bash
+make start
+```
+
+Run the project in development mode:
+
+```bash
+make dev-start
+```
+
+In development mode, you don't need to rebuild the docker images to apply a change in a worker.
+You can just restart the worker's docker container and it will apply your changes.
+
+To install a single job (in [jobs](./jobs)), library (in [libs](./libs)) or service (in [services](./services)), go to their respective directory, and install Python 3.9 (consider [pyenv](https://github.com/pyenv/pyenv)) and [poetry](https://python-poetry.org/docs/master/#installation) (don't forget to add `poetry` to the `PATH` environment variable).
+
+If you use pyenv:
+
+```bash
+cd libs/libcommon/
+pyenv install 3.9.18
+pyenv local 3.9.18
+poetry env use python3.9
+```
+
+then:
+
+```bash
+make install
+```
+
+It will create a virtual environment in a `./.venv/` subdirectory.
+
+If you use VSCode, it might be useful to use the ["monorepo" workspace](./.vscode/monorepo.code-workspace) (see a [blogpost](https://medium.com/rewrite-tech/visual-studio-code-tips-for-monorepo-development-with-multi-root-workspaces-and-extension-6b69420ecd12) for more explanations). It is a multi-root workspace, with one folder for each library and service (note that we hide them from the ROOT to avoid editing there). Each folder has its own Python interpreter, with access to the dependencies installed by Poetry. You might have to manually select the interpreter in every folder though on first access, then VSCode stores the information in its local storage.
+
+## Architecture
+
+The repository is structured as a monorepo, with Python libraries and applications in [jobs](./jobs), [libs](./libs) and [services](./services):
+
+- [jobs](./jobs) contains the one-time jobs run by Helm before deploying the pods. For now, the only job migrates the databases when needed.
+- [libs](./libs) contains the Python libraries used by the services and workers. For now, the only library is [libcommon](./libs/libcommon), which contains the common code for the services and workers.
+- [services](./services) contains the applications: the public API, the admin API (which is separated from the public API and might be published under its own domain at some point), the reverse proxy, and the worker that processes the queue asynchronously: it gets a "job" (caution: the jobs stored in the queue, not the Helm jobs), processes the expected response for the associated endpoint, and stores the response in the cache.
+
+If you have access to the internal HF notion, see https://www.notion.so/huggingface2/Datasets-server-464848da2a984e999c540a4aa7f0ece5.
+
+The application is distributed in several components.
+
+[api](./services/api) is a web server that exposes the [API endpoints](https://huggingface.co/docs/datasets-server). Apart from some endpoints (`valid`, `is-valid`), all the responses are served from pre-computed responses. That's the main point of this project: generating these responses takes time, and the API server provides this service to the users.
+
+The precomputed responses are stored in a Mongo database called "cache". They are computed by [workers](./services/worker) which take their jobs from a job queue stored in a Mongo database called "queue", and store the results (error or valid response) into the "cache" (see [libcommon](./libs/libcommon)).
+
+The API service exposes the `/webhook` endpoint which is called by the Hub on every creation, update or deletion of a dataset on the Hub. On deletion, the cached responses are deleted. On creation or update, a new job is appended in the "queue" database.
+
+Note that every worker has its own job queue:
+
+- `/splits`: the job is to refresh a dataset, namely to get the list of [config](https://huggingface.co/docs/datasets/v2.1.0/en/load_hub#select-a-configuration) and [split](https://huggingface.co/docs/datasets/v2.1.0/en/load_hub#select-a-split) names, then to create a new job for every split for the workers that depend on it.
+- `/first-rows`: the job is to get the columns and the first 100 rows of the split.
+- `/parquet`: the job is to download the dataset, prepare a parquet version of every split (various sharded parquet files), and upload them to the `refs/convert/parquet` "branch" of the dataset repository on the Hub.
+
+Note also that the workers create local files when the dataset contains images or audios. A shared directory (`ASSETS_STORAGE_DIRECTORY`) must therefore be provisioned with sufficient space for the generated files. The `/first-rows` endpoint responses contain URLs to these files, served by the API under the `/assets/` endpoint.
+
+Hence, the working application has:
+
+- one instance of the API service which exposes a port
+- N1 instances of the `splits` worker, N2 instances of the `first-rows` worker (N2 should generally be higher than N1), N3 instances of the `parquet` worker
+- a Mongo server with two databases: "cache" and "queue"
+- a shared directory for the assets
+
+The application also has:
+
+- a reverse proxy in front of the API to serve static files and proxy the rest to the API server
+- an admin server to serve technical endpoints
+
+The following environments contain all the modules: reverse proxy, API server, admin API server, workers, and the Mongo database.
+
+| Environment | URL                                                  | Type              | How to deploy                           |
+| ----------- | ---------------------------------------------------- | ----------------- | --------------------------------------- |
+| Production  | https://datasets-server.huggingface.co               | Helm / Kubernetes | `make upgrade-prod` in [chart](./chart) |
+| Development | https://datasets-server.us.dev.moon.huggingface.tech | Helm / Kubernetes | `make upgrade-dev` in [chart](./chart)  |
+| Local build | http://localhost:8100                                | Docker compose    | `make start` (builds docker images)     |
+
+## Quality
+
+The CI checks the quality of the code through a [GitHub action](./.github/workflows/_quality-python.yml). To manually format the code of a job, library, service or worker:
+
+```bash
+make style
+```
+
+To check the quality (which includes checking the style, but also security vulnerabilities):
+
+```bash
+make quality
+```
+
+## Tests
+
+The CI checks the tests a [GitHub action](./.github/workflows/unit-tests.yml). To manually test a job, library, service or worker:
+
+```bash
+make test
+```
+
+Note that it requires the resources to be ready, ie. mongo and the storage for assets.
+
+To launch the end to end tests:
+
+```bash
+make e2e
+```
+
+## Poetry
+
+### Versions
+
+If service is updated, we don't update its version in the `pyproject.yaml` file. But we have to update the [helm chart](./chart/) with the new image tag, corresponding to the last build docker published on docker.io by the CI.
+
+## Pull requests
+
+All the contributions should go through a pull request. The pull requests must be "squashed" (ie: one commit per pull request).
+
+## GitHub Actions
+
+You can use [act](https://github.com/nektos/act) to test the GitHub Actions (see [.github/workflows/](.github/workflows/)) locally. It reduces the retroaction loop when working on the GitHub Actions, avoid polluting the branches with empty pushes only meant to trigger the CI, and allows to only run specific actions.
+
+For example, to launch the build and push of the docker images to Docker Hub:
+
+```
+act -j build-and-push-image-to-docker-hub --secret-file my.secrets
+```
+
+with `my.secrets` a file with the secrets:
+
+```
+DOCKERHUB_USERNAME=xxx
+DOCKERHUB_PASSWORD=xxx
+GITHUB_TOKEN=xxx
+```
+
+## Set up development environment
+
+### Linux
+
+Install pyenv:
+
+```bash
+$ curl https://pyenv.run | bash
+```
+
+Install Python 3.9.18:
+
+```bash
+$ pyenv install 3.9.18
+```
+
+Check that the expected local version of Python is used:
+
+```bash
+$ cd services/worker
+$ python --version
+Python 3.9.18
+```
+
+Install Poetry:
+
+```bash
+curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.4.2 python3 -
+```
+
+Set the Python version to use with Poetry:
+
+```bash
+poetry env use 3.9.18
+```
+
+Install the dependencies:
+
+```bash
+make install
+```
+
+
+### Mac OS
+
+To install the [worker](./services/worker) on Mac OS, you can follow the next steps.
+
+#### First: as an administrator
+
+Install brew:
+
+```bash
+$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Install ICU:
+
+```bash
+$ brew install icu4c
+
+
+==> Caveats
+icu4c is keg-only, which means it was not symlinked into /opt/homebrew,
+because macOS provides libicucore.dylib (but nothing else).
+
+If you need to have icu4c first in your PATH, run:
+  echo 'export PATH="/opt/homebrew/opt/icu4c/bin:$PATH"' >> ~/.zshrc
+  echo 'export PATH="/opt/homebrew/opt/icu4c/sbin:$PATH"' >> ~/.zshrc
+
+For compilers to find icu4c you may need to set:
+  export LDFLAGS="-L/opt/homebrew/opt/icu4c/lib"
+  export CPPFLAGS="-I/opt/homebrew/opt/icu4c/include"
+```
+
+#### Then: as a normal user
+
+Add ICU to the path:
+
+```bash
+$ echo 'export PATH="/opt/homebrew/opt/icu4c/bin:$PATH"' >> ~/.zshrc
+$ echo 'export PATH="/opt/homebrew/opt/icu4c/sbin:$PATH"' >> ~/.zshrc
+```
+
+Install pyenv:
+
+```bash
+$ curl https://pyenv.run | bash
+```
+
+append the following lines to ~/.zshrc:
+
+```bash
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+```
+
+Logout and login again.
+
+Install Python 3.9.18:
+
+```bash
+$ pyenv install 3.9.18
+```
+
+Check that the expected local version of Python is used:
+
+```bash
+$ cd services/worker
+$ python --version
+Python 3.9.18
+```
+
+Install poetry:
+
+```bash
+curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.4.2 python3 -
+```
+
+append the following lines to ~/.zshrc:
+
+```bash
+export PATH="/Users/slesage2/.local/bin:$PATH"
+```
+
+Install rust:
+
+```bash
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+$ source $HOME/.cargo/env
+```
+
+Set the python version to use with poetry:
+
+```bash
+poetry env use 3.9.18
+```
+
+Avoid an issue with Apache beam (https://github.com/python-poetry/poetry/issues/4888#issuecomment-1208408509):
+
+```bash
+poetry config experimental.new-installer false
+```
+
+Install the dependencies:
+
+```bash
+make install
+```
+
+
+Document 1919:  Introduction[[introduction]]
+
+Welcome to the Hugging Face course! This introduction will guide you through setting up a working environment. If you're just starting the course, we recommend you first take a look at [Chapter 1](/course/chapter1), then come back and set up your environment so you can try the code yourself.
+
+All the libraries that we'll be using in this course are available as Python packages, so here we'll show you how to set up a Python environment and install the specific libraries you'll need.
+
+We'll cover two ways of setting up your working environment, using a Colab notebook or a Python virtual environment. Feel free to choose the one that resonates with you the most. For beginners, we strongly recommend that you get started by using a Colab notebook.
+
+Note that we will not be covering the Windows system. If you're running on Windows, we recommend following along using a Colab notebook. If you're using a Linux distribution or macOS, you can use either approach described here.
+
+Most of the course relies on you having a Hugging Face account. We recommend creating one now: [create an account](https://huggingface.co/join).
+
+## Using a Google Colab notebook[[using-a-google-colab-notebook]]
+
+Using a Colab notebook is the simplest possible setup; boot up a notebook in your browser and get straight to coding! 
+
+If you're not familiar with Colab, we recommend you start by following the [introduction](https://colab.research.google.com/notebooks/intro.ipynb). Colab allows you to use some accelerating hardware, like GPUs or TPUs, and it is free for smaller workloads.
+
+Once you're comfortable moving around in Colab, create a new notebook and get started with the setup:
+
+<div class="flex justify-center">
+<img src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter0/new_colab.png" alt="An empty colab notebook" width="80%"/>
+</div>
+
+The next step is to install the libraries that we'll be using in this course. We'll use `pip` for the installation, which is the package manager for Python. In notebooks, you can run system commands by preceding them with the `!` character, so you can install the 🤗 Transformers library as follows:
+
+```
+!pip install transformers
+```
+
+You can make sure the package was correctly installed by importing it within your Python runtime:
+
+```
+import transformers
+```
+
+<div class="flex justify-center">
+<img src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter0/install.gif" alt="A gif showing the result of the two commands above: installation and import" width="80%"/>
+</div>
+
+This installs a very light version of 🤗 Transformers. In particular, no specific machine learning frameworks (like PyTorch or TensorFlow) are installed. Since we'll be using a lot of different features of the library, we recommend installing the development version, which comes with all the required dependencies for pretty much any imaginable use case:
+
+```
+!pip install transformers[sentencepiece]
+```
+
+This will take a bit of time, but then you'll be ready to go for the rest of the course!
+
+## Using a Python virtual environment[[using-a-python-virtual-environment]]
+
+If you prefer to use a Python virtual environment, the first step is to install Python on your system. We recommend following [this guide](https://realpython.com/installing-python/) to get started.
+
+Once you have Python installed, you should be able to run Python commands in your terminal. You can start by running the following command to ensure that it is correctly installed before proceeding to the next steps: `python --version`. This should print out the Python version now available on your system.
+
+When running a Python command in your terminal, such as `python --version`, you should think of the program running your command as the "main" Python on your system. We recommend keeping this main installation free of any packages, and using it to create separate environments for each application you work on — this way, each application can have its own dependencies and packages, and you won't need to worry about potential compatibility issues with other applications.
+
+In Python this is done with [*virtual environments*](https://docs.python.org/3/tutorial/venv.html), which are self-contained directory trees that each contain a Python installation with a particular Python version alongside all the packages the application needs. Creating such a virtual environment can be done with a number of different tools, but we'll use the official Python package for that purpose, which is called [`venv`](https://docs.python.org/3/library/venv.html#module-venv).
+
+First, create the directory you'd like your application to live in — for example, you might want to make a new directory called *transformers-course* at the root of your home directory:
+
+```
+mkdir ~/transformers-course
+cd ~/transformers-course
+```
+
+From inside this directory, create a virtual environment using the Python `venv` module:
+
+```
+python -m venv .env
+```
+
+You should now have a directory called *.env* in your otherwise empty folder:
+
+```
+ls -a
+```
+
+```out
+.      ..    .env
+```
+
+You can jump in and out of your virtual environment with the `activate` and `deactivate` scripts:
+
+```
+# Activate the virtual environment
+source .env/bin/activate
+
+# Deactivate the virtual environment
+source .env/bin/deactivate
+```
+
+You can make sure that the environment is activated by running the `which python` command: if it points to the virtual environment, then you have successfully activated it!
+
+```
+which python
+```
+
+```out
+/home/<user>/transformers-course/.env/bin/python
+```
+
+### Installing dependencies[[installing-dependencies]]
+
+As in the previous section on using Google Colab instances, you'll now need to install the packages required to continue. Again, you can install the development version of 🤗 Transformers using the `pip` package manager:
+
+```
+pip install "transformers[sentencepiece]"
+```
+
+You're now all set up and ready to go!
+
+
+Document 1993:  Subtitles for the course videos
+
+This folder contains all the subtitles for the course videos on YouTube.
+
+## How to translate the subtitles
+
+To translate the subtitles, we'll use two nifty libraries that can (a) grab all the YouTube videos associated with the course playlist and (b) translate them on the fly.
+
+To get started, install the following:
+
+```bash
+python -m pip install youtube_transcript_api youtube-search-python pandas tqdm
+```
+
+Next, run the following script:
+
+```bash
+python utils/generate_subtitles.py --language LANG_CODE
+```
+
+where `LANG_CODE` is the same language ID used to denote the chosen language the `chapters` folder. If everything goes well, you should end up with a set of translated `.srt` files with timestamps in the `subtitles/LANG_CODE` folder along with some metadata in `metadata.csv`.
+
+Some languages like Simplified Chinese have a different YouTube language code (`zh-Hans`) to the one used in the course (`zh-CN`). For these languages, you also need to specify the YouTube language code, e.g.:
+
+```bash
+python utils/generate_subtitles.py --language zh-CN --youtube_language_code zh-Hans
+```
+
+Once you have the `.srt` files you can manually fix any translation errors and then open a pull request with the new files.
+
+# Convert bilingual subtitles to monolingual subtitles
+
+In some SRT files, the English caption line is conventionally placed at the last line of each subtitle block to enable easier comparison when correcting the machine translation.
+
+For example, in the `zh-CN` subtitles, each block has the following format:
+
+```
+1
+00:00:05,850 --> 00:00:07,713
+欢迎来到 Hugging Face 课程。
+Welcome to the Hugging Face Course.
+```
+
+To upload the SRT file to YouTube, we need the subtitle in monolingual format, i.e. the above block should read:
+
+```
+1
+00:00:05,850 --> 00:00:07,713
+欢迎来到 Hugging Face 课程。
+```
+
+To handle this, we provide a script that converts the bilingual SRT files to monolingual ones. To perform the conversion, run:
+
+```bash
+python utils/convert_bilingual_monolingual.py --input_language_folder subtitles/LANG_ID --output_language_folder tmp-subtitles
+```
+
+Document 2636:  Installation
+
+Before you start, you'll need to setup your environment and install the appropriate packages. 🤗 Datasets is tested on **Python 3.7+**.
+
+<Tip>
+
+If you want to use 🤗 Datasets with TensorFlow or PyTorch, you'll need to install them separately. Refer to the [TensorFlow installation page](https://www.tensorflow.org/install/pip#tensorflow-2-packages-are-available) or the [PyTorch installation page](https://pytorch.org/get-started/locally/#start-locally) for the specific install command for your framework.
+
+</Tip>
+
+## Virtual environment
+
+You should install 🤗 Datasets in a [virtual environment](https://docs.python.org/3/library/venv.html) to keep things tidy and avoid dependency conflicts.
+
+1. Create and navigate to your project directory:
+
+   ```bash
+   mkdir ~/my-project
+   cd ~/my-project
+   ```
+
+2. Start a virtual environment inside your directory:
+
+   ```bash
+   python -m venv .env
+   ```
+
+3. Activate and deactivate the virtual environment with the following commands:
+
+   ```bash
+   # Activate the virtual environment
+   source .env/bin/activate
+   
+   # Deactivate the virtual environment
+   source .env/bin/deactivate
+   ```
+
+Once you've created your virtual environment, you can install 🤗 Datasets in it.
+
+## pip
+
+The most straightforward way to install 🤗 Datasets is with pip:
+
+```bash
+pip install datasets
+```
+
+Run the following command to check if 🤗 Datasets has been properly installed:
+
+```bash
+python -c "from datasets import load_dataset; print(load_dataset('squad', split='train')[0])"
+```
+
+This command downloads version 1 of the [Stanford Question Answering Dataset (SQuAD)](https://rajpurkar.github.io/SQuAD-explorer/), loads the training split, and prints the first training example. You should see:
+
+```python
+{'answers': {'answer_start': [515], 'text': ['Saint Bernadette Soubirous']}, 'context': 'Architecturally, the school has a Catholic character. Atop the Main Building\'s gold dome is a golden statue of the Virgin Mary. Immediately in front of the Main Building and facing it, is a copper statue of Christ with arms upraised with the legend "Venite Ad Me Omnes". Next to the Main Building is the Basilica of the Sacred Heart. Immediately behind the basilica is the Grotto, a Marian place of prayer and reflection. It is a replica of the grotto at Lourdes, France where the Virgin Mary reputedly appeared to Saint Bernadette Soubirous in 1858. At the end of the main drive (and in a direct line that connects through 3 statues and the Gold Dome), is a simple, modern stone statue of Mary.', 'id': '5733be284776f41900661182', 'question': 'To whom did the Virgin Mary allegedly appear in 1858 in Lourdes France?', 'title': 'University_of_Notre_Dame'}
+```
+
+## Audio
+
+To work with audio datasets, you need to install the [`Audio`] feature as an extra dependency:
+
+```bash
+pip install datasets[audio]
+```
+
+<Tip warning={true}>
+
+To decode mp3 files, you need to have at least version 1.1.0 of the `libsndfile` system library. Usually, it's bundled with the python [`soundfile`](https://github.com/bastibe/python-soundfile) package, which is installed as an extra audio dependency for 🤗 Datasets.
+For Linux, the required version of `libsndfile` is bundled with `soundfile` starting from version 0.12.0. You can run the following command to determine which version of `libsndfile` is being used by `soundfile`:
+
+```bash
+python -c "import soundfile; print(soundfile.__libsndfile_version__)"
+```
+
+</Tip>
+
+
+## Vision
+
+To work with image datasets, you need to install the [`Image`] feature as an extra dependency:
+
+```bash
+pip install datasets[vision]
+```
+
+## source
+
+Building 🤗 Datasets from source lets you make changes to the code base. To install from the source, clone the repository and install with the following commands:
+
+```bash
+git clone https://github.com/huggingface/datasets.git
+cd datasets
+pip install -e .
+```
+
+Again, you can check if 🤗 Datasets was properly installed with the following command:
+
+```bash
+python -c "from datasets import load_dataset; print(load_dataset('squad', split='train')[0])"
+```
+
+## conda
+
+🤗 Datasets can also be installed from conda, a package management system:
+
+```bash
+conda install -c huggingface -c conda-forge datasets
+```
+
+
