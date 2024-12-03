@@ -1,0 +1,327 @@
+### Question 1:
+**Which statement best explains why the Advantage Actor-Critic (A2C) method uses the Advantage function instead of directly using a Q-function in reinforcement learning?**
+
+1. It reduces the variance of policy updates by subtracting the state-value function from the action-value function, which is directly proportional to TD targets.  
+2. The Q-function inherently provides biased results for stochastic policies due to its inability to generalize across episodes.  
+3. The Advantage function is computationally simpler than using the state-value function alone for training.  
+4. Using the Advantage function enables a Monte Carlo update instead of a Temporal Difference (TD) update.
+
+**Correct Answer**: 1  
+**Reasoning**: The Advantage function stabilizes training by reducing variance and focusing on the relative benefit of an action compared to the state average.  
+
+**Document Usage**:  
+- **Document 83**: Discusses the relationship between state-value and action-value functions, providing context for subtracting the mean value.  
+- **Document 468**: Summarizes value-based methods and their reliance on expected returns.  
+- **Document 485**: Defines strategies like TD learning and Advantage function nuances.  
+- **Document 729**: Explains the role of action-value functions in off-policy learning.  
+- **Document 971**: Recaps RL's goal of maximizing expected cumulative reward, relevant to variance.  
+- **Document 1306**: Specifically introduces the Advantage Actor-Critic (A2C) approach and the importance of variance reduction.  
+- **Document 1674**: Covers Bellman equations and their relevance to calculating state-value functions.  
+- **Document 1954**: Discusses Q-learning and contrasts it with Advantage updates.  
+- **Document 1968**: Describes indirect training of policies via value functions.  
+- **Document 2011**: Reinforces action-value calculations via Q-functions.  
+- **Document 2143**: Revisits Q-learning updates that are contrasted in A2C.  
+- **Document 2451**: Emphasizes learning strategies like TD learning and Monte Carlo in reducing computational cost.  
+- **Document 2517**: Explicitly details the role of Advantage functions in A2C, emphasizing variance reduction.
+
+**Distractors**:  
+- (2) Incorrect, as Q-functions are not inherently biased.  
+- (3) Misleading, Advantage requires both Q and state-value computations.  
+- (4) Incorrectly associates Advantage with Monte Carlo updates.  
+
+---
+
+### Question 2:
+**Why is the Epsilon-Greedy Strategy particularly suitable for Q-learning but less emphasized in Advantage Actor-Critic (A2C)?**
+
+1. Q-learning requires a balance between exploration and exploitation, which A2C handles through dynamic policy gradient updates.  
+2. Advantage Actor-Critic (A2C) relies entirely on deterministic policies, making exploration redundant.  
+3. Epsilon-Greedy Strategy is incompatible with continuous action spaces, which A2C focuses on.  
+4. Epsilon decay over time is not compatible with A2C's value-based computations.
+
+**Correct Answer**: 1  
+**Reasoning**: Q-learning uses Epsilon-Greedy to manage exploration, while A2C learns dynamically through policy updates.  
+
+**Document Usage**:  
+- **Document 83**: Explains Greedy Policy and its relationship with Q-learning.  
+- **Document 468**: Summarizes Q-learning's exploration-exploitation trade-off.  
+- **Document 485**: Defines Epsilon-Greedy explicitly.  
+- **Document 729**: Shows Q-learning's reliance on Epsilon-Greedy.  
+- **Document 971**: Highlights exploration-exploitation as core RL challenges.  
+- **Document 1306**: Describes how A2C reduces dependence on predefined exploration strategies.  
+- **Document 1674**: Bellman insights highlight Q-learning’s reliance on specific policies.  
+- **Document 1954**: Tests Epsilon-Greedy application in Q-learning quizzes.  
+- **Document 1968**: Differentiates policy-based and value-based strategies.  
+- **Document 2011**: Reinforces Epsilon-Greedy in Q-learning.  
+- **Document 2143**: Connects Q-learning’s trade-off to Epsilon strategies.  
+- **Document 2451**: Notes differences in methods like TD and Monte Carlo.  
+- **Document 2517**: A2C’s approach minimizes direct exploration need.  
+
+**Distractors**:  
+- (2) Incorrect, as A2C can handle stochastic policies.  
+- (3) Misleading, Epsilon-Greedy could be adapted to continuous spaces but isn’t used in A2C.  
+- (4) Incorrect, Epsilon decay is unrelated to value-based calculations.  
+
+---
+
+### Question 3:
+**What is the fundamental computational advantage of the Bellman equation in reinforcement learning methods?**
+
+1. It transforms the expected cumulative return calculation into a recursive formula involving immediate rewards and discounted future values.  
+2. It eliminates the need for discount factors by iteratively solving state values.  
+3. It computes the optimal policy directly without requiring policy updates.  
+4. It averages state-action values across all possible policies to improve learning efficiency.
+
+**Correct Answer**: 1  
+**Reasoning**: Bellman simplifies cumulative calculations using recursion.  
+
+**Document Usage**:  
+- **Document 83**: Introduces value functions and Bellman applications.  
+- **Document 468**: Summarizes Bellman’s role in value-based methods.  
+- **Document 485**: Defines Bellman as central to RL.  
+- **Document 729**: Shows Bellman in Q-function updates.  
+- **Document 971**: Provides foundational RL context for Bellman’s purpose.  
+- **Document 1306**: Differentiates between policy updates and Bellman recursion.  
+- **Document 1674**: Details Bellman equations thoroughly.  
+- **Document 1954**: Quiz tests Bellman applications in Q-learning.  
+- **Document 1968**: Contrasts Bellman with direct policy methods.  
+- **Document 2011**: Highlights recursive Q-value updates via Bellman.  
+- **Document 2143**: Builds on Bellman for Q-learning.  
+- **Document 2451**: Recaps Bellman’s computational advantages.  
+- **Document 2517**: Discusses TD error’s use in approximating Bellman-derived advantages.  
+
+**Distractors**:  
+- (2) Misleading, Bellman relies on discount factors.  
+- (3) Incorrect, Bellman doesn’t directly compute policies.  
+- (4) Misinterprets averaging as Bellman’s function.  
+
+---
+
+### Question 4:
+**Why does Temporal Difference (TD) Learning update the value function after a single step rather than waiting for an entire episode, as in Monte Carlo methods?**
+
+1. TD Learning uses an estimate of the return based on the next state’s value to reduce computational cost and enable online learning.  
+2. Monte Carlo methods are inherently biased, whereas TD Learning uses unbiased value estimates for updates.  
+3. TD Learning is restricted to deterministic policies, making single-step updates essential.  
+4. Monte Carlo updates are incompatible with environments that have continuous state spaces, unlike TD Learning.
+
+**Correct Answer**: 1  
+**Reasoning**: TD Learning approximates returns incrementally, allowing for computational efficiency and online learning.  
+
+**Document Usage**:  
+- **Document 83**: Introduces the Bellman equation, crucial for TD target calculations.  
+- **Document 468**: Summarizes RL processes and methods, contrasting Monte Carlo and TD updates.  
+- **Document 485**: Defines and compares Monte Carlo and TD Learning.  
+- **Document 729**: Explains TD’s role in Q-learning updates.  
+- **Document 971**: Describes iterative learning methods in RL, emphasizing TD's role in efficient learning.  
+- **Document 1306**: Differentiates Actor-Critic updates from TD’s step-by-step value updates.  
+- **Document 1674**: Covers Bellman recursion, forming the basis of TD Learning.  
+- **Document 1954**: Includes quiz questions comparing TD and Monte Carlo learning.  
+- **Document 1968**: Highlights TD as foundational in value-based approaches.  
+- **Document 2011**: TD updates in Q-learning are detailed here.  
+- **Document 2143**: Discusses TD as a fundamental concept in RL.  
+- **Document 2451**: Recaps learning strategies, emphasizing TD targets.  
+- **Document 2517**: Uses TD error in Advantage Actor-Critic (A2C), emphasizing its efficiency.  
+
+**Distractors**:  
+- (2) Incorrect, Monte Carlo isn’t inherently biased.  
+- (3) Misleading, TD works with stochastic policies as well.  
+- (4) Incorrect, both methods can handle continuous spaces with proper approximations.  
+
+---
+
+### Question 5:
+**What is the primary reason Q-Learning is considered an off-policy algorithm?**
+
+1. The acting policy during training differs from the policy used to evaluate future states.  
+2. Q-Learning explicitly avoids exploration and relies solely on exploitation during updates.  
+3. The updates depend entirely on the agent’s optimal actions at every state without stochasticity.  
+4. The Q-function is calculated after the agent completes an episode, unlike other RL algorithms.
+
+**Correct Answer**: 1  
+**Reasoning**: Q-Learning uses a greedy policy for updates and an epsilon-greedy policy for acting.  
+
+**Document Usage**:  
+- **Document 83**: Differentiates greedy policies from epsilon-greedy policies.  
+- **Document 468**: Introduces off-policy learning in RL.  
+- **Document 485**: Defines off-policy algorithms, emphasizing Q-Learning.  
+- **Document 729**: Explains how Q-Learning uses off-policy TD updates.  
+- **Document 971**: Describes RL processes where acting and updating policies differ.  
+- **Document 1306**: Highlights differences between off-policy (Q-Learning) and policy-based methods.  
+- **Document 1674**: Bellman’s equation as used in Q-learning is central to off-policy behavior.  
+- **Document 1954**: Quiz questions reinforce Q-learning’s off-policy nature.  
+- **Document 1968**: Contrasts policy-based and off-policy value-based methods.  
+- **Document 2011**: Reiterates Q-learning’s off-policy strategy.  
+- **Document 2143**: Discusses greedy updates in off-policy algorithms.  
+- **Document 2451**: Recaps Q-learning as off-policy learning.  
+- **Document 2517**: Compares Q-Learning’s off-policy behavior with A2C’s on-policy updates.  
+
+**Distractors**:  
+- (2) Incorrect, Q-learning balances exploration and exploitation.  
+- (3) Misleading, Q-learning supports stochasticity in acting policies.  
+- (4) Incorrect, updates occur incrementally during episodes.  
+
+---
+
+### Question 6:
+**How does the Advantage function improve upon the simple use of Q-values in Actor-Critic methods?**
+
+1. It measures how much better an action is compared to the average value of a state, improving stability and variance.  
+2. It entirely replaces the state-value function to reduce computation time and memory requirements.  
+3. The Advantage function allows deterministic policy gradients, which is not feasible with Q-values.  
+4. It ensures that actions leading to rewards are reinforced without considering state values.
+
+**Correct Answer**: 1  
+**Reasoning**: The Advantage function highlights relative benefits of actions, stabilizing updates.  
+
+**Document Usage**:  
+- **Document 83**: Discusses value functions and relative state-action evaluations.  
+- **Document 468**: Summarizes methods improving policy stability.  
+- **Document 485**: Defines the Advantage function’s role in variance reduction.  
+- **Document 729**: Contrasts Q-value and Advantage-based updates.  
+- **Document 971**: Explains RL goals, requiring efficient policy updates.  
+- **Document 1306**: Introduces Advantage Actor-Critic and variance reduction.  
+- **Document 1674**: Bellman insights relevant for Q-function usage.  
+- **Document 1954**: Covers quiz applications of Advantage and Q-values.  
+- **Document 1968**: Differentiates policy-based methods reliant on gradients.  
+- **Document 2011**: Explains Q-value use in policy derivation.  
+- **Document 2143**: Reinforces Q-learning’s distinct reliance on Q-values.  
+- **Document 2451**: Recaps variance reduction strategies.  
+- **Document 2517**: Details Advantage-based updates in A2C.  
+
+**Distractors**:  
+- (2) Incorrect, Advantage supplements, not replaces, state-value functions.  
+- (3) Misleading, stochastic gradients can also use Advantage functions.  
+- (4) Ignores critical state-value considerations.  
+
+---
+
+### Question 7:
+**Why does Q-Learning perform better than Monte Carlo methods in environments with a large state space?**
+
+1. Q-Learning incrementally updates the Q-values at each step using the Bellman equation, avoiding the need to store entire episodes.  
+2. Monte Carlo methods are inherently biased, leading to suboptimal policies in large state spaces.  
+3. Q-Learning uses deterministic updates that are better suited to large state spaces, while Monte Carlo requires stochastic sampling.  
+4. Monte Carlo methods cannot calculate Q-values accurately for large state spaces because they do not rely on immediate rewards.
+
+**Correct Answer**: 1  
+**Reasoning**: Q-Learning’s incremental updates avoid the memory and computational burden of storing complete episodes, which is advantageous in large state spaces.  
+
+**Document Usage**:  
+- **Document 83**: Explains Bellman equation’s recursive role in simplifying updates.  
+- **Document 468**: Summarizes differences between Monte Carlo and TD-based methods like Q-Learning.  
+- **Document 485**: Defines Monte Carlo and Q-Learning, emphasizing incremental learning.  
+- **Document 729**: Explains Q-Learning’s step-by-step TD updates.  
+- **Document 971**: Discusses state-action value computation challenges in RL.  
+- **Document 1306**: Highlights advantages of incremental updates in policy evaluation.  
+- **Document 1674**: Details Bellman’s efficiency in state-action calculations.  
+- **Document 1954**: Quiz questions contrast Monte Carlo and Q-Learning.  
+- **Document 1968**: Contrasts value-based methods with complete trajectory-based methods.  
+- **Document 2011**: Reinforces Bellman-driven updates in Q-Learning.  
+- **Document 2143**: Discusses Q-Learning’s suitability for large state spaces.  
+- **Document 2451**: Recaps efficiency differences between Monte Carlo and TD learning.  
+- **Document 2517**: Notes how Actor-Critic mitigates large state space issues.  
+
+**Distractors**:  
+- (2) Incorrect, Monte Carlo methods are unbiased, though computationally expensive.  
+- (3) Misleading, both methods can handle stochastic environments.  
+- (4) Incorrect, Monte Carlo does use immediate rewards for its return calculations.  
+
+---
+
+### Question 8:
+**How does the Actor in Actor-Critic methods differ fundamentally from a policy learned via Q-Learning?**
+
+1. The Actor explicitly learns a probability distribution over actions, whereas Q-Learning uses a derived greedy policy.  
+2. The Actor operates only in continuous action spaces, while Q-Learning is restricted to discrete spaces.  
+3. The Actor is trained using state-value functions, while Q-Learning relies exclusively on action-value functions.  
+4. The Actor calculates optimal actions based on full episodes, unlike Q-Learning’s step-based updates.
+
+**Correct Answer**: 1  
+**Reasoning**: Actor-Critic methods directly optimize a policy function (the Actor), which produces action probabilities, unlike the derived greedy policies in Q-Learning.  
+
+**Document Usage**:  
+- **Document 83**: Differentiates policy and value-based methods, introducing greedy policies.  
+- **Document 468**: Highlights policy-based methods that optimize distributions.  
+- **Document 485**: Defines strategies like Actor-Critic that blend policy and value methods.  
+- **Document 729**: Details Q-Learning’s reliance on derived policies.  
+- **Document 971**: Recaps differences between directly trained policies and derived ones.  
+- **Document 1306**: Explains Actor-Critic’s dual-function approach.  
+- **Document 1674**: Discusses value function use in Q-learning versus policy updates in Actor-Critic.  
+- **Document 1954**: Quiz compares policy derivation in Q-Learning and Actor-Critic.  
+- **Document 1968**: Contrasts direct policy optimization with value-function approaches.  
+- **Document 2011**: Reinforces greedy policy derivation in Q-Learning.  
+- **Document 2143**: Connects Q-Learning’s derived policies to greedy strategies.  
+- **Document 2451**: Recaps foundational differences between policy and value methods.  
+- **Document 2517**: Describes Actor’s probabilistic action selection.  
+
+**Distractors**:  
+- (2) Misleading, Actor-Critic methods work in both action spaces.  
+- (3) Incorrect, Actor-Critic combines value and action functions.  
+- (4) Misleading, Actor updates can occur step-by-step.  
+
+---
+
+### Question 9:
+**Why is the Bellman equation critical for both Q-Learning and Advantage Actor-Critic methods, despite their differences in implementation?**
+
+1. It provides the recursive framework for estimating value functions used in both methods.  
+2. It ensures that policies derived from Q-functions are always deterministic, even in stochastic environments.  
+3. It calculates the full expected return for each state-action pair, essential for both methods.  
+4. It serves as the foundation for Monte Carlo methods, which both approaches rely on.
+
+**Correct Answer**: 1  
+**Reasoning**: The Bellman equation supports the recursive value estimations needed in both Q-Learning and A2C.  
+
+**Document Usage**:  
+- **Document 83**: Introduces Bellman as foundational to value-based methods.  
+- **Document 468**: Summarizes Bellman’s role in RL frameworks.  
+- **Document 485**: Discusses recursive value estimations in RL.  
+- **Document 729**: Shows Bellman’s direct application in Q-Learning.  
+- **Document 971**: Recaps RL goals tied to Bellman’s structure.  
+- **Document 1306**: Highlights Bellman recursion in Actor-Critic updates.  
+- **Document 1674**: Elaborates on Bellman’s derivations for state and action values.  
+- **Document 1954**: Quiz reinforces Bellman’s applications.  
+- **Document 1968**: Contrasts Bellman-driven methods with policy-based methods.  
+- **Document 2011**: Details Bellman’s integral role in Q-learning.  
+- **Document 2143**: Applies Bellman in Q-Learning and A2C contexts.  
+- **Document 2451**: Recaps Bellman equation’s importance.  
+- **Document 2517**: Describes Advantage calculations linked to Bellman-based TD errors.  
+
+**Distractors**:  
+- (2) Misleading, Bellman supports both deterministic and stochastic policies.  
+- (3) Incorrect, Bellman does not compute full returns in one step.  
+- (4) Incorrect, Bellman is not a Monte Carlo method.  
+
+---
+
+### Question 10:
+**Why is the Advantage function’s variance reduction particularly beneficial in environments with high stochasticity?**
+
+1. It focuses updates on the relative benefit of actions rather than absolute rewards, stabilizing learning in variable environments.  
+2. It eliminates the need for discount factors, simplifying calculations in stochastic environments.  
+3. The Advantage function replaces the need for state-value functions, reducing computational overhead.  
+4. It enables off-policy learning by relying on greedy action selection, essential in stochastic systems.
+
+**Correct Answer**: 1  
+**Reasoning**: Advantage captures relative action benefits, reducing variance and enhancing stability under stochasticity.  
+
+**Document Usage**:  
+- **Document 83**: Discusses value functions and stochastic environment considerations.  
+- **Document 468**: Summarizes variance reduction methods.  
+- **Document 485**: Defines Advantage and variance reduction.  
+- **Document 729**: Shows Q-value and Advantage distinctions.  
+- **Document 971**: Highlights RL goals under stochasticity.  
+- **Document 1306**: Describes A2C’s focus on variance reduction.  
+- **Document 1674**: Discusses Bellman updates stabilizing variance.  
+- **Document 1954**: Quiz covers variance reduction techniques.  
+- **Document 1968**: Differentiates Advantage-based updates from other methods.  
+- **Document 2011**: Relates Q-values to Advantage in updates.  
+- **Document 2143**: Connects variance reduction to Advantage functions.  
+- **Document 2451**: Recaps Advantage’s role in improving learning efficiency.  
+- **Document 2517**: Details A2C’s variance stabilization through Advantage.  
+
+**Distractors**:  
+- (2) Misleading, Advantage retains discount factors.  
+- (3) Incorrect, Advantage supplements rather than replaces state-value functions.  
+- (4) Misleading, Advantage is unrelated to off-policy learning.  
