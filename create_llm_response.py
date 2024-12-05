@@ -15,6 +15,9 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from ragatouille import RAGPretrainedModel
 import google.generativeai as genai
 import os
+import json
+from llamaapi import LlamaAPI
+
 
 genai.configure(api_key=os.environ['API_KEY'])
 
@@ -30,8 +33,6 @@ embedding_model = HuggingFaceEmbeddings(
 )
 
 ##
-k = 20
-
 KNOWLEDGE_VECTOR_DATABASE_chunk = FAISS.load_local("faiss_index_chunk", embedding_model, allow_dangerous_deserialization=True)
 
 KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context = FAISS.load_local("faiss_index_chunk_plus_context", embedding_model, allow_dangerous_deserialization=True)
@@ -52,8 +53,8 @@ def search_and_answer(query, embedding_model, vector_store_chunk, vector_store_c
     query_embedding = embedding_model.embed_documents([query])
     _, indices_chunk = vector_store_chunk.index.search(np.array(query_embedding, dtype=np.float32), k=num_retrieval)
     _, indices_chunk_plus_context = vector_store_chunk_plus_context.index.search(np.array(query_embedding, dtype=np.float32), k=num_retrieval)
-    print(indices_chunk[0])
-    print(indices_chunk_plus_context[0])
+    # print(indices_chunk[0])
+    # print(indices_chunk_plus_context[0])
     indices = list(set(indices_chunk[0])| set(indices_chunk_plus_context[0]))
     ids = []
     doc_context = []
@@ -70,17 +71,31 @@ def search_and_answer(query, embedding_model, vector_store_chunk, vector_store_c
     for i in range(len(relevant_docs)):
        final_context += relevant_docs[i]['content'] + '\n'
     prompt = "Using the information contained in the context, give a comprehensive answer to the question. Respond only to the question asked, response should be concise and relevant to the question. Provide answer based on all the source document when relevant.If the answer cannot be deduced from the context, do not give an answer. \n " + "Here is the context: {} \n".format(final_context) + "Here is the question: {}".format(query)
+    api_request_json = {
+    "model": "llama3.1-70b",
+    "messages": [
+    {"role": "user", "content": "What is the weather like in Boston?"},
+    ]}
+    api_request_json['messages'][0]['content'] = prompt
+    response = llama.run(api_request_json)
+    rag_response = response.json()['choices'][0]['message']['content']
     print(prompt)
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")
-    rag_response = model.generate_content(prompt).text
+    #model = genai.GenerativeModel("gemini-1.5-flash")
+    #rag_response = model.generate_content(prompt).text
+    # print(rag_response)
     return ids, prompt, rag_response
 
 # Example
 query = "How to set up GCP"
-ids, prompt, rag_response = search_and_answer(query, embedding_model, KNOWLEDGE_VECTOR_DATABASE_chunk, KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context, k)
+ids, prompt, rag_response = search_and_answer(query, embedding_model, KNOWLEDGE_VECTOR_DATABASE_chunk, KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context, k=20)
+print(rag_response)
+# 'To set up GCP, you need to meet some requirements such as having a project on Google Cloud, enabling the billing, and installing the `gcloud` cli. Here are the steps:\n\n1. Create a project on Google Cloud: Go to the Google Cloud Console and create a new project.\n2. Enable billing: Enable billing for your project by going to the Navigation menu (three horizontal lines in the top left corner) and clicking on "Billing".\n3. Install the `gcloud`'
 
 query = "How to set up AWS"
-ids, prompt, rag_response = search_and_answer(query, embedding_model, KNOWLEDGE_VECTOR_DATABASE_chunk, KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context, k)
+ids, prompt, rag_response = search_and_answer(query, embedding_model, KNOWLEDGE_VECTOR_DATABASE_chunk, KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context, k=20)
+print(rag_response)
+
+#
 
 
 # hybrid search
