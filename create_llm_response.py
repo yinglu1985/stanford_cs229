@@ -32,6 +32,8 @@ embedding_model = HuggingFaceEmbeddings(
     encode_kwargs={"normalize_embeddings": True},  # Set `True` for cosine similarity
 )
 
+llama=LlamaAPI(os.environ['API_KEY'])
+
 ##
 KNOWLEDGE_VECTOR_DATABASE_chunk = FAISS.load_local("faiss_index_chunk", embedding_model, allow_dangerous_deserialization=True)
 
