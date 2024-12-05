@@ -79,7 +79,7 @@ def search_and_answer(query, embedding_model, vector_store_chunk, vector_store_c
     api_request_json['messages'][0]['content'] = prompt
     response = llama.run(api_request_json)
     rag_response = response.json()['choices'][0]['message']['content']
-    print(prompt)
+    # print(prompt)
     #model = genai.GenerativeModel("gemini-1.5-flash")
     #rag_response = model.generate_content(prompt).text
     # print(rag_response)
