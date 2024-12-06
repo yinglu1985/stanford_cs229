@@ -125,7 +125,7 @@ def search_and_answer_chunk_only(query, embedding_model, vector_store_chunk, vec
 
 
 results = []
-question_df = pd.read_csv("questions_125.csv")
+question_df = pd.read_csv("questions_and_answers.csv")
 # Example queries
 queries = question_df['Question']
 for i in range(len(queries)):
@@ -144,15 +144,14 @@ for i in range(len(queries)):
         pass
 
 results_df = pd.DataFrame(results)
-results_df.to_csv("llm_rag_responses.csv", index=False)
+results_df.to_csv("llm_rag_responses_300.csv", index=False)
 print("Results saved to 'results.csv'")
-
 
 
 ####
 
 results = []
-question_df = pd.read_csv("questions_125.csv")
+question_df = pd.read_csv("questions_and_answers.csv")
 # Example queries
 queries = question_df['Question']
 for i in range(len(queries)):
@@ -171,7 +170,5 @@ for i in range(len(queries)):
         pass
 
 results_df = pd.DataFrame(results)
-results_df.to_csv("llm_rag_responses_chunk_only.csv", index=False)
+results_df.to_csv("llm_rag_responses_chunk_only_300.csv", index=False)
 print("Results saved to 'results.csv'")
-
-
