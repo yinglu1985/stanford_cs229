@@ -45,7 +45,7 @@ KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context = FAISS.load_local("faiss_index_chu
 
 llama=LlamaAPI(os.environ['API_KEY'])
 
-def search_and_answer(query, embedding_model, vector_store_chunk, vector_store_chunk_plus_context, k):
+def search_and_answer_with_context(query, embedding_model, vector_store_chunk, vector_store_chunk_plus_context, k):
     num_retrieval = 100
     query_embedding = embedding_model.embed_documents([query])
     _, indices_chunk = vector_store_chunk.index.search(np.array(query_embedding, dtype=np.float32), k=num_retrieval)
@@ -109,7 +109,7 @@ def search_and_answer_chunk_only(query, embedding_model, vector_store_chunk, vec
        final_context += relevant_docs[i]['content'] + '\n'
     prompt = "Using the information contained in the context, give a comprehensive answer to the question. Respond only to the question asked, response should be concise and relevant to the question. Provide answer based on all the source document when relevant.If the answer cannot be deduced from the context, do not give an answer. \n " + "Here is the context: {} \n".format(final_context) + "Here is the question: {}".format(query)
     api_request_json = {
-    "model": "llama2-7b	",
+    "model": "llama3-70b",
     "messages": [
     {"role": "user", "content": "What is the weather like in Boston?"},
     ]}
@@ -131,7 +131,7 @@ queries = question_df['Question']
 for i in range(len(queries)):
     try: 
         query = queries[i]
-        ids, prompt, rag_response = search_and_answer(query, embedding_model, KNOWLEDGE_VECTOR_DATABASE_chunk, KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context, k=5)
+        ids, prompt, rag_response = search_and_answer_with_context(query, embedding_model, KNOWLEDGE_VECTOR_DATABASE_chunk, KNOWLEDGE_VECTOR_DATABASE_chunk_plus_context, k=5)
         print(f"Query: {query}")
         print(f"Response: {rag_response}\n")
         results.append({
@@ -173,4 +173,5 @@ for i in range(len(queries)):
 results_df = pd.DataFrame(results)
 results_df.to_csv("llm_rag_responses_chunk_only.csv", index=False)
 print("Results saved to 'results.csv'")
+
 
