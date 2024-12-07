@@ -29,6 +29,8 @@ Perform similarity search, retrieval, and reranking to get multiple choice answe
 python3 create_batch_multiple_answer_response_.py
 ```
 
+Which creates four datasets: llm_rag_responses_chunk_only_300.csv, llm_rag_responses_with_context_300.csv, llm_rag_responses_multipe_choices.csv and llm_rag_responses_multipe_choices_chunk_only.csv
+
 Part 3: Evaluation: 
 
 
