@@ -25,7 +25,6 @@ genai.configure(api_key=os.environ['API_KEY'])
 pd.set_option("display.max_colwidth", None) 
 
 ds = datasets.load_dataset("m-ric/huggingface_doc", split="train")
-ds = ds.select(range(2))
 
 def create_chunk(ds): 
     RAW_KNOWLEDGE_BASE = [
