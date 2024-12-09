@@ -1,0 +1,3395 @@
+Cluster 757: Documents 118.0,514.0,515.0,686.0,687.0,688.0,1375.0,1559.0,2073.0,2602.0
+Document 118:  Quicktour
+
+Let's have a quick look at the 🤗 Tokenizers library features. The
+library provides an implementation of today's most used tokenizers that
+is both easy to use and blazing fast.
+
+## Build a tokenizer from scratch
+
+To illustrate how fast the 🤗 Tokenizers library is, let's train a new
+tokenizer on [wikitext-103](https://blog.einstein.ai/the-wikitext-long-term-dependency-language-modeling-dataset/)
+(516M of text) in just a few seconds. First things first, you will need
+to download this dataset and unzip it with:
+
+``` bash
+wget https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-raw-v1.zip
+unzip wikitext-103-raw-v1.zip
+```
+
+### Training the tokenizer
+
+In this tour, we will build and train a Byte-Pair Encoding (BPE)
+tokenizer. For more information about the different type of tokenizers,
+check out this [guide](https://huggingface.co/transformers/tokenizer_summary.html) in
+the 🤗 Transformers documentation. Here, training the tokenizer means it
+will learn merge rules by:
+
+-   Start with all the characters present in the training corpus as
+    tokens.
+-   Identify the most common pair of tokens and merge it into one token.
+-   Repeat until the vocabulary (e.g., the number of tokens) has reached
+    the size we want.
+
+The main API of the library is the `class` `Tokenizer`, here is how
+we instantiate one with a BPE model:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START init_tokenizer",
+"end-before": "END init_tokenizer",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_init_tokenizer",
+"end-before": "END quicktour_init_tokenizer",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START init_tokenizer",
+"end-before": "END init_tokenizer",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+To train our tokenizer on the wikitext files, we will need to
+instantiate a [trainer]{.title-ref}, in this case a
+`BpeTrainer`
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START init_trainer",
+"end-before": "END init_trainer",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_init_trainer",
+"end-before": "END quicktour_init_trainer",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START init_trainer",
+"end-before": "END init_trainer",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+We can set the training arguments like `vocab_size` or `min_frequency` (here
+left at their default values of 30,000 and 0) but the most important
+part is to give the `special_tokens` we
+plan to use later on (they are not used at all during training) so that
+they get inserted in the vocabulary.
+
+<Tip>
+
+The order in which you write the special tokens list matters: here `"[UNK]"` will get the ID 0,
+`"[CLS]"` will get the ID 1 and so forth.
+
+</Tip>
+
+We could train our tokenizer right now, but it wouldn't be optimal.
+Without a pre-tokenizer that will split our inputs into words, we might
+get tokens that overlap several words: for instance we could get an
+`"it is"` token since those two words
+often appear next to each other. Using a pre-tokenizer will ensure no
+token is bigger than a word returned by the pre-tokenizer. Here we want
+to train a subword BPE tokenizer, and we will use the easiest
+pre-tokenizer possible by splitting on whitespace.
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START init_pretok",
+"end-before": "END init_pretok",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_init_pretok",
+"end-before": "END quicktour_init_pretok",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START init_pretok",
+"end-before": "END init_pretok",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+Now, we can just call the `Tokenizer.train` method with any list of files we want to use:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START train",
+"end-before": "END train",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_train",
+"end-before": "END quicktour_train",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START train",
+"end-before": "END train",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+This should only take a few seconds to train our tokenizer on the full
+wikitext dataset! To save the tokenizer in one file that contains all
+its configuration and vocabulary, just use the
+`Tokenizer.save` method:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START save",
+"end-before": "END save",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_save",
+"end-before": "END quicktour_save",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START save",
+"end-before": "END save",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+and you can reload your tokenizer from that file with the
+`Tokenizer.from_file`
+`classmethod`:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START reload_tokenizer",
+"end-before": "END reload_tokenizer",
+"dedent": 12}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_reload_tokenizer",
+"end-before": "END quicktour_reload_tokenizer",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START reload_tokenizer",
+"end-before": "END reload_tokenizer",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+### Using the tokenizer
+
+Now that we have trained a tokenizer, we can use it on any text we want
+with the `Tokenizer.encode` method:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START encode",
+"end-before": "END encode",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_encode",
+"end-before": "END quicktour_encode",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START encode",
+"end-before": "END encode",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+This applied the full pipeline of the tokenizer on the text, returning
+an `Encoding` object. To learn more
+about this pipeline, and how to apply (or customize) parts of it, check out [this page](pipeline).
+
+This `Encoding` object then has all the
+attributes you need for your deep learning model (or other). The
+`tokens` attribute contains the
+segmentation of your text in tokens:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START print_tokens",
+"end-before": "END print_tokens",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_print_tokens",
+"end-before": "END quicktour_print_tokens",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START print_tokens",
+"end-before": "END print_tokens",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+Similarly, the `ids` attribute will
+contain the index of each of those tokens in the tokenizer's
+vocabulary:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START print_ids",
+"end-before": "END print_ids",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_print_ids",
+"end-before": "END quicktour_print_ids",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START print_ids",
+"end-before": "END print_ids",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+An important feature of the 🤗 Tokenizers library is that it comes with
+full alignment tracking, meaning you can always get the part of your
+original sentence that corresponds to a given token. Those are stored in
+the `offsets` attribute of our
+`Encoding` object. For instance, let's
+assume we would want to find back what caused the
+`"[UNK]"` token to appear, which is the
+token at index 9 in the list, we can just ask for the offset at the
+index:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START print_offsets",
+"end-before": "END print_offsets",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_print_offsets",
+"end-before": "END quicktour_print_offsets",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START print_offsets",
+"end-before": "END print_offsets",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+and those are the indices that correspond to the emoji in the original
+sentence:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START use_offsets",
+"end-before": "END use_offsets",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_use_offsets",
+"end-before": "END quicktour_use_offsets",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START use_offsets",
+"end-before": "END use_offsets",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+### Post-processing
+
+We might want our tokenizer to automatically add special tokens, like
+`"[CLS]"` or `"[SEP]"`. To do this, we use a post-processor.
+`TemplateProcessing` is the most
+commonly used, you just have to specify a template for the processing of
+single sentences and pairs of sentences, along with the special tokens
+and their IDs.
+
+When we built our tokenizer, we set `"[CLS]"` and `"[SEP]"` in positions 1
+and 2 of our list of special tokens, so this should be their IDs. To
+double-check, we can use the `Tokenizer.token_to_id` method:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START check_sep",
+"end-before": "END check_sep",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_check_sep",
+"end-before": "END quicktour_check_sep",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START check_sep",
+"end-before": "END check_sep",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+Here is how we can set the post-processing to give us the traditional
+BERT inputs:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START init_template_processing",
+"end-before": "END init_template_processing",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_init_template_processing",
+"end-before": "END quicktour_init_template_processing",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START init_template_processing",
+"end-before": "END init_template_processing",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+Let's go over this snippet of code in more details. First we specify
+the template for single sentences: those should have the form
+`"[CLS] $A [SEP]"` where
+`$A` represents our sentence.
+
+Then, we specify the template for sentence pairs, which should have the
+form `"[CLS] $A [SEP] $B [SEP]"` where
+`$A` represents the first sentence and
+`$B` the second one. The
+`:1` added in the template represent the `type IDs` we want for each part of our input: it defaults
+to 0 for everything (which is why we don't have
+`$A:0`) and here we set it to 1 for the
+tokens of the second sentence and the last `"[SEP]"` token.
+
+Lastly, we specify the special tokens we used and their IDs in our
+tokenizer's vocabulary.
+
+To check out this worked properly, let's try to encode the same
+sentence as before:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START print_special_tokens",
+"end-before": "END print_special_tokens",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_print_special_tokens",
+"end-before": "END quicktour_print_special_tokens",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START print_special_tokens",
+"end-before": "END print_special_tokens",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+To check the results on a pair of sentences, we just pass the two
+sentences to `Tokenizer.encode`:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START print_special_tokens_pair",
+"end-before": "END print_special_tokens_pair",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_print_special_tokens_pair",
+"end-before": "END quicktour_print_special_tokens_pair",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START print_special_tokens_pair",
+"end-before": "END print_special_tokens_pair",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+You can then check the type IDs attributed to each token is correct with
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START print_type_ids",
+"end-before": "END print_type_ids",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_print_type_ids",
+"end-before": "END quicktour_print_type_ids",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START print_type_ids",
+"end-before": "END print_type_ids",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+If you save your tokenizer with `Tokenizer.save`, the post-processor will be saved along.
+
+### Encoding multiple sentences in a batch
+
+To get the full speed of the 🤗 Tokenizers library, it's best to
+process your texts by batches by using the
+`Tokenizer.encode_batch` method:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START encode_batch",
+"end-before": "END encode_batch",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_encode_batch",
+"end-before": "END quicktour_encode_batch",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START encode_batch",
+"end-before": "END encode_batch",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+The output is then a list of `Encoding`
+objects like the ones we saw before. You can process together as many
+texts as you like, as long as it fits in memory.
+
+To process a batch of sentences pairs, pass two lists to the
+`Tokenizer.encode_batch` method: the
+list of sentences A and the list of sentences B:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START encode_batch_pair",
+"end-before": "END encode_batch_pair",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_encode_batch_pair",
+"end-before": "END quicktour_encode_batch_pair",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START encode_batch_pair",
+"end-before": "END encode_batch_pair",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+When encoding multiple sentences, you can automatically pad the outputs
+to the longest sentence present by using
+`Tokenizer.enable_padding`, with the
+`pad_token` and its ID (which we can
+double-check the id for the padding token with
+`Tokenizer.token_to_id` like before):
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START enable_padding",
+"end-before": "END enable_padding",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_enable_padding",
+"end-before": "END quicktour_enable_padding",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START enable_padding",
+"end-before": "END enable_padding",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+We can set the `direction` of the padding
+(defaults to the right) or a given `length` if we want to pad every sample to that specific number (here
+we leave it unset to pad to the size of the longest text).
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START print_batch_tokens",
+"end-before": "END print_batch_tokens",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_print_batch_tokens",
+"end-before": "END quicktour_print_batch_tokens",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START print_batch_tokens",
+"end-before": "END print_batch_tokens",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+In this case, the `attention mask` generated by the
+tokenizer takes the padding into account:
+
+<tokenizerslangcontent>
+<python>
+<literalinclude>
+{"path": "../../bindings/python/tests/documentation/test_quicktour.py",
+"language": "python",
+"start-after": "START print_attention_mask",
+"end-before": "END print_attention_mask",
+"dedent": 8}
+</literalinclude>
+</python>
+<rust>
+<literalinclude>
+{"path": "../../tokenizers/tests/documentation.rs",
+"language": "rust",
+"start-after": "START quicktour_print_attention_mask",
+"end-before": "END quicktour_print_attention_mask",
+"dedent": 4}
+</literalinclude>
+</rust>
+<node>
+<literalinclude>
+{"path": "../../bindings/node/examples/documentation/quicktour.test.ts",
+"language": "js",
+"start-after": "START print_attention_mask",
+"end-before": "END print_attention_mask",
+"dedent": 8}
+</literalinclude>
+</node>
+</tokenizerslangcontent>
+
+## Pretrained
+
+<tokenizerslangcontent>
+<python>
+### Using a pretrained tokenizer
+
+You can load any tokenizer from the Hugging Face Hub as long as a
+`tokenizer.json` file is available in the repository.
+
+```python
+from tokenizers import Tokenizer
+
+tokenizer = Tokenizer.from_pretrained("bert-base-uncased")
+```
+
+### Importing a pretrained tokenizer from legacy vocabulary files
+
+You can also import a pretrained tokenizer directly in, as long as you
+have its vocabulary file. For instance, here is how to import the
+classic pretrained BERT tokenizer:
+
+```python
+from tokenizers import BertWordPieceTokenizer
+
+tokenizer = BertWordPieceTokenizer("bert-base-uncased-vocab.txt", lowercase=True)
+```
+
+as long as you have downloaded the file `bert-base-uncased-vocab.txt` with
+
+```bash
+wget https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt
+```
+</python>
+</tokenizerslangcontent>
+Document 514: ## Motivation
+Without processing, english-> romanian mbart-large-en-ro gets BLEU score 26.8 on the WMT data.
+With post processing, it can score 37..
+Here is the postprocessing code, stolen from @mjpost in this [issue](https://github.com/pytorch/fairseq/issues/1758)
+
+
+
+### Instructions
+Note: You need to have your test_generations.txt before you start this process.
+(1) Setup `mosesdecoder` and `wmt16-scripts`
+```bash
+cd $HOME
+git clone git@github.com:moses-smt/mosesdecoder.git
+cd mosesdecoder  
+git clone git@github.com:rsennrich/wmt16-scripts.git
+```
+
+(2) define a function for post processing.
+ It removes diacritics and does other things I don't understand 
+```bash
+ro_post_process () {
+  sys=$1
+  ref=$2
+  export MOSES_PATH=$HOME/mosesdecoder
+  REPLACE_UNICODE_PUNCT=$MOSES_PATH/scripts/tokenizer/replace-unicode-punctuation.perl
+  NORM_PUNC=$MOSES_PATH/scripts/tokenizer/normalize-punctuation.perl
+  REM_NON_PRINT_CHAR=$MOSES_PATH/scripts/tokenizer/remove-non-printing-char.perl
+  REMOVE_DIACRITICS=$MOSES_PATH/wmt16-scripts/preprocess/remove-diacritics.py
+  NORMALIZE_ROMANIAN=$MOSES_PATH/wmt16-scripts/preprocess/normalise-romanian.py
+  TOKENIZER=$MOSES_PATH/scripts/tokenizer/tokenizer.perl
+
+
+
+  lang=ro
+  for file in $sys $ref; do
+    cat $file \
+    | $REPLACE_UNICODE_PUNCT \
+    | $NORM_PUNC -l $lang \
+    | $REM_NON_PRINT_CHAR \
+    | $NORMALIZE_ROMANIAN \
+    | $REMOVE_DIACRITICS \
+    | $TOKENIZER -no-escape -l $lang \
+    > $(basename $file).tok
+  done
+  # compute BLEU
+  cat $(basename $sys).tok | sacrebleu -tok none -s none -b $(basename $ref).tok
+}
+```
+
+(3) Call the function on test_generations.txt and test.target
+For example,
+```bash
+ro_post_process enro_finetune/test_generations.txt wmt_en_ro/test.target
+```
+This will split out a new blue score and write a new fine called `test_generations.tok` with post-processed outputs.
+
+
+
+
+
+
+
+
+
+```
+
+Document 515: !---
+Copyright 2020 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+# How To Request Support
+
+This is an Open Source Project so please be mindful that like in any other project of this kind there is no obligation to answer all requests for help.
+
+However, we want to encourage you to ask for help whenever you think it's needed! We are happy about every question we get because it allows us to better understand your needs, possible misunderstandings, and most importantly a way for you to help us make this library better. That being said, this document's main purpose is to provide guidelines at how you can formulate your requests to increase your chances to be understood and to get support.
+
+There are two main venues to receive support: [the forums](https://discuss.huggingface.co/) and [the GitHub issues](https://github.com/huggingface/transformers/issues).
+
+## The Forums
+
+[The user forums](https://discuss.huggingface.co/) are supported by the wide community of the library users and backed up by developers when needed.
+
+If you have a difficulty with deploying this library or some questions, or you'd like to discuss a new feature, please first consider discussing those things at the forums. Only when you feel your subject matter has been crystalized and you still need support from the library developers do proceed to file an [issue](https://github.com/huggingface/transformers/issues).
+
+In particular all "Please explain" questions or objectively very user-specific feature requests belong to the forums. Here are some example of such questions:
+
+* "I would like to use a BertModel within a RL-Agent for a customer support service. How can I use a BertForMaskedLM in my ChatBotModel?"
+
+* "Could you please explain why T5 has no positional embedding matrix under T5Model?"
+
+* "How should I set my generation parameters for translation?"
+
+* "How to train T5 on De->En translation?"
+
+
+## The GitHub Issues
+
+Everything which hints at a bug should be opened as an [issue](https://github.com/huggingface/transformers/issues).
+
+You are not required to read the following guidelines before opening an issue. However, if you notice that your issue doesn't get any replies, chances are that the developers have one or several difficulties with its quality. In this case, reading the following points and adjusting your issue accordingly could help.
+
+1. Before posting an issue, first search for already posted issues, since chances are someone has already asked a similar question before you.
+
+    If you use Google your search query should be:
+
+    ```
+    "huggingface" "transformers" your query
+    ```
+
+    The first two quoted words tell Google to limit the search to the context of the Huggingface Transformers. The remainder is your query - most commonly this would be the error message the software fails with. We will go deeper into details shortly.
+
+    The results of such a query will typically match GitHub issues, Hugging Face forums, StackExchange, and blogs.
+
+    If you find relevant hints, you may choose to continue the discussion there if you have follow up questions.
+
+    If what you found is similar but doesn't quite answer your problem, please, post a new issue and do include links to similar issues or forum discussions you may have found.
+
+    Let's look at some examples:
+
+    The error message, often referred to as an assertion, tells us what went wrong. Here is an example of an assertion:
+
+   ```python
+   Traceback (most recent call last):
+     File "<string>", line 1, in <module>
+     File "/transformers/src/transformers/__init__.py", line 34, in <module>
+       from . import dependency_versions_check
+     File "/transformers/src/transformers/dependency_versions_check.py", line 34, in <module>
+       from .utils import is_tokenizers_available
+     File "/transformers/src/transformers/utils/import_utils.py", line 40, in <module>
+       from tqdm.auto import tqdm
+    ModuleNotFoundError: No module named 'tqdm.auto'
+    ```
+
+   and it typically includes a traceback, so that we can see the full stack of calls the program made before it fails. This gives us the context to know why the program failed.
+
+   Going back to the above example. If you received this error search, look at the very last line of the error which is:
+
+   ```python
+    ModuleNotFoundError: No module named 'tqdm.auto'
+    ```
+
+    And now we can use it to do the searching on your favorite search engine:
+
+    1. first for `"huggingface" "transformers" "ModuleNotFoundError: No module named 'tqdm.auto'"`
+    2. if you don't find relevant results, then search for just `"ModuleNotFoundError: No module named 'tqdm.auto'"`
+    3. and finally if nothing still comes up, then remove the outside quotes: `ModuleNotFoundError: No module named 'tqdm.auto'`
+
+   If the error includes any messages that include bits unique to your filesystem, always remove those in the search query since other users will not have the same filesystem as yours. For example:
+
+   ```bash
+   python -c 'open("/tmp/wrong_path.txt", "r")'
+   Traceback (most recent call last):
+     File "<string>", line 1, in <module>
+   FileNotFoundError: [Errno 2] No such file or directory: '/tmp/wrong_path.txt'
+   ```
+   Here you'd search for just: `"FileNotFoundError: [Errno 2] No such file or directory"`
+
+   If the local information that you removed were inside the error message and you removed them you may need to remove double quotes since your query is no longer exact. So if the error message was something like:
+
+   ```bash
+      ValueError: '/tmp/wrong_path.txt' cannot be found
+   ```
+
+   then you'd search for `"ValueError" "cannot be found"`
+
+   As you search you will notice that when you don't use quotes often the search engines will return a variety of unrelated hits, which may or may not be what you want.
+
+   Experiment with different ways and find which approach gives the most satisfactory results.
+
+2. Keep the issue short, providing the information that you think will aid the developers to understand your situation. Put yourself in the shoes of the person who has never seen your code or knows anything about your custom setup. This mental exercise will help to develop an intuition to what/what not to share"
+
+3. If there is a software failure, always provide the full traceback, for example:
+
+   ```python
+   $ python -c 'import transformers'
+   Traceback (most recent call last):
+     File "<string>", line 1, in <module>
+     File "/transformers/src/transformers/__init__.py", line 34, in <module>
+       from . import dependency_versions_check
+     File "/transformers/src/transformers/dependency_versions_check.py", line 34, in <module>
+       from .utils import is_tokenizers_available
+     File "/transformers/src/transformers/utils/import_utils.py", line 40, in <module>
+       from tqdm.auto import tqdm
+   ModuleNotFoundError: No module named 'tqdm.auto'
+   ```
+
+   As compared to providing just the last line of the error message, e.g.:
+   ```python
+   ModuleNotFoundError: No module named 'tqdm.auto'
+   ```
+   which is not sufficient.
+
+   If your application is running on more than one GPU (e.g. under `DistributedDataParallel`) and typically getting every log and traceback printed multiple times, please make sure that you paste only one copy of it. At times the traceback from parallel processes may get interleaved - so either disentangle these or change the loggers to log only for `local_rank==0` so that only one process logs things.
+
+4. When quoting a traceback, command line instructions and any type of code always enclose it in triple backticks inside the editor window, that is:
+
+   ````
+   ```
+   git clone https://github.com/huggingface/transformers
+   cd transformers
+   pip install .
+   ```
+   ````
+
+   If it's a command line with a long argument list, please consider breaking it down using backslashes and new lines. Here is an example of a good command line quote:
+
+   ```bash
+    cd examples/seq2seq
+    torchrun --nproc_per_node=2 ./finetune_trainer.py \
+    --model_name_or_path sshleifer/distill-mbart-en-ro-12-4 --data_dir wmt_en_ro \
+    --output_dir output_dir --overwrite_output_dir \
+    --do_train --n_train 500 --num_train_epochs 1 \
+    --per_device_train_batch_size 1  --freeze_embeds \
+    --src_lang en_XX --tgt_lang ro_RO --task translation \
+    --fp16
+   ```
+
+   If you don't break it up, one has to scroll horizontally which often makes it quite difficult to quickly see what's happening.
+
+   The backslashes allow us to copy the command directly into the console to run it, without needing to edit it.
+
+5. Include only the important information that you think will help the developer to quickly identify the problem.
+
+   For example applications often create huge amounts of logs. Ask yourself whether providing all or parts of the log is useful.
+
+   Pasting a 100-1000 lines of log into the issue is an immediate turn off, since it will take a lot of time to figure out where the pertinent parts of the log are.
+
+   Attaching a full log can be helpful if it's done as an attachment, if it's enclosed in the following html code in the comment editor window:
+
+   ```
+   <details>
+   <summary>Full log</summary>
+   <pre>
+
+   many
+   lines
+   go
+   here
+
+   </pre>
+   </details>
+   ```
+
+   which would result in the following entry, which can be opened if desired, but otherwise takes little space.
+
+   <details>
+   <summary>Full log</summary>
+   <pre>
+   many
+   lines
+   go
+   here
+   </pre>
+   </details>
+
+    You could also provide a link to a pastebin service, but this is less beneficial since those links tend to expire quickly and future readers of your issue might not be able to access that log file anymore and may lack some context.
+
+6. If this is an issue in your code, do try to reduce that code to a minimal example that still demonstrates the problem. Please ask at the forums if you have a hard time figuring how to do that. Please realize that we don't have the luxury of having time to try and understand all of your custom code.
+
+   If you really tried to make a short reproducible code but couldn't figure it out, it might be that having a traceback will give the developer enough information to know what's going on. But if it is not enough and we can't reproduce the problem, we can't really solve it.
+
+   Do not despair if you can't figure it out from the beginning, just share what you can and perhaps someone else will be able to help you at the forums.
+
+   If your setup involves any custom datasets, the best way to help us reproduce the problem is to create a [Google Colab notebook](https://colab.research.google.com/) that demonstrates the issue and once you verify that the issue still exists, include a link to that notebook in the Issue. Just make sure that you don't copy and paste the location bar url of the open notebook - as this is private and we won't be able to open it. Instead, you need to click on `Share` in the right upper corner of the notebook, select `Get Link` and then copy and paste the public link it will give to you.
+
+7. If you forked off some of this project's code or example applications, please, do not ask us to go into your code repository and figure out what you may have done. The code is already very complex and unless there is an easy way to do a diff and it's a small diff, it won't be possible to find someone with time on their hands to make a lengthy investigation. Albeit, you might find someone at the forums who will be generous to do this for you.
+
+8. Before reporting an issue, first, always try to update your environment to the latest official version of this library. We have no resources to go and debug older revisions, which could easily have bugs that have been fixed in the latest released version.
+
+   We understand that this is not always possible, especially when APIs change, in which case file an issue against the highest library version your environment can support.
+
+   Of course, if you upgrade the library, always retest that the problem is still there.
+
+9. Please do not ask us to reproduce an issue with your custom data, since we don't have it. So, either you should use some existing dataset supported by HF datasets or you need to supply a code that generates a small sample on the fly, or some another quick and simple way to get it.
+
+   Please do not send us any non-public domain data that may require a license or a permission to be used.
+
+10. Do not tag multiple developers on the issue unless you know this is expected, either because you asked them and they gave you an explicit permission to tag them or the issue template instructs you to do so.
+
+   The "who to tag for what domain" part of the issue template is there to help users direct their questions to the right developers who are designated maintainers of project's specific domains. They can then decide at their own discretion to tag other developers if they feel it'd help move the issue forward.
+
+   We currently don't have a triage service and we trust your capacity to identify the right domain and thus the persons to tag in your issue. If you are not sure, please use the forums to ask for guidance.
+
+   When in doubt, err on the side of not tagging a given person. If you tag multiple people out of context or permission don't be surprised if you get no response at all. Please remember that every time you tag someone, they get a notification and you're taking their time without their permission. Please be sensitive to that.
+
+   If you got helped by one of the developers in the past please don't tag them in future issues, unless they are listed in the issue template for the domain you are asking about or that developer gave you an explicit permission to tag them in future issues.
+
+   If you see a certain developer doing multiple and/or recent commits into a specific area of the project that you feel is relevant to your issue, it is not a good reason to tag them. Various developers may be fixing things that prevent them from moving forward, but often their work is focused on a totally different domain. And while they may or may not know how to help you with the problem at hand, it would benefit the whole community much more if they focus on the domain of their unique expertise.
+
+11. Use the Edit button. Take your time, and re-read and improve the wording and formatting to make your posts and comments as easy to understand as possible.
+
+    Avoid posting multiple comments in a row, as each comment generates a notification for the developers tagged in that issue. If you happened to post multiple comments in a row, and nobody followed up yet - consider merging those into one or a few comments while editing the combined content to be coherent.
+
+    If you choose to edit your older comments after others posted follow up comments you need to be aware that your modifications might not be noticed, so if it's not a typo fixing, try to write a new comment flagging that something has been changed in the previous comments.
+
+    For example, the very first comment is the most important one. If while the thread unfolds you realize that things aren't as they seemed to you originally you may want to edit the first post to reflect the up-to-date understanding of the issue at hand so that it helps those who read your issue in the future quickly understand what's going on and not need to sift through dozens of comments. It also helps to indicate that the post was edited. So, those reading the thread later can understand why there might be certain discontinuity in the information flow.
+
+    Use bullets and items if you have lists of items and the outcome improves overall readability.
+
+    Use backticks to refer to class and function names, e.g. `BartModel` and `generate` as these stand out and improve the speed of a reader's comprehension.
+
+    Try not use italics and bold text too much as these often make the text more difficult to read.
+
+
+12. If you are cross-referencing a specific comment in a given thread or another issue, always link to that specific comment, rather than using the issue link. If you do the latter it could be quite impossible to find which specific comment you're referring to.
+
+    To get the link to the specific comment do not copy the url from the location bar of your browser, but instead, click the `...` icon in the upper right corner of the comment and then select "Copy Link".
+
+    For example the first link is a link to an issue, and the second to a specific comment in the same issue:
+
+    1. https://github.com/huggingface/transformers/issues/9257
+    2. https://github.com/huggingface/transformers/issues/9257#issuecomment-749945162
+
+
+13. If you are replying to a last comment, it's totally fine to make your reply with just your comment in it. The readers can follow the information flow here.
+
+    But if you're replying to a comment that happened some comments back it's always a good practice to quote just the relevant lines you're replying it. The `>` is used for quoting, or you can always use the menu to do so. For example your editor box will look like:
+
+    ```
+    > How big is your gpu cluster?
+
+    Our cluster is made of 256 gpus.
+    ```
+
+    If you are addressing multiple comments, quote the relevant parts of each before your answer. Some people use the same comment to do multiple replies, others separate them into separate comments. Either way works. The latter approach helps for linking to a specific comment.
+
+In general the best way to figure out what works the best is learn from issues posted by other people - see which issues get great responses and which get little to no response - observe what the posters who received great responses did differently from those who did not.
+
+Thank you for reading this somewhat lengthy document. We would like to conclude that these are not absolute rules, but a friendly advice that will help maximize the chances for us to understand what you are trying to communicate, reproduce the problem then resolve it to your satisfaction and the benefit of the whole community.
+
+If after reading this document there are remaining questions on how and why or there is a need for further elucidation, please, don't hesitate to ask your question in [this thread](https://discuss.huggingface.co/t/how-to-request-support/3128).
+
+Document 686:  Hands-on
+
+<CourseFloatingBanner classNames="absolute z-10 right-0 top-0"
+notebooks={[
+  {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/deep-rl-class/blob/main/notebooks/unit5/unit5.ipynb"}
+  ]}
+  askForHelpUrl="http://hf.co/join/discord" />
+
+
+We learned what ML-Agents is and how it works. We also studied the two environments we're going to use. Now we're ready to train our agents!
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/envs.png" alt="Environments" />
+
+To validate this hands-on for the certification process, you **just need to push your trained models to the Hub.**
+There are **no minimum results to attain** in order to validate this Hands On. But if you want to get nice results, you can try to reach the following:
+
+- For [Pyramids](https://huggingface.co/spaces/unity/ML-Agents-Pyramids): Mean Reward = 1.75
+- For [SnowballTarget](https://huggingface.co/spaces/ThomasSimonini/ML-Agents-SnowballTarget): Mean Reward = 15 or 30 targets shoot in an episode.
+
+For more information about the certification process, check this section 👉 https://huggingface.co/deep-rl-course/en/unit0/introduction#certification-process
+
+**To start the hands-on, click on Open In Colab button** 👇 :
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/huggingface/deep-rl-class/blob/master/notebooks/unit5/unit5.ipynb)
+
+We strongly **recommend students use Google Colab for the hands-on exercises** instead of running them on their personal computers. 
+
+By using Google Colab, **you can focus on learning and experimenting without worrying about the technical aspects** of setting up your environments.
+
+# Unit 5: An Introduction to ML-Agents
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/thumbnail.png" alt="Thumbnail"/>
+
+In this notebook, you'll learn about ML-Agents and train two agents.
+
+- The first one will learn to **shoot snowballs onto spawning targets**.
+- The second needs to press a button to spawn a pyramid, then navigate to the pyramid, knock it over, **and move to the gold brick at the top**. To do that, it will need to explore its environment, and we will use a technique called curiosity.
+
+After that, you'll be able **to watch your agents playing directly on your browser**.
+
+For more information about the certification process, check this section 👉 https://huggingface.co/deep-rl-course/en/unit0/introduction#certification-process
+
+⬇️ Here is an example of what **you will achieve at the end of this unit.** ⬇️
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/pyramids.gif" alt="Pyramids"/>
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/snowballtarget.gif" alt="SnowballTarget"/>
+
+### 🎮 Environments:
+
+- [Pyramids](https://github.com/Unity-Technologies/ml-agents/blob/main/docs/Learning-Environment-Examples.md#pyramids)
+- SnowballTarget
+
+### 📚 RL-Library:
+
+- [ML-Agents](https://github.com/Unity-Technologies/ml-agents)
+
+We're constantly trying to improve our tutorials, so **if you find some issues in this notebook**, please [open an issue on the GitHub Repo](https://github.com/huggingface/deep-rl-class/issues).
+
+## Objectives of this notebook 🏆
+
+At the end of the notebook, you will:
+
+- Understand how **ML-Agents** works and the environment library.
+- Be able to **train agents in Unity Environments**.
+
+## Prerequisites 🏗️
+Before diving into the notebook, you need to:
+
+🔲 📚 **Study [what ML-Agents is and how it works by reading Unit 5](https://huggingface.co/deep-rl-course/unit5/introduction)**  🤗
+
+# Let's train our agents 🚀
+
+## Set the GPU 💪
+
+- To **accelerate the agent's training, we'll use a GPU**. To do that, go to `Runtime > Change Runtime type`
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/notebooks/gpu-step1.jpg" alt="GPU Step 1">
+
+- `Hardware Accelerator > GPU`
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/notebooks/gpu-step2.jpg" alt="GPU Step 2">
+
+## Clone the repository and install the dependencies 🔽
+- We need to clone the repository that **contains the experimental version of the library that allows you to push your trained agent to the Hub.**
+
+```bash
+# Clone the repository
+git clone --depth 1 https://github.com/Unity-Technologies/ml-agents
+```
+
+```bash
+# Go inside the repository and install the package
+cd ml-agents
+pip install -e ./ml-agents-envs
+pip install -e ./ml-agents
+```
+
+## SnowballTarget ⛄
+
+If you need a refresher on how this environment works check this section 👉
+https://huggingface.co/deep-rl-course/unit5/snowball-target
+
+### Download and move the environment zip file in `./training-envs-executables/linux/`
+
+- Our environment executable is in a zip file.
+- We need to download it and place it to `./training-envs-executables/linux/`
+- We use a linux executable because we use colab, and colab machines OS is Ubuntu (linux)
+
+```bash
+# Here, we create training-envs-executables and linux
+mkdir ./training-envs-executables
+mkdir ./training-envs-executables/linux
+```
+
+Download the file SnowballTarget.zip from https://drive.google.com/file/d/1YHHLjyj6gaZ3Gemx1hQgqrPgSS2ZhmB5 using `wget`.
+
+Check out the full solution to download large files from GDrive [here](https://bcrf.biochem.wisc.edu/2021/02/05/download-google-drive-files-using-wget/)
+
+```bash
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1YHHLjyj6gaZ3Gemx1hQgqrPgSS2ZhmB5' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1YHHLjyj6gaZ3Gemx1hQgqrPgSS2ZhmB5" -O ./training-envs-executables/linux/SnowballTarget.zip && rm -rf /tmp/cookies.txt
+```
+
+We unzip the executable.zip file
+
+```bash
+unzip -d ./training-envs-executables/linux/ ./training-envs-executables/linux/SnowballTarget.zip
+```
+
+Make sure your file is accessible
+
+```bash
+chmod -R 755 ./training-envs-executables/linux/SnowballTarget
+```
+
+### Define the SnowballTarget config file
+- In ML-Agents, you define the **training hyperparameters in config.yaml files.**
+
+There are multiple hyperparameters. To understand them better, you should read the explanation for each one in [the documentation](https://github.com/Unity-Technologies/ml-agents/blob/release_20_docs/docs/Training-Configuration-File.md)
+
+
+You need to create a `SnowballTarget.yaml` config file in ./content/ml-agents/config/ppo/
+
+We'll give you a preliminary version of this config (to copy and paste into your `SnowballTarget.yaml file`), **but you should modify it**.
+
+```yaml
+behaviors:
+  SnowballTarget:
+    trainer_type: ppo
+    summary_freq: 10000
+    keep_checkpoints: 10
+    checkpoint_interval: 50000
+    max_steps: 200000
+    time_horizon: 64
+    threaded: true
+    hyperparameters:
+      learning_rate: 0.0003
+      learning_rate_schedule: linear
+      batch_size: 128
+      buffer_size: 2048
+      beta: 0.005
+      epsilon: 0.2
+      lambd: 0.95
+      num_epoch: 3
+    network_settings:
+      normalize: false
+      hidden_units: 256
+      num_layers: 2
+      vis_encode_type: simple
+    reward_signals:
+      extrinsic:
+        gamma: 0.99
+        strength: 1.0
+```
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/snowballfight_config1.png" alt="Config SnowballTarget"/>
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/snowballfight_config2.png" alt="Config SnowballTarget"/>
+
+As an experiment, try to modify some other hyperparameters. Unity provides very [good documentation explaining each of them here](https://github.com/Unity-Technologies/ml-agents/blob/main/docs/Training-Configuration-File.md).
+
+Now that you've created the config file and understand what most hyperparameters do, we're ready to train our agent 🔥.
+
+### Train the agent
+
+To train our agent, we need to **launch mlagents-learn and select the executable containing the environment.**
+
+We define four parameters:
+
+1. `mlagents-learn <config>`: the path where the hyperparameter config file is.
+2. `--env`: where the environment executable is.
+3. `--run_id`: the name you want to give to your training run id.
+4. `--no-graphics`: to not launch the visualization during the training.
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/mlagentslearn.png" alt="MlAgents learn"/>
+
+Train the model and use the `--resume` flag to continue training in case of interruption.
+
+> It will fail the first time if and when you use `--resume`. Try rerunning the block to bypass the error.
+
+The training will take 10 to 35min depending on your config. Go take a ☕️ you deserve it 🤗.
+
+```bash
+mlagents-learn ./config/ppo/SnowballTarget.yaml --env=./training-envs-executables/linux/SnowballTarget/SnowballTarget --run-id="SnowballTarget1" --no-graphics
+```
+
+### Push the agent to the Hugging Face Hub
+
+- Now that we've trained our agent, we’re **ready to push it to the Hub and visualize it playing on your browser🔥.**
+
+To be able to share your model with the community, there are three more steps to follow:
+
+1️⃣ (If it's not already done) create an account to HF ➡ https://huggingface.co/join
+
+2️⃣ Sign in and store your authentication token from the Hugging Face website.
+- Create a new token (https://huggingface.co/settings/tokens) **with write role**
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/notebooks/create-token.jpg" alt="Create HF Token">
+
+- Copy the token
+- Run the cell below and paste the token
+
+```python
+from huggingface_hub import notebook_login
+
+notebook_login()
+```
+
+If you don't want to use Google Colab or a Jupyter Notebook, you need to use this command instead: `huggingface-cli login`
+
+Then we need to run `mlagents-push-to-hf`.
+
+And we define four parameters:
+
+1. `--run-id`: the name of the training run id.
+2. `--local-dir`: where the agent was saved, it’s results/<run_id name>, so in my case results/First Training.
+3. `--repo-id`: the name of the Hugging Face repo you want to create or update. It’s always <your huggingface username>/<the repo name>
+If the repo does not exist **it will be created automatically**
+4. `--commit-message`: since HF repos are git repositories you need to give a commit message.
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/mlagentspushtohub.png" alt="Push to Hub"/>
+
+For instance:
+
+`mlagents-push-to-hf  --run-id="SnowballTarget1" --local-dir="./results/SnowballTarget1" --repo-id="ThomasSimonini/ppo-SnowballTarget"  --commit-message="First Push"`
+
+```python
+mlagents-push-to-hf  --run-id= # Add your run id  --local-dir= # Your local dir  --repo-id= # Your repo id  --commit-message= # Your commit message
+```
+
+If everything worked you should see this at the end of the process (but with a different url 😆) :
+
+
+
+```
+Your model is pushed to the hub. You can view your model here: https://huggingface.co/ThomasSimonini/ppo-SnowballTarget
+```
+
+It's the link to your model. It contains a model card that explains how to use it, your Tensorboard, and your config file. **What's awesome is that it's a git repository, which means you can have different commits, update your repository with a new push, etc.**
+
+But now comes the best: **being able to visualize your agent online 👀.**
+
+### Watch your agent playing 👀
+
+This step it's simple:
+
+1. Remember your repo-id
+
+2. Go here: https://huggingface.co/spaces/ThomasSimonini/ML-Agents-SnowballTarget
+
+3. Launch the game and put it in full screen by clicking on the bottom right button
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/snowballtarget_load.png" alt="Snowballtarget load"/>
+
+1. In step 1, choose your model repository, which is the model id (in my case ThomasSimonini/ppo-SnowballTarget).
+
+2. In step 2, **choose what model you want to replay**:
+  - I have multiple ones since we saved a model every 500000 timesteps.
+  - But if I want the more recent I choose `SnowballTarget.onnx`
+
+👉 It's nice to **try different model stages to see the improvement of the agent.**
+
+And don't hesitate to share the best score your agent gets on discord in the #rl-i-made-this channel 🔥
+
+Now let's try a more challenging environment called Pyramids.
+
+## Pyramids 🏆
+
+### Download and move the environment zip file in `./training-envs-executables/linux/`
+- Our environment executable is in a zip file.
+- We need to download it and place it into `./training-envs-executables/linux/`
+- We use a linux executable because we're using colab, and the colab machine's OS is Ubuntu (linux)
+
+Download the file Pyramids.zip from https://drive.google.com/uc?export=download&id=1UiFNdKlsH0NTu32xV-giYUEVKV4-vc7H using `wget`. Check out the full solution to download large files from GDrive [here](https://bcrf.biochem.wisc.edu/2021/02/05/download-google-drive-files-using-wget/)
+
+```python
+!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1UiFNdKlsH0NTu32xV-giYUEVKV4-vc7H' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1UiFNdKlsH0NTu32xV-giYUEVKV4-vc7H" -O ./training-envs-executables/linux/Pyramids.zip && rm -rf /tmp/cookies.txt
+```
+
+Unzip it
+
+```python
+%%capture
+!unzip -d ./training-envs-executables/linux/ ./training-envs-executables/linux/Pyramids.zip
+```
+
+Make sure your file is accessible
+
+```bash
+chmod -R 755 ./training-envs-executables/linux/Pyramids/Pyramids
+```
+
+###  Modify the PyramidsRND config file
+  
+- Contrary to the first environment, which was a custom one, **Pyramids was made by the Unity team**.
+- So the PyramidsRND config file already exists and is in ./content/ml-agents/config/ppo/PyramidsRND.yaml
+- You might ask why "RND" is in PyramidsRND. RND stands for *random network distillation* it's a way to generate curiosity rewards. If you want to know more about that, we wrote an article explaining this technique: https://medium.com/data-from-the-trenches/curiosity-driven-learning-through-random-network-distillation-488ffd8e5938
+
+For this training, we’ll modify one thing:
+- The total training steps hyperparameter is too high since we can hit the benchmark (mean reward = 1.75) in only 1M training steps.
+👉 To do that, we go to config/ppo/PyramidsRND.yaml,**and change max_steps to 1000000.**
+
+<img src="https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit7/pyramids-config.png" alt="Pyramids config"/>
+
+As an experiment, you should also try to modify some other hyperparameters. Unity provides very [good documentation explaining each of them here](https://github.com/Unity-Technologies/ml-agents/blob/main/docs/Training-Configuration-File.md).
+
+We’re now ready to train our agent 🔥.
+
+### Train the agent
+
+The training will take 30 to 45min depending on your machine, go take a ☕️ you deserve it 🤗.
+
+```python
+mlagents-learn ./config/ppo/PyramidsRND.yaml --env=./training-envs-executables/linux/Pyramids/Pyramids --run-id="Pyramids Training" --no-graphics
+```
+
+### Push the agent to the Hugging Face Hub
+
+- Now that we trained our agent, we’re **ready to push it to the Hub to be able to visualize it playing on your browser🔥.**
+
+```python
+mlagents-push-to-hf  --run-id= # Add your run id  --local-dir= # Your local dir  --repo-id= # Your repo id  --commit-message= # Your commit message
+```
+
+### Watch your agent playing 👀
+
+👉 https://huggingface.co/spaces/unity/ML-Agents-Pyramids
+  
+### 🎁 Bonus: Why not train on another environment?
+  
+Now that you know how to train an agent using MLAgents, **why not try another environment?**
+
+MLAgents provides 17 different environments and we’re building some custom ones. The best way to learn is to try things on your own, have fun.
+
+![cover](https://miro.medium.com/max/1400/0*xERdThTRRM2k_U9f.png)
+
+You have the full list of the one currently available environments on Hugging Face here 👉 https://github.com/huggingface/ml-agents#the-environments
+
+For the demos to visualize your agent 👉 https://huggingface.co/unity
+
+For now we have integrated: 
+- [Worm](https://huggingface.co/spaces/unity/ML-Agents-Worm) demo where you teach a **worm to crawl**.
+- [Walker](https://huggingface.co/spaces/unity/ML-Agents-Walker) demo where you teach an agent **to walk towards a goal**.
+
+That’s all for today. Congrats on finishing this tutorial!
+
+The best way to learn is to practice and try stuff. Why not try another environment? ML-Agents has 18 different environments, but you can also create your own. Check the documentation and have fun!
+
+See you on Unit 6 🔥,
+
+## Keep Learning, Stay awesome 🤗
+
+Document 687:  Gradio Demo: matrix_transpose
+
+
+```
+!pip install -q gradio 
+```
+
+
+```
+import numpy as np
+
+import gradio as gr
+
+
+def transpose(matrix):
+    return matrix.T
+
+
+demo = gr.Interface(
+    transpose,
+    gr.Dataframe(type="numpy", datatype="number", row_count=5, col_count=3),
+    "numpy",
+    examples=[
+        [np.zeros((3, 3)).tolist()],
+        [np.ones((2, 2)).tolist()],
+        [np.random.randint(0, 10, (3, 10)).tolist()],
+        [np.random.randint(0, 10, (10, 3)).tolist()],
+        [np.random.randint(0, 10, (10, 10)).tolist()],
+    ],
+    cache_examples=False
+)
+
+if __name__ == "__main__":
+    demo.launch()
+
+```
+
+Document 688: FrameworkSwitchCourse {fw} />
+
+# Models[[models]]
+
+{#if fw === 'pt'}
+
+<CourseFloatingBanner chapter={2}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/en/chapter2/section3_pt.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/en/chapter2/section3_pt.ipynb"},
+]} />
+
+{:else}
+
+<CourseFloatingBanner chapter={2}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/en/chapter2/section3_tf.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/en/chapter2/section3_tf.ipynb"},
+]} />
+
+{/if}
+
+{#if fw === 'pt'}
+<Youtube id="AhChOFRegn4"/>
+{:else}
+<Youtube id="d3JVgghSOew"/>
+{/if}
+
+{#if fw === 'pt'}
+In this section we'll take a closer look at creating and using a model. We'll use the `AutoModel` class, which is handy when you want to instantiate any model from a checkpoint.
+
+The `AutoModel` class and all of its relatives are actually simple wrappers over the wide variety of models available in the library. It's a clever wrapper as it can automatically guess the appropriate model architecture for your checkpoint, and then instantiates a model with this architecture.
+
+{:else}
+In this section we'll take a closer look at creating and using a model. We'll use the `TFAutoModel` class, which is handy when you want to instantiate any model from a checkpoint.
+
+The `TFAutoModel` class and all of its relatives are actually simple wrappers over the wide variety of models available in the library. It's a clever wrapper as it can automatically guess the appropriate model architecture for your checkpoint, and then instantiates a model with this architecture.
+
+{/if}
+
+However, if you know the type of model you want to use, you can use the class that defines its architecture directly. Let's take a look at how this works with a BERT model.
+
+## Creating a Transformer[[creating-a-transformer]]
+
+The first thing we'll need to do to initialize a BERT model is load a configuration object:
+
+{#if fw === 'pt'}
+```py
+from transformers import BertConfig, BertModel
+
+# Building the config
+config = BertConfig()
+
+# Building the model from the config
+model = BertModel(config)
+```
+{:else}
+```py
+from transformers import BertConfig, TFBertModel
+
+# Building the config
+config = BertConfig()
+
+# Building the model from the config
+model = TFBertModel(config)
+```
+{/if}
+
+The configuration contains many attributes that are used to build the model:
+
+```py
+print(config)
+```
+
+```python out
+BertConfig {
+  [...]
+  "hidden_size": 768,
+  "intermediate_size": 3072,
+  "max_position_embeddings": 512,
+  "num_attention_heads": 12,
+  "num_hidden_layers": 12,
+  [...]
+}
+```
+
+While you haven't seen what all of these attributes do yet, you should recognize some of them: the `hidden_size` attribute defines the size of the `hidden_states` vector, and `num_hidden_layers` defines the number of layers the Transformer model has.
+
+### Different loading methods[[different-loading-methods]]
+
+Creating a model from the default configuration initializes it with random values:
+
+{#if fw === 'pt'}
+```py
+from transformers import BertConfig, BertModel
+
+config = BertConfig()
+model = BertModel(config)
+
+# Model is randomly initialized!
+```
+{:else}
+```py
+from transformers import BertConfig, TFBertModel
+
+config = BertConfig()
+model = TFBertModel(config)
+
+# Model is randomly initialized!
+```
+{/if}
+
+The model can be used in this state, but it will output gibberish; it needs to be trained first. We could train the model from scratch on the task at hand, but as you saw in [Chapter 1](/course/chapter1), this would require a long time and a lot of data, and it would have a non-negligible environmental impact. To avoid unnecessary and duplicated effort, it's imperative to be able to share and reuse models that have already been trained.
+
+Loading a Transformer model that is already trained is simple — we can do this using the `from_pretrained()` method:
+
+{#if fw === 'pt'}
+```py
+from transformers import BertModel
+
+model = BertModel.from_pretrained("bert-base-cased")
+```
+
+As you saw earlier, we could replace `BertModel` with the equivalent `AutoModel` class. We'll do this from now on as this produces checkpoint-agnostic code; if your code works for one checkpoint, it should work seamlessly with another. This applies even if the architecture is different, as long as the checkpoint was trained for a similar task (for example, a sentiment analysis task).
+
+{:else}
+```py
+from transformers import TFBertModel
+
+model = TFBertModel.from_pretrained("bert-base-cased")
+```
+
+As you saw earlier, we could replace `TFBertModel` with the equivalent `TFAutoModel` class. We'll do this from now on as this produces checkpoint-agnostic code; if your code works for one checkpoint, it should work seamlessly with another. This applies even if the architecture is different, as long as the checkpoint was trained for a similar task (for example, a sentiment analysis task).
+
+{/if}
+
+In the code sample above we didn't use `BertConfig`, and instead loaded a pretrained model via the `bert-base-cased` identifier. This is a model checkpoint that was trained by the authors of BERT themselves; you can find more details about it in its [model card](https://huggingface.co/bert-base-cased).
+
+This model is now initialized with all the weights of the checkpoint. It can be used directly for inference on the tasks it was trained on, and it can also be fine-tuned on a new task. By training with pretrained weights rather than from scratch, we can quickly achieve good results.
+
+The weights have been downloaded and cached (so future calls to the `from_pretrained()` method won't re-download them) in the cache folder, which defaults to *~/.cache/huggingface/transformers*. You can customize your cache folder by setting the `HF_HOME` environment variable.
+
+The identifier used to load the model can be the identifier of any model on the Model Hub, as long as it is compatible with the BERT architecture. The entire list of available BERT checkpoints can be found [here](https://huggingface.co/models?filter=bert).
+
+### Saving methods[[saving-methods]]
+
+Saving a model is as easy as loading one — we use the `save_pretrained()` method, which is analogous to the `from_pretrained()` method:
+
+```py
+model.save_pretrained("directory_on_my_computer")
+```
+
+This saves two files to your disk:
+
+{#if fw === 'pt'}
+```
+ls directory_on_my_computer
+
+config.json pytorch_model.bin
+```
+{:else}
+```
+ls directory_on_my_computer
+
+config.json tf_model.h5
+```
+{/if}
+
+If you take a look at the *config.json* file, you'll recognize the attributes necessary to build the model architecture. This file also contains some metadata, such as where the checkpoint originated and what 🤗 Transformers version you were using when you last saved the checkpoint.
+
+{#if fw === 'pt'}
+The *pytorch_model.bin* file is known as the *state dictionary*; it contains all your model's weights. The two files go hand in hand; the configuration is necessary to know your model's architecture, while the model weights are your model's parameters.
+
+{:else}
+The *tf_model.h5* file is known as the *state dictionary*; it contains all your model's weights. The two files go hand in hand; the configuration is necessary to know your model's architecture, while the model weights are your model's parameters.
+
+{/if}
+
+## Using a Transformer model for inference[[using-a-transformer-model-for-inference]]
+
+Now that you know how to load and save a model, let's try using it to make some predictions. Transformer models can only process numbers — numbers that the tokenizer generates. But before we discuss tokenizers, let's explore what inputs the model accepts.
+
+Tokenizers can take care of casting the inputs to the appropriate framework's tensors, but to help you understand what's going on, we'll take a quick look at what must be done before sending the inputs to the model.
+
+Let's say we have a couple of sequences:
+
+```py
+sequences = ["Hello!", "Cool.", "Nice!"]
+```
+
+The tokenizer converts these to vocabulary indices which are typically called *input IDs*. Each sequence is now a list of numbers! The resulting output is:
+
+```py no-format
+encoded_sequences = [
+    [101, 7592, 999, 102],
+    [101, 4658, 1012, 102],
+    [101, 3835, 999, 102],
+]
+```
+
+This is a list of encoded sequences: a list of lists. Tensors only accept rectangular shapes (think matrices). This "array" is already of rectangular shape, so converting it to a tensor is easy:
+
+{#if fw === 'pt'}
+```py
+import torch
+
+model_inputs = torch.tensor(encoded_sequences)
+```
+{:else}
+```py
+import tensorflow as tf
+
+model_inputs = tf.constant(encoded_sequences)
+```
+{/if}
+
+### Using the tensors as inputs to the model[[using-the-tensors-as-inputs-to-the-model]]
+
+Making use of the tensors with the model is extremely simple — we just call the model with the inputs:
+
+```py
+output = model(model_inputs)
+```
+
+While the model accepts a lot of different arguments, only the input IDs are necessary. We'll explain what the other arguments do and when they are required later, 
+but first we need to take a closer look at the tokenizers that build the inputs that a Transformer model can understand.
+
+Document 1375:  Using AllenNLP at Hugging Face
+
+`allennlp` is a NLP library for developing state-of-the-art models on different linguistic tasks. It provides high-level abstractions and APIs for common components and models in modern NLP. It also provides an extensible framework that makes it easy to run and manage NLP experiments.
+
+## Exploring allennlp in the Hub
+
+You can find `allennlp` models on the Hub by filtering at the left of the [models page](https://huggingface.co/models?library=allennlp).
+
+All models on the Hub come up with useful features
+1. A training metrics tab with automatically hosted TensorBoard traces.
+2. Metadata tags that help for discoverability.
+3. An interactive widget you can use to play out with the model directly in the browser.
+4. An Inference API that allows to make inference requests.
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/libraries-allennlp_widget.png"/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/libraries-allennlp_widget-dark.png"/>
+</div>
+
+## Using existing models
+
+You can use the `Predictor` class to load existing models on the Hub. To achieve this, use the `from_path` method and use the `"hf://"` prefix with the repository id. Here is an end-to-end example.
+
+```py
+import allennlp_models
+from allennlp.predictors.predictor import Predictor
+
+predictor = Predictor.from_path("hf://allenai/bidaf-elmo")
+predictor_input = {
+    "passage": "My name is Wolfgang and I live in Berlin", 
+    "question": "Where do I live?"
+}
+predictions = predictor.predict_json(predictor_input)
+```
+
+To get a snippet such as this, you can click `Use in AllenNLP` at the top right,
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/libraries-allennlp_snippet.png"/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/libraries-allennlp_snippet-dark.png"/>
+</div>
+
+## Sharing your models
+
+The first step is to save the model locally. For example, you can use the [`archive_model`](https://docs.allennlp.org/main/api/models/archival/#archive_model) method to save the model as a `model.tar.gz` file. You can then push the zipped model to the Hub. When you train a model with `allennlp`, the model is automatically serialized so you can use that as a preferred option.
+
+### Using the AllenNLP CLI
+
+To push with the CLI, you can use the `allennlp push_to_hf` command as seen below.
+
+```bash
+allennlp push_to_hf --repo_name test_allennlp --archive_path model 
+```
+
+| Argument                    	| Type         	| Description                                                                                                                   	|
+|-----------------------------	|--------------	|-------------------------------------------------------------------------------------------------------------------------------	|
+| `--repo_name`, `-n`         	| str / `Path` 	| Name of the repository on the Hub.                                                                                            	|
+| `--organization`, `-o`      	| str          	| Optional name of organization to which the pipeline should be uploaded.                                                       	|
+| `--serialization-dir`, `-s` 	| str / `Path` 	| Path to directory with the serialized model.                                                                                  	|
+| `--archive-path`, `-a`      	| str / `Path` 	| If instead of a serialization path you're using a zipped model (e.g. model/model.tar.gz), you can use this flag.              	|
+| `--local-repo-path`, `-l`   	| str / `Path` 	| Local path to the model repository (will be created if it doesn't exist). Defaults to `hub` in the current working directory. 	|
+| `--commit-message`, `-c`    	| str          	| Commit message to use for update. Defaults to `"update repository"`.                                                          	|
+
+### From a Python script
+
+The `push_to_hf` function has the same parameters as the bash script.
+
+```py
+from allennlp.common.push_to_hf import push_to_hf
+
+serialization_dir = "path/to/serialization/directory"
+push_to_hf(
+    repo_name="my_repo_name",
+    serialization_dir=serialization_dir,
+    local_repo_path=self.local_repo_path
+)
+```
+
+In just a minute, you can get your model in the Hub, try it out directly in the browser, and share it with the rest of the community. All the required metadata will be uploaded for you!
+
+
+## Additional resources
+
+* AllenNLP [website](https://allenai.org/allennlp).
+* AllenNLP [repository](https://github.com/allenai/allennlp).
+Document 1559: FrameworkSwitchCourse {fw} />
+
+# Summarization[[summarization]]
+
+{#if fw === 'pt'}
+
+<CourseFloatingBanner chapter={7}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/en/chapter7/section5_pt.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/en/chapter7/section5_pt.ipynb"},
+]} />
+
+{:else}
+
+<CourseFloatingBanner chapter={7}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/en/chapter7/section5_tf.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/en/chapter7/section5_tf.ipynb"},
+]} />
+
+{/if}
+
+
+In this section we'll take a look at how Transformer models can be used to condense long documents into summaries, a task known as _text summarization_. This is one of the most challenging NLP tasks as it requires a range of abilities, such as understanding long passages and generating coherent text that captures the main topics in a document. However, when done well, text summarization is a powerful tool that can speed up various business processes by relieving the burden of domain experts to read long documents in detail.
+
+<Youtube id="yHnr5Dk2zCI"/>
+
+Although there already exist various fine-tuned models for summarization on the [Hugging Face Hub](https://huggingface.co/models?pipeline_tag=summarization&sort=downloads), almost all of these are only suitable for English documents. So, to add a twist in this section, we'll train a bilingual model for English and Spanish. By the end of this section, you'll have a [model](https://huggingface.co/huggingface-course/mt5-small-finetuned-amazon-en-es) that can summarize customer reviews like the one shown here:
+
+<iframe src="https://course-demos-mt5-small-finetuned-amazon-en-es.hf.space" frameBorder="0" height="400" title="Gradio app" class="block dark:hidden container p-0 flex-grow space-iframe" allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-downloads"></iframe>
+
+As we'll see, these summaries are concise because they're learned from the titles that customers provide in their product reviews. Let's start by putting together a suitable bilingual corpus for this task.
+
+## Preparing a multilingual corpus[[preparing-a-multilingual-corpus]]
+
+We'll use the [Multilingual Amazon Reviews Corpus](https://huggingface.co/datasets/amazon_reviews_multi) to create our bilingual summarizer. This corpus consists of Amazon product reviews in six languages and is typically used to benchmark multilingual classifiers. However, since each review is accompanied by a short title, we can use the titles as the target summaries for our model to learn from! To get started, let's download the English and Spanish subsets from the Hugging Face Hub:
+
+```python
+from datasets import load_dataset
+
+spanish_dataset = load_dataset("amazon_reviews_multi", "es")
+english_dataset = load_dataset("amazon_reviews_multi", "en")
+english_dataset
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['review_id', 'product_id', 'reviewer_id', 'stars', 'review_body', 'review_title', 'language', 'product_category'],
+        num_rows: 200000
+    })
+    validation: Dataset({
+        features: ['review_id', 'product_id', 'reviewer_id', 'stars', 'review_body', 'review_title', 'language', 'product_category'],
+        num_rows: 5000
+    })
+    test: Dataset({
+        features: ['review_id', 'product_id', 'reviewer_id', 'stars', 'review_body', 'review_title', 'language', 'product_category'],
+        num_rows: 5000
+    })
+})
+```
+
+As you can see, for each language there are 200,000 reviews for the `train` split, and 5,000 reviews for each of the `validation` and `test` splits. The review information we are interested in is contained in the `review_body` and `review_title` columns. Let's take a look at a few examples by creating a simple function that takes a random sample from the training set with the techniques we learned in [Chapter 5](/course/chapter5):
+
+```python
+def show_samples(dataset, num_samples=3, seed=42):
+    sample = dataset["train"].shuffle(seed=seed).select(range(num_samples))
+    for example in sample:
+        print(f"\n'>> Title: {example['review_title']}'")
+        print(f"'>> Review: {example['review_body']}'")
+
+
+show_samples(english_dataset)
+```
+
+```python out
+'>> Title: Worked in front position, not rear'
+'>> Review: 3 stars because these are not rear brakes as stated in the item description. At least the mount adapter only worked on the front fork of the bike that I got it for.'
+
+'>> Title: meh'
+'>> Review: Does it’s job and it’s gorgeous but mine is falling apart, I had to basically put it together again with hot glue'
+
+'>> Title: Can\'t beat these for the money'
+'>> Review: Bought this for handling miscellaneous aircraft parts and hanger "stuff" that I needed to organize; it really fit the bill. The unit arrived quickly, was well packaged and arrived intact (always a good sign). There are five wall mounts-- three on the top and two on the bottom. I wanted to mount it on the wall, so all I had to do was to remove the top two layers of plastic drawers, as well as the bottom corner drawers, place it when I wanted and mark it; I then used some of the new plastic screw in wall anchors (the 50 pound variety) and it easily mounted to the wall. Some have remarked that they wanted dividers for the drawers, and that they made those. Good idea. My application was that I needed something that I can see the contents at about eye level, so I wanted the fuller-sized drawers. I also like that these are the new plastic that doesn\'t get brittle and split like my older plastic drawers did. I like the all-plastic construction. It\'s heavy duty enough to hold metal parts, but being made of plastic it\'s not as heavy as a metal frame, so you can easily mount it to the wall and still load it up with heavy stuff, or light stuff. No problem there. For the money, you can\'t beat it. Best one of these I\'ve bought to date-- and I\'ve been using some version of these for over forty years.'
+```
+
+<Tip>
+
+✏️ **Try it out!** Change the random seed in the `Dataset.shuffle()` command to explore other reviews in the corpus. If you're a Spanish speaker, take a look at some of the reviews in `spanish_dataset` to see if the titles also seem like reasonable summaries.
+
+</Tip>
+
+This sample shows the diversity of reviews one typically finds online, ranging from positive to negative (and everything in between!). Although the example with the "meh" title is not very informative, the other titles look like decent summaries of the reviews themselves. Training a summarization model on all 400,000 reviews would take far too long on a single GPU, so instead we'll focus on generating summaries for a single domain of products. To get a feel for what domains we can choose from, let's convert `english_dataset` to a `pandas.DataFrame` and compute the number of reviews per product category:
+
+```python
+english_dataset.set_format("pandas")
+english_df = english_dataset["train"][:]
+# Show counts for top 20 products
+english_df["product_category"].value_counts()[:20]
+```
+
+```python out
+home                      17679
+apparel                   15951
+wireless                  15717
+other                     13418
+beauty                    12091
+drugstore                 11730
+kitchen                   10382
+toy                        8745
+sports                     8277
+automotive                 7506
+lawn_and_garden            7327
+home_improvement           7136
+pet_products               7082
+digital_ebook_purchase     6749
+pc                         6401
+electronics                6186
+office_product             5521
+shoes                      5197
+grocery                    4730
+book                       3756
+Name: product_category, dtype: int64
+```
+
+The most popular products in the English dataset are about household items, clothing, and wireless electronics. To stick with the Amazon theme, though, let's focus on summarizing book reviews -- after all, this is what the company was founded on! We can see two product categories that fit the bill (`book` and `digital_ebook_purchase`), so let's filter the datasets in both languages for just these products. As we saw in [Chapter 5](/course/chapter5), the `Dataset.filter()` function allows us to slice a dataset very efficiently, so we can define a simple function to do this:
+
+```python
+def filter_books(example):
+    return (
+        example["product_category"] == "book"
+        or example["product_category"] == "digital_ebook_purchase"
+    )
+```
+
+Now when we apply this function to `english_dataset` and `spanish_dataset`, the result will contain just those rows involving the book categories. Before applying the filter, let's switch the format of `english_dataset` from `"pandas"` back to `"arrow"`:
+
+```python
+english_dataset.reset_format()
+```
+
+We can then apply the filter function, and as a sanity check let's inspect a sample of reviews to see if they are indeed about books:
+
+```python
+spanish_books = spanish_dataset.filter(filter_books)
+english_books = english_dataset.filter(filter_books)
+show_samples(english_books)
+```
+
+```python out
+'>> Title: I\'m dissapointed.'
+'>> Review: I guess I had higher expectations for this book from the reviews. I really thought I\'d at least like it. The plot idea was great. I loved Ash but, it just didnt go anywhere. Most of the book was about their radio show and talking to callers. I wanted the author to dig deeper so we could really get to know the characters. All we know about Grace is that she is attractive looking, Latino and is kind of a brat. I\'m dissapointed.'
+
+'>> Title: Good art, good price, poor design'
+'>> Review: I had gotten the DC Vintage calendar the past two years, but it was on backorder forever this year and I saw they had shrunk the dimensions for no good reason. This one has good art choices but the design has the fold going through the picture, so it\'s less aesthetically pleasing, especially if you want to keep a picture to hang. For the price, a good calendar'
+
+'>> Title: Helpful'
+'>> Review: Nearly all the tips useful and. I consider myself an intermediate to advanced user of OneNote. I would highly recommend.'
+```
+
+Okay, we can see that the reviews are not strictly about books and might refer to things like calendars and electronic applications such as OneNote. Nevertheless, the domain seems about right to train a summarization model on. Before we look at various models that are suitable for this task, we have one last bit of data preparation to do: combining the English and Spanish reviews as a single `DatasetDict` object. 🤗 Datasets provides a handy `concatenate_datasets()` function that (as the name suggests) will stack two `Dataset` objects on top of each other. So, to create our bilingual dataset, we'll loop over each split, concatenate the datasets for that split, and shuffle the result to ensure our model doesn't overfit to a single language:
+
+```python
+from datasets import concatenate_datasets, DatasetDict
+
+books_dataset = DatasetDict()
+
+for split in english_books.keys():
+    books_dataset[split] = concatenate_datasets(
+        [english_books[split], spanish_books[split]]
+    )
+    books_dataset[split] = books_dataset[split].shuffle(seed=42)
+
+# Peek at a few examples
+show_samples(books_dataset)
+```
+
+```python out
+'>> Title: Easy to follow!!!!'
+'>> Review: I loved The dash diet weight loss Solution. Never hungry. I would recommend this diet. Also the menus are well rounded. Try it. Has lots of the information need thanks.'
+
+'>> Title: PARCIALMENTE DAÑADO'
+'>> Review: Me llegó el día que tocaba, junto a otros libros que pedí, pero la caja llegó en mal estado lo cual dañó las esquinas de los libros porque venían sin protección (forro).'
+
+'>> Title: no lo he podido descargar'
+'>> Review: igual que el anterior'
+```
+
+This certainly looks like a mix of English and Spanish reviews! Now that we have a training corpus, one final thing to check is the distribution of words in the reviews and their titles. This is especially important for summarization tasks, where short reference summaries in the data can bias the model to only output one or two words in the generated summaries. The plots below show the word distributions, and we can see that the titles are heavily skewed toward just 1-2 words:
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/review-lengths.svg" alt="Word count distributions for the review titles and texts."/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/review-lengths-dark.svg" alt="Word count distributions for the review titles and texts."/>
+</div>
+
+To deal with this, we'll filter out the examples with very short titles so that our model can produce more interesting summaries. Since we're dealing with English and Spanish texts, we can use a rough heuristic to split the titles on whitespace and then use our trusty `Dataset.filter()` method as follows:
+
+```python
+books_dataset = books_dataset.filter(lambda x: len(x["review_title"].split()) > 2)
+```
+
+Now that we've prepared our corpus, let's take a look at a few possible Transformer models that one might fine-tune on it!
+
+## Models for text summarization[[models-for-text-summarization]]
+
+If you think about it, text summarization is a similar sort of task to machine translation: we have a body of text like a review that we'd like to "translate" into a shorter version that captures the salient features of the input. Accordingly, most Transformer models for summarization adopt the encoder-decoder architecture that we first encountered in [Chapter 1](/course/chapter1), although there are some exceptions like the GPT family of models which can also be used for summarization in few-shot settings. The following table lists some popular pretrained models that can be fine-tuned for summarization.
+
+| Transformer model | Description                                                                                                                                                                                                    | Multilingual? |
+| :---------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-----------: |
+|    [GPT-2](https://huggingface.co/gpt2-xl)    | Although trained as an auto-regressive language model, you can make GPT-2 generate summaries by appending "TL;DR" at the end of the input text.                                                                          |      ❌       |
+|   [PEGASUS](https://huggingface.co/google/pegasus-large)   | Uses a pretraining objective to predict masked sentences in multi-sentence texts. This pretraining objective is closer to summarization than vanilla language modeling and scores highly on popular benchmarks. |      ❌       |
+|     [T5](https://huggingface.co/t5-base)      | A universal Transformer architecture that formulates all tasks in a text-to-text framework; e.g., the input format for the model to summarize a document is `summarize: ARTICLE`.                              |      ❌       |
+|     [mT5](https://huggingface.co/google/mt5-base)     | A multilingual version of T5, pretrained on the multilingual Common Crawl corpus (mC4), covering 101 languages.                                                                                                |      ✅       |
+|    [BART](https://huggingface.co/facebook/bart-base)     | A novel Transformer architecture with both an encoder and a decoder stack trained to reconstruct corrupted input that combines the pretraining schemes of BERT and GPT-2.                                    |      ❌       |
+|  [mBART-50](https://huggingface.co/facebook/mbart-large-50)   | A multilingual version of BART, pretrained on 50 languages.                                                                                                                                                     |      ✅       |
+
+As you can see from this table, the majority of Transformer models for summarization (and indeed most NLP tasks) are monolingual. This is great if your task is in a "high-resource" language like English or German, but less so for the thousands of other languages in use across the world. Fortunately, there is a class of multilingual Transformer models, like mT5 and mBART, that come to the rescue. These models are pretrained using language modeling, but with a twist: instead of training on a corpus of one language, they are trained jointly on texts in over 50 languages at once!
+
+We'll focus on mT5, an interesting architecture based on T5 that was pretrained in a text-to-text framework. In T5, every NLP task is formulated in terms of a prompt prefix like `summarize:` which conditions the model to adapt the generated text to the prompt. As shown in the figure below, this makes T5 extremely versatile, as you can solve many tasks with a single model!
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/t5.svg" alt="Different tasks performed by the T5 architecture."/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/t5-dark.svg" alt="Different tasks performed by the T5 architecture."/>
+</div>
+
+mT5 doesn't use prefixes, but shares much of the versatility of T5 and has the advantage of being multilingual. Now that we've picked a model, let's take a look at preparing our data for training.
+
+
+<Tip>
+
+✏️ **Try it out!** Once you've worked through this section, see how well mT5 compares to mBART by fine-tuning the latter with the same techniques. For bonus points, you can also try fine-tuning T5 on just the English reviews. Since T5 has a special prefix prompt, you'll need to prepend `summarize:` to the input examples in the preprocessing steps below.
+
+</Tip>
+
+## Preprocessing the data[[preprocessing-the-data]]
+
+<Youtube id="1m7BerpSq8A"/>
+
+Our next task is to tokenize and encode our reviews and their titles. As usual, we begin by loading the tokenizer associated with the pretrained model checkpoint. We'll use `mt5-small` as our checkpoint so we can fine-tune the model in a reasonable amount of time:
+
+```python
+from transformers import AutoTokenizer
+
+model_checkpoint = "google/mt5-small"
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+```
+
+<Tip>
+
+💡 In the early stages of your NLP projects, a good practice is to train a class of "small" models on a small sample of data. This allows you to debug and iterate faster toward an end-to-end workflow. Once you are confident in the results, you can always scale up the model by simply changing the model checkpoint!
+
+</Tip>
+
+Let's test out the mT5 tokenizer on a small example:
+
+```python
+inputs = tokenizer("I loved reading the Hunger Games!")
+inputs
+```
+
+```python out
+{'input_ids': [336, 259, 28387, 11807, 287, 62893, 295, 12507, 1], 'attention_mask': [1, 1, 1, 1, 1, 1, 1, 1, 1]}
+```
+
+Here we can see the familiar `input_ids` and `attention_mask` that we encountered in our first fine-tuning experiments back in [Chapter 3](/course/chapter3). Let's decode these input IDs with the tokenizer's `convert_ids_to_tokens()` function to see what kind of tokenizer we're dealing with:
+
+```python
+tokenizer.convert_ids_to_tokens(inputs.input_ids)
+```
+
+```python out
+['▁I', '▁', 'loved', '▁reading', '▁the', '▁Hung', 'er', '▁Games', '</s>']
+```
+
+The special Unicode character `▁` and end-of-sequence token `</s>` indicate that we're dealing with the SentencePiece tokenizer, which is based on the Unigram segmentation algorithm discussed in [Chapter 6](/course/chapter6). Unigram is especially useful for multilingual corpora since it allows SentencePiece to be agnostic about accents, punctuation, and the fact that many languages, like Japanese, do not have whitespace characters.
+
+To tokenize our corpus, we have to deal with a subtlety associated with summarization: because our labels are also text, it is possible that they exceed the model's maximum context size. This means we need to apply truncation to both the reviews and their titles to ensure we don't pass excessively long inputs to our model. The tokenizers in 🤗 Transformers provide a nifty `text_target` argument that allows you to tokenize the labels in parallel to the inputs. Here is an example of how the inputs and targets are processed for mT5:
+
+```python
+max_input_length = 512
+max_target_length = 30
+
+
+def preprocess_function(examples):
+    model_inputs = tokenizer(
+        examples["review_body"],
+        max_length=max_input_length,
+        truncation=True,
+    )
+    labels = tokenizer(
+        examples["review_title"], max_length=max_target_length, truncation=True
+    )
+    model_inputs["labels"] = labels["input_ids"]
+    return model_inputs
+```
+
+Let's walk through this code to understand what's happening. The first thing we've done is define values for `max_input_length` and `max_target_length`, which set the upper limits for how long our reviews and titles can be. Since the review body is typically much larger than the title, we've scaled these values accordingly.
+
+With `preprocess_function()`, it is then a simple matter to tokenize the whole corpus using the handy `Dataset.map()` function we've used extensively throughout this course:
+
+```python
+tokenized_datasets = books_dataset.map(preprocess_function, batched=True)
+```
+
+Now that the corpus has been preprocessed, let's take a look at some metrics that are commonly used for summarization. As we'll see, there is no silver bullet when it comes to measuring the quality of machine-generated text.
+
+<Tip>
+
+💡 You may have noticed that we used `batched=True` in our `Dataset.map()` function above. This encodes the examples in batches of 1,000 (the default) and allows you to make use of the multithreading capabilities of the fast tokenizers in 🤗 Transformers. Where possible, try using `batched=True` to get the most out of your preprocessing!
+
+</Tip>
+
+
+## Metrics for text summarization[[metrics-for-text-summarization]]
+
+<Youtube id="TMshhnrEXlg"/>
+
+In comparison to most of the other tasks we've covered in this course, measuring the performance of text generation tasks like summarization or translation is not as straightforward. For example, given a review like "I loved reading the Hunger Games", there are multiple valid summaries, like "I loved the Hunger Games" or "Hunger Games is a great read". Clearly, applying some sort of exact match between the generated summary and the label is not a good solution -- even humans would fare poorly under such a metric, because we all have our own writing style.
+
+For summarization, one of the most commonly used metrics is the [ROUGE score](https://en.wikipedia.org/wiki/ROUGE_(metric)) (short for Recall-Oriented Understudy for Gisting Evaluation). The basic idea behind this metric is to compare a generated summary against a set of reference summaries that are typically created by humans. To make this more precise, suppose we want to compare the following two summaries:
+
+```python
+generated_summary = "I absolutely loved reading the Hunger Games"
+reference_summary = "I loved reading the Hunger Games"
+```
+
+One way to compare them could be to count the number of overlapping words, which in this case would be 6. However, this is a bit crude, so instead ROUGE is based on computing the _precision_ and _recall_ scores for the overlap.
+
+<Tip>
+
+🙋 Don't worry if this is the first time you've heard of precision and recall -- we'll go through some explicit examples together to make it all clear. These metrics are usually encountered in classification tasks, so if you want to understand how precision and recall are defined in that context, we recommend checking out the `scikit-learn` [guides](https://scikit-learn.org/stable/auto_examples/model_selection/plot_precision_recall.html).
+
+</Tip>
+
+For ROUGE, recall measures how much of the reference summary is captured by the generated one. If we are just comparing words, recall can be calculated according to the following formula:
+
+$$ \mathrm{Recall} = \frac{\mathrm{Number\,of\,overlapping\, words}}{\mathrm{Total\, number\, of\, words\, in\, reference\, summary}} $$
+
+For our simple example above, this formula gives a perfect recall of 6/6 = 1; i.e., all the words in the reference summary have been produced by the model. This may sound great, but imagine if our generated summary had been "I really really loved reading the Hunger Games all night". This would also have perfect recall, but is arguably a worse summary since it is verbose. To deal with these scenarios we also compute the precision, which in the ROUGE context measures how much of the generated summary was relevant:
+
+$$ \mathrm{Precision} = \frac{\mathrm{Number\,of\,overlapping\, words}}{\mathrm{Total\, number\, of\, words\, in\, generated\, summary}} $$
+
+Applying this to our verbose summary gives a precision of 6/10  = 0.6, which is considerably worse than the precision of 6/7 = 0.86 obtained by our shorter one. In practice, both precision and recall are usually computed, and then the F1-score (the harmonic mean of precision and recall) is reported. We can do this easily in 🤗 Datasets by first installing the `rouge_score` package:
+
+```py
+!pip install rouge_score
+```
+
+and then loading the ROUGE metric as follows:
+
+```python
+import evaluate
+
+rouge_score = evaluate.load("rouge")
+```
+
+Then we can use the `rouge_score.compute()` function to calculate all the metrics at once:
+
+```python
+scores = rouge_score.compute(
+    predictions=[generated_summary], references=[reference_summary]
+)
+scores
+```
+
+```python out
+{'rouge1': AggregateScore(low=Score(precision=0.86, recall=1.0, fmeasure=0.92), mid=Score(precision=0.86, recall=1.0, fmeasure=0.92), high=Score(precision=0.86, recall=1.0, fmeasure=0.92)),
+ 'rouge2': AggregateScore(low=Score(precision=0.67, recall=0.8, fmeasure=0.73), mid=Score(precision=0.67, recall=0.8, fmeasure=0.73), high=Score(precision=0.67, recall=0.8, fmeasure=0.73)),
+ 'rougeL': AggregateScore(low=Score(precision=0.86, recall=1.0, fmeasure=0.92), mid=Score(precision=0.86, recall=1.0, fmeasure=0.92), high=Score(precision=0.86, recall=1.0, fmeasure=0.92)),
+ 'rougeLsum': AggregateScore(low=Score(precision=0.86, recall=1.0, fmeasure=0.92), mid=Score(precision=0.86, recall=1.0, fmeasure=0.92), high=Score(precision=0.86, recall=1.0, fmeasure=0.92))}
+```
+
+Whoa, there's a lot of information in that output -- what does it all mean? First, 🤗 Datasets actually computes confidence intervals for precision, recall, and F1-score; these are the `low`, `mid`, and `high` attributes you can see here. Moreover, 🤗 Datasets computes a variety of ROUGE scores which are based on different types of text granularity when comparing the generated and reference summaries. The `rouge1` variant is the overlap of unigrams -- this is just a fancy way of saying the overlap of words and is exactly the metric we've discussed above. To verify this, let's pull out the `mid` value of our scores:
+
+```python
+scores["rouge1"].mid
+```
+
+```python out
+Score(precision=0.86, recall=1.0, fmeasure=0.92)
+```
+
+Great, the precision and recall numbers match up! Now what about those other ROUGE scores? `rouge2` measures the overlap between bigrams (think the overlap of pairs of words), while `rougeL` and `rougeLsum` measure the longest matching sequences of words by looking for the longest common substrings in the generated and reference summaries. The "sum" in `rougeLsum` refers to the fact that this metric is computed over a whole summary, while `rougeL` is computed as the average over individual sentences.
+
+<Tip>
+
+✏️ **Try it out!** Create your own example of a generated and reference summary and see if the resulting ROUGE scores agree with a manual calculation based on the formulas for precision and recall. For bonus points, split the text into bigrams and compare the precision and recall for the `rouge2` metric.
+
+</Tip>
+
+We'll use these ROUGE scores to track the performance of our model, but before doing that let's do something every good NLP practitioner should do: create a strong, yet simple baseline!
+
+### Creating a strong baseline[[creating-a-strong-baseline]]
+
+A common baseline for text summarization is to simply take the first three sentences of an article, often called the _lead-3_ baseline. We could use full stops to track the sentence boundaries, but this will fail on acronyms like "U.S." or "U.N." -- so instead we'll use the `nltk` library, which includes a better algorithm to handle these cases. You can install the package using `pip` as follows:
+
+```python
+!pip install nltk
+```
+
+and then download the punctuation rules:
+
+```python
+import nltk
+
+nltk.download("punkt")
+```
+
+Next, we import the sentence tokenizer from `nltk` and create a simple function to extract the first three sentences in a review. The convention in text summarization is to separate each summary with a newline, so let's also include this and test it on a training example:
+
+```python
+from nltk.tokenize import sent_tokenize
+
+
+def three_sentence_summary(text):
+    return "\n".join(sent_tokenize(text)[:3])
+
+
+print(three_sentence_summary(books_dataset["train"][1]["review_body"]))
+```
+
+```python out
+'I grew up reading Koontz, and years ago, I stopped,convinced i had "outgrown" him.'
+'Still,when a friend was looking for something suspenseful too read, I suggested Koontz.'
+'She found Strangers.'
+```
+
+This seems to work, so let's now implement a function that extracts these "summaries" from a dataset and computes the ROUGE scores for the baseline:
+
+```python
+def evaluate_baseline(dataset, metric):
+    summaries = [three_sentence_summary(text) for text in dataset["review_body"]]
+    return metric.compute(predictions=summaries, references=dataset["review_title"])
+```
+
+We can then use this function to compute the ROUGE scores over the validation set and prettify them a bit using Pandas:
+
+```python
+import pandas as pd
+
+score = evaluate_baseline(books_dataset["validation"], rouge_score)
+rouge_names = ["rouge1", "rouge2", "rougeL", "rougeLsum"]
+rouge_dict = dict((rn, round(score[rn].mid.fmeasure * 100, 2)) for rn in rouge_names)
+rouge_dict
+```
+
+```python out
+{'rouge1': 16.74, 'rouge2': 8.83, 'rougeL': 15.6, 'rougeLsum': 15.96}
+```
+
+We can see that the `rouge2` score is significantly lower than the rest; this likely reflects the fact that review titles are typically concise and so the lead-3 baseline is too verbose. Now that we have a good baseline to work from, let's turn our attention toward fine-tuning mT5!
+
+{#if fw === 'pt'}
+
+## Fine-tuning mT5 with the `Trainer` API[[fine-tuning-mt5-with-the-trainer-api]]
+
+Fine-tuning a model for summarization is very similar to the other tasks we've covered in this chapter. The first thing we need to do is load the pretrained model from the `mt5-small` checkpoint. Since summarization is a sequence-to-sequence task, we can load the model with the `AutoModelForSeq2SeqLM` class, which will automatically download and cache the weights:
+
+```python
+from transformers import AutoModelForSeq2SeqLM
+
+model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+```
+
+{:else}
+
+## Fine-tuning mT5 with Keras[[fine-tuning-mt5-with-keras]]
+
+Fine-tuning a model for summarization is very similar to the other tasks we've covered in this chapter. The first thing we need to do is load the pretrained model from the `mt5-small` checkpoint. Since summarization is a sequence-to-sequence task, we can load the model with the `TFAutoModelForSeq2SeqLM` class, which will automatically download and cache the weights:
+
+```python
+from transformers import TFAutoModelForSeq2SeqLM
+
+model = TFAutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+```
+
+{/if}
+
+<Tip>
+
+💡 If you're wondering why you don't see any warnings about fine-tuning the model on a downstream task, that's because for sequence-to-sequence tasks we keep all the weights of the network. Compare this to our text classification model in [Chapter 3](/course/chapter3), where the head of the pretrained model was replaced with a randomly initialized network.
+
+</Tip>
+
+The next thing we need to do is log in to the Hugging Face Hub. If you're running this code in a notebook, you can do so with the following utility function:
+
+```python
+from huggingface_hub import notebook_login
+
+notebook_login()
+```
+
+which will display a widget where you can enter your credentials. Alternatively, you can run this command in your terminal and log in there:
+
+```
+huggingface-cli login
+```
+
+{#if fw === 'pt'}
+
+We'll need to generate summaries in order to compute ROUGE scores during training. Fortunately, 🤗 Transformers provides dedicated `Seq2SeqTrainingArguments` and `Seq2SeqTrainer` classes that can do this for us automatically! To see how this works, let's first define the hyperparameters and other arguments for our experiments:
+
+```python
+from transformers import Seq2SeqTrainingArguments
+
+batch_size = 8
+num_train_epochs = 8
+# Show the training loss with every epoch
+logging_steps = len(tokenized_datasets["train"]) // batch_size
+model_name = model_checkpoint.split("/")[-1]
+
+args = Seq2SeqTrainingArguments(
+    output_dir=f"{model_name}-finetuned-amazon-en-es",
+    evaluation_strategy="epoch",
+    learning_rate=5.6e-5,
+    per_device_train_batch_size=batch_size,
+    per_device_eval_batch_size=batch_size,
+    weight_decay=0.01,
+    save_total_limit=3,
+    num_train_epochs=num_train_epochs,
+    predict_with_generate=True,
+    logging_steps=logging_steps,
+    push_to_hub=True,
+)
+```
+
+Here, the `predict_with_generate` argument has been set to indicate that we should generate summaries during evaluation so that we can compute ROUGE scores for each epoch. As discussed in [Chapter 1](/course/chapter1), the decoder performs inference by predicting tokens one by one, and this is implemented by the model's `generate()` method. Setting `predict_with_generate=True` tells the `Seq2SeqTrainer` to use that method for evaluation. We've also adjusted some of the default hyperparameters, like the learning rate, number of epochs, and weight decay, and we've set the `save_total_limit` option to only save up to 3 checkpoints during training -- this is because even the "small" version of mT5 uses around a GB of hard drive space, and we can save a bit of room by limiting the number of copies we save.
+
+The `push_to_hub=True` argument will allow us to push the model to the Hub after training; you'll find the repository under your user profile in the location defined by `output_dir`. Note that you can specify the name of the repository you want to push to with the `hub_model_id` argument (in particular, you will have to use this argument to push to an organization). For instance, when we pushed the model to the [`huggingface-course` organization](https://huggingface.co/huggingface-course), we added `hub_model_id="huggingface-course/mt5-finetuned-amazon-en-es"` to `Seq2SeqTrainingArguments`.
+
+The next thing we need to do is provide the trainer with a `compute_metrics()` function so that we can evaluate our model during training. For summarization this is a bit more involved than simply calling `rouge_score.compute()` on the model's predictions, since we need to _decode_ the outputs and labels into text before we can compute the ROUGE scores. The following function does exactly that, and also makes use of the `sent_tokenize()` function from `nltk` to separate the summary sentences with newlines:
+
+```python
+import numpy as np
+
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    # Decode generated summaries into text
+    decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+    # Replace -100 in the labels as we can't decode them
+    labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+    # Decode reference summaries into text
+    decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+    # ROUGE expects a newline after each sentence
+    decoded_preds = ["\n".join(sent_tokenize(pred.strip())) for pred in decoded_preds]
+    decoded_labels = ["\n".join(sent_tokenize(label.strip())) for label in decoded_labels]
+    # Compute ROUGE scores
+    result = rouge_score.compute(
+        predictions=decoded_preds, references=decoded_labels, use_stemmer=True
+    )
+    # Extract the median scores
+    result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+    return {k: round(v, 4) for k, v in result.items()}
+```
+
+{/if}
+
+Next, we need to define a data collator for our sequence-to-sequence task. Since mT5 is an encoder-decoder Transformer model, one subtlety with preparing our batches is that during decoding we need to shift the labels to the right by one. This is required to ensure that the decoder only sees the previous ground truth labels and not the current or future ones, which would be easy for the model to memorize. This is similar to how masked self-attention is applied to the inputs in a task like [causal language modeling](/course/chapter7/6).
+
+Luckily, 🤗 Transformers provides a `DataCollatorForSeq2Seq` collator that will dynamically pad the inputs and the labels for us. To instantiate this collator, we simply need to provide the `tokenizer` and `model`:
+
+{#if fw === 'pt'}
+
+```python
+from transformers import DataCollatorForSeq2Seq
+
+data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
+```
+
+{:else}
+
+```python
+from transformers import DataCollatorForSeq2Seq
+
+data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, return_tensors="tf")
+```
+
+{/if}
+
+Let's see what this collator produces when fed a small batch of examples. First, we need to remove the columns with strings because the collator won't know how to pad these elements:
+
+```python
+tokenized_datasets = tokenized_datasets.remove_columns(
+    books_dataset["train"].column_names
+)
+```
+
+Since the collator expects a list of `dict`s, where each `dict` represents a single example in the dataset, we also need to wrangle the data into the expected format before passing it to the data collator:
+
+```python
+features = [tokenized_datasets["train"][i] for i in range(2)]
+data_collator(features)
+```
+
+```python out
+{'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]), 'input_ids': tensor([[  1494,    259,   8622,    390,    259,    262,   2316,   3435,    955,
+            772,    281,    772,   1617,    263,    305,  14701,    260,   1385,
+           3031,    259,  24146,    332,   1037,    259,  43906,    305,    336,
+            260,      1,      0,      0,      0,      0,      0,      0],
+        [   259,  27531,  13483,    259,   7505,    260, 112240,  15192,    305,
+          53198,    276,    259,  74060,    263,    260,    459,  25640,    776,
+           2119,    336,    259,   2220,    259,  18896,    288,   4906,    288,
+           1037,   3931,    260,   7083, 101476,   1143,    260,      1]]), 'labels': tensor([[ 7483,   259,  2364, 15695,     1,  -100],
+        [  259, 27531, 13483,   259,  7505,     1]]), 'decoder_input_ids': tensor([[    0,  7483,   259,  2364, 15695,     1],
+        [    0,   259, 27531, 13483,   259,  7505]])}
+```
+
+The main thing to notice here is that the first example is longer than the second one, so the `input_ids` and `attention_mask` of the second example have been padded on the right with a `[PAD]` token (whose ID is `0`). Similarly, we can see that the `labels` have been padded with `-100`s, to make sure the padding tokens are ignored by the loss function. And finally, we can see a new `decoder_input_ids` which has shifted the labels to the right by inserting a `[PAD]` token in the first entry.
+
+{#if fw === 'pt'}
+
+We finally have all the ingredients we need to train with! We now simply need to instantiate the trainer with the standard arguments:
+
+```python
+from transformers import Seq2SeqTrainer
+
+trainer = Seq2SeqTrainer(
+    model,
+    args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation"],
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+    compute_metrics=compute_metrics,
+)
+```
+
+and launch our training run:
+
+```python
+trainer.train()
+```
+
+During training, you should see the training loss decrease and the ROUGE scores increase with each epoch. Once the training is complete, you can see the final ROUGE scores by running `Trainer.evaluate()`:
+
+```python
+trainer.evaluate()
+```
+
+```python out
+{'eval_loss': 3.028524398803711,
+ 'eval_rouge1': 16.9728,
+ 'eval_rouge2': 8.2969,
+ 'eval_rougeL': 16.8366,
+ 'eval_rougeLsum': 16.851,
+ 'eval_gen_len': 10.1597,
+ 'eval_runtime': 6.1054,
+ 'eval_samples_per_second': 38.982,
+ 'eval_steps_per_second': 4.914}
+```
+
+From the scores we can see that our model has handily outperformed our lead-3 baseline -- nice! The final thing to do is push the model weights to the Hub, as follows:
+
+```
+trainer.push_to_hub(commit_message="Training complete", tags="summarization")
+```
+
+```python out
+'https://huggingface.co/huggingface-course/mt5-finetuned-amazon-en-es/commit/aa0536b829b28e73e1e4b94b8a5aacec420d40e0'
+```
+
+This will save the checkpoint and configuration files to `output_dir`, before uploading all the files to the Hub. By specifying the `tags` argument, we also ensure that the widget on the Hub will be one for a summarization pipeline instead of the default text generation one associated with the mT5 architecture (for more information about model tags, see the [🤗 Hub documentation](https://huggingface.co/docs/hub/main#how-is-a-models-type-of-inference-api-and-widget-determined)). The output from `trainer.push_to_hub()` is a URL to the Git commit hash, so you can easily see the changes that were made to the model repository!
+
+To wrap up this section, let's take a look at how we can also fine-tune mT5 using the low-level features provided by 🤗 Accelerate.
+
+{:else}
+
+We're almost ready to train! We just need to convert our datasets to `tf.data.Dataset`s using the data collator we defined above, and then `compile()` and `fit()` the model. First, the datasets:
+
+```python
+tf_train_dataset = model.prepare_tf_dataset(
+    tokenized_datasets["train"],
+    collate_fn=data_collator,
+    shuffle=True,
+    batch_size=8,
+)
+tf_eval_dataset = model.prepare_tf_dataset(
+    tokenized_datasets["validation"],
+    collate_fn=data_collator,
+    shuffle=False,
+    batch_size=8,
+)
+```
+
+Now, we define our training hyperparameters and compile:
+
+```python
+from transformers import create_optimizer
+import tensorflow as tf
+
+# The number of training steps is the number of samples in the dataset, divided by the batch size then multiplied
+# by the total number of epochs. Note that the tf_train_dataset here is a batched tf.data.Dataset,
+# not the original Hugging Face Dataset, so its len() is already num_samples // batch_size.
+num_train_epochs = 8
+num_train_steps = len(tf_train_dataset) * num_train_epochs
+model_name = model_checkpoint.split("/")[-1]
+
+optimizer, schedule = create_optimizer(
+    init_lr=5.6e-5,
+    num_warmup_steps=0,
+    num_train_steps=num_train_steps,
+    weight_decay_rate=0.01,
+)
+
+model.compile(optimizer=optimizer)
+
+# Train in mixed-precision float16
+tf.keras.mixed_precision.set_global_policy("mixed_float16")
+```
+
+And finally, we fit the model. We use a `PushToHubCallback` to save the model to the Hub after each epoch, which will allow us to use it for inference later:
+
+```python
+from transformers.keras_callbacks import PushToHubCallback
+
+callback = PushToHubCallback(
+    output_dir=f"{model_name}-finetuned-amazon-en-es", tokenizer=tokenizer
+)
+
+model.fit(
+    tf_train_dataset, validation_data=tf_eval_dataset, callbacks=[callback], epochs=8
+)
+```
+
+We got some loss values during training, but really we'd like to see the ROUGE metrics we computed earlier. To get those metrics, we'll need to generate outputs from the model and convert them to strings. Let's build some lists of labels and predictions for the ROUGE metric to compare (note that if you get import errors for this section, you may need to`!pip install tqdm`). We're also going to use a trick that dramatically increases performance - compiling our generation code with [XLA](https://www.tensorflow.org/xla), TensorFlow's accelerated linear algebra compiler. XLA applies various optimizations to the model's computation graph, and results in significant improvements to speed and memory usage. As described in the Hugging Face [blog](https://huggingface.co/blog/tf-xla-generate), XLA works best when our input shapes don't vary too much. To handle this, we'll pad our inputs to multiples of 128, and make a new dataset with the padding collator, and then we'll apply the `@tf.function(jit_compile=True)` decorator to our generation function, which marks the whole function for compilation with XLA. 
+
+```python
+from tqdm import tqdm
+import numpy as np
+
+generation_data_collator = DataCollatorForSeq2Seq(
+    tokenizer, model=model, return_tensors="tf", pad_to_multiple_of=320
+)
+
+tf_generate_dataset = model.prepare_tf_dataset(
+    tokenized_datasets["validation"],
+    collate_fn=generation_data_collator,
+    shuffle=False,
+    batch_size=8,
+    drop_remainder=True,
+)
+
+
+@tf.function(jit_compile=True)
+def generate_with_xla(batch):
+    return model.generate(
+        input_ids=batch["input_ids"],
+        attention_mask=batch["attention_mask"],
+        max_new_tokens=32,
+    )
+
+
+all_preds = []
+all_labels = []
+for batch, labels in tqdm(tf_generate_dataset):
+    predictions = generate_with_xla(batch)
+    decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+    labels = labels.numpy()
+    labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+    decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+    decoded_preds = ["\n".join(sent_tokenize(pred.strip())) for pred in decoded_preds]
+    decoded_labels = ["\n".join(sent_tokenize(label.strip())) for label in decoded_labels]
+    all_preds.extend(decoded_preds)
+    all_labels.extend(decoded_labels)
+```
+
+Once we have our lists of label and prediction strings, computing the ROUGE score is easy:
+
+```python
+result = rouge_score.compute(
+    predictions=decoded_preds, references=decoded_labels, use_stemmer=True
+)
+result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+{k: round(v, 4) for k, v in result.items()}
+```
+
+```
+{'rouge1': 31.4815, 'rouge2': 25.4386, 'rougeL': 31.4815, 'rougeLsum': 31.4815}
+```
+
+
+{/if}
+
+{#if fw === 'pt'}
+
+## Fine-tuning mT5 with 🤗 Accelerate[[fine-tuning-mt5-with-accelerate]]
+
+Fine-tuning our model with 🤗 Accelerate is very similar to the text classification example we encountered in [Chapter 3](/course/chapter3). The main differences will be the need to explicitly generate our summaries during training and define how we compute the ROUGE scores (recall that the `Seq2SeqTrainer` took care of the generation for us). Let's take a look how we can implement these two requirements within 🤗 Accelerate!
+
+### Preparing everything for training[[preparing-everything-for-training]]
+
+The first thing we need to do is create a `DataLoader` for each of our splits. Since the PyTorch dataloaders expect batches of tensors, we need to set the format to `"torch"` in our datasets:
+
+```python
+tokenized_datasets.set_format("torch")
+```
+
+Now that we've got datasets consisting of just tensors, the next thing to do is instantiate the `DataCollatorForSeq2Seq` again. For this we need to provide a fresh version of the model, so let's load it again from our cache:
+
+```python
+model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+```
+
+We can then instantiate the data collator and use this to define our dataloaders:
+
+```python
+from torch.utils.data import DataLoader
+
+batch_size = 8
+train_dataloader = DataLoader(
+    tokenized_datasets["train"],
+    shuffle=True,
+    collate_fn=data_collator,
+    batch_size=batch_size,
+)
+eval_dataloader = DataLoader(
+    tokenized_datasets["validation"], collate_fn=data_collator, batch_size=batch_size
+)
+```
+
+The next thing to do is define the optimizer we want to use. As in our other examples, we'll use `AdamW`, which works well for most problems:
+
+```python
+from torch.optim import AdamW
+
+optimizer = AdamW(model.parameters(), lr=2e-5)
+```
+
+Finally, we feed our model, optimizer, and dataloaders to the `accelerator.prepare()` method:
+
+```python
+from accelerate import Accelerator
+
+accelerator = Accelerator()
+model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
+    model, optimizer, train_dataloader, eval_dataloader
+)
+```
+
+<Tip>
+
+🚨 If you're training on a TPU, you'll need to move all the code above into a dedicated training function. See [Chapter 3](/course/chapter3) for more details.
+
+</Tip>
+
+Now that we've prepared our objects, there are three remaining things to do:
+
+* Define the learning rate schedule.
+* Implement a function to post-process the summaries for evaluation.
+* Create a repository on the Hub that we can push our model to.
+
+For the learning rate schedule, we'll use the standard linear one from previous sections:
+
+```python
+from transformers import get_scheduler
+
+num_train_epochs = 10
+num_update_steps_per_epoch = len(train_dataloader)
+num_training_steps = num_train_epochs * num_update_steps_per_epoch
+
+lr_scheduler = get_scheduler(
+    "linear",
+    optimizer=optimizer,
+    num_warmup_steps=0,
+    num_training_steps=num_training_steps,
+)
+```
+
+For post-processing, we need a function that splits the generated summaries into sentences that are separated by newlines. This is the format the ROUGE metric expects, and we can achieve this with the following snippet of code:
+
+```python
+def postprocess_text(preds, labels):
+    preds = [pred.strip() for pred in preds]
+    labels = [label.strip() for label in labels]
+
+    # ROUGE expects a newline after each sentence
+    preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in preds]
+    labels = ["\n".join(nltk.sent_tokenize(label)) for label in labels]
+
+    return preds, labels
+```
+
+This should look familiar to you if you recall how we defined the `compute_metrics()` function of the `Seq2SeqTrainer`. 
+
+Finally, we need to create a model repository on the Hugging Face Hub. For this, we can use the appropriately titled 🤗 Hub library. We just need to define a name for our repository, and the library has a utility function to combine the repository ID with the user profile:
+
+```python
+from huggingface_hub import get_full_repo_name
+
+model_name = "test-bert-finetuned-squad-accelerate"
+repo_name = get_full_repo_name(model_name)
+repo_name
+```
+
+```python out
+'lewtun/mt5-finetuned-amazon-en-es-accelerate'
+```
+
+Now we can use this repository name to clone a local version to our results directory that will store the training artifacts:
+
+```python
+from huggingface_hub import Repository
+
+output_dir = "results-mt5-finetuned-squad-accelerate"
+repo = Repository(output_dir, clone_from=repo_name)
+```
+
+This will allow us to push the artifacts back to the Hub by calling the `repo.push_to_hub()` method during training! Let's now wrap up our analysis by writing out the training loop.
+
+### Training loop[[training-loop]]
+
+The training loop for summarization is quite similar to the other 🤗 Accelerate examples that we've encountered and is roughly split into four main steps:
+
+1. Train the model by iterating over all the examples in `train_dataloader` for each epoch.
+2. Generate model summaries at the end of each epoch, by first generating the tokens and then decoding them (and the reference summaries) into text.
+3. Compute the ROUGE scores using the same techniques we saw earlier.
+4. Save the checkpoints and push everything to the Hub. Here we rely on the nifty `blocking=False` argument of the `Repository` object so that we can push the checkpoints per epoch _asynchronously_. This allows us to continue training without having to wait for the somewhat slow upload associated with a GB-sized model!
+
+These steps can be seen in the following block of code:
+
+```python
+from tqdm.auto import tqdm
+import torch
+import numpy as np
+
+progress_bar = tqdm(range(num_training_steps))
+
+for epoch in range(num_train_epochs):
+    # Training
+    model.train()
+    for step, batch in enumerate(train_dataloader):
+        outputs = model(**batch)
+        loss = outputs.loss
+        accelerator.backward(loss)
+
+        optimizer.step()
+        lr_scheduler.step()
+        optimizer.zero_grad()
+        progress_bar.update(1)
+
+    # Evaluation
+    model.eval()
+    for step, batch in enumerate(eval_dataloader):
+        with torch.no_grad():
+            generated_tokens = accelerator.unwrap_model(model).generate(
+                batch["input_ids"],
+                attention_mask=batch["attention_mask"],
+            )
+
+            generated_tokens = accelerator.pad_across_processes(
+                generated_tokens, dim=1, pad_index=tokenizer.pad_token_id
+            )
+            labels = batch["labels"]
+
+            # If we did not pad to max length, we need to pad the labels too
+            labels = accelerator.pad_across_processes(
+                batch["labels"], dim=1, pad_index=tokenizer.pad_token_id
+            )
+
+            generated_tokens = accelerator.gather(generated_tokens).cpu().numpy()
+            labels = accelerator.gather(labels).cpu().numpy()
+
+            # Replace -100 in the labels as we can't decode them
+            labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+            if isinstance(generated_tokens, tuple):
+                generated_tokens = generated_tokens[0]
+            decoded_preds = tokenizer.batch_decode(
+                generated_tokens, skip_special_tokens=True
+            )
+            decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+            decoded_preds, decoded_labels = postprocess_text(
+                decoded_preds, decoded_labels
+            )
+
+            rouge_score.add_batch(predictions=decoded_preds, references=decoded_labels)
+
+    # Compute metrics
+    result = rouge_score.compute()
+    # Extract the median ROUGE scores
+    result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+    result = {k: round(v, 4) for k, v in result.items()}
+    print(f"Epoch {epoch}:", result)
+
+    # Save and upload
+    accelerator.wait_for_everyone()
+    unwrapped_model = accelerator.unwrap_model(model)
+    unwrapped_model.save_pretrained(output_dir, save_function=accelerator.save)
+    if accelerator.is_main_process:
+        tokenizer.save_pretrained(output_dir)
+        repo.push_to_hub(
+            commit_message=f"Training in progress epoch {epoch}", blocking=False
+        )
+```
+
+```python out
+Epoch 0: {'rouge1': 5.6351, 'rouge2': 1.1625, 'rougeL': 5.4866, 'rougeLsum': 5.5005}
+Epoch 1: {'rouge1': 9.8646, 'rouge2': 3.4106, 'rougeL': 9.9439, 'rougeLsum': 9.9306}
+Epoch 2: {'rouge1': 11.0872, 'rouge2': 3.3273, 'rougeL': 11.0508, 'rougeLsum': 10.9468}
+Epoch 3: {'rouge1': 11.8587, 'rouge2': 4.8167, 'rougeL': 11.7986, 'rougeLsum': 11.7518}
+Epoch 4: {'rouge1': 12.9842, 'rouge2': 5.5887, 'rougeL': 12.7546, 'rougeLsum': 12.7029}
+Epoch 5: {'rouge1': 13.4628, 'rouge2': 6.4598, 'rougeL': 13.312, 'rougeLsum': 13.2913}
+Epoch 6: {'rouge1': 12.9131, 'rouge2': 5.8914, 'rougeL': 12.6896, 'rougeLsum': 12.5701}
+Epoch 7: {'rouge1': 13.3079, 'rouge2': 6.2994, 'rougeL': 13.1536, 'rougeLsum': 13.1194}
+Epoch 8: {'rouge1': 13.96, 'rouge2': 6.5998, 'rougeL': 13.9123, 'rougeLsum': 13.7744}
+Epoch 9: {'rouge1': 14.1192, 'rouge2': 7.0059, 'rougeL': 14.1172, 'rougeLsum': 13.9509}
+```
+
+And that's it! Once you run this, you'll have a model and results that are pretty similar to the ones we obtained with the `Trainer`.
+
+{/if}
+
+## Using your fine-tuned model[[using-your-fine-tuned-model]]
+
+Once you've pushed the model to the Hub, you can play with it either via the inference widget or with a `pipeline` object, as follows:
+
+```python
+from transformers import pipeline
+
+hub_model_id = "huggingface-course/mt5-small-finetuned-amazon-en-es"
+summarizer = pipeline("summarization", model=hub_model_id)
+```
+
+We can feed some examples from the test set (which the model has not seen) to our pipeline to get a feel for the quality of the summaries. First let's implement a simple function to show the review, title, and generated summary together:
+
+```python
+def print_summary(idx):
+    review = books_dataset["test"][idx]["review_body"]
+    title = books_dataset["test"][idx]["review_title"]
+    summary = summarizer(books_dataset["test"][idx]["review_body"])[0]["summary_text"]
+    print(f"'>>> Review: {review}'")
+    print(f"\n'>>> Title: {title}'")
+    print(f"\n'>>> Summary: {summary}'")
+```
+
+Let's take a look at one of the English examples we get:
+
+```python
+print_summary(100)
+```
+
+```python out
+'>>> Review: Nothing special at all about this product... the book is too small and stiff and hard to write in. The huge sticker on the back doesn’t come off and looks super tacky. I would not purchase this again. I could have just bought a journal from the dollar store and it would be basically the same thing. It’s also really expensive for what it is.'
+
+'>>> Title: Not impressed at all... buy something else'
+
+'>>> Summary: Nothing special at all about this product'
+```
+
+This is not too bad! We can see that our model has actually been able to perform _abstractive_ summarization by augmenting parts of the review with new words. And perhaps the coolest aspect of our model is that it is bilingual, so we can also generate summaries of Spanish reviews:
+
+```python
+print_summary(0)
+```
+
+```python out
+'>>> Review: Es una trilogia que se hace muy facil de leer. Me ha gustado, no me esperaba el final para nada'
+
+'>>> Title: Buena literatura para adolescentes'
+
+'>>> Summary: Muy facil de leer'
+```
+
+The summary translates into "Very easy to read" in English, which we can see in this case was extracted directly from the review. Nevertheless, this shows the versatility of the mT5 model and has given you a taste of what it's like to deal with a multilingual corpus!
+
+Next, we'll turn our attention to a slightly more complex task: training a language model from scratch.
+
+Document 2073: --
+title: 'Welcome Stable-baselines3 to the Hugging Face Hub 🤗'
+thumbnail: /blog/assets/47_sb3/thumbnail.png
+authors:
+- user: ThomasSimonini
+---
+
+# Welcome Stable-baselines3 to the Hugging Face Hub 🤗
+
+
+At Hugging Face, we are contributing to the ecosystem for Deep Reinforcement Learning researchers and enthusiasts. That’s why we’re happy to announce that we integrated [Stable-Baselines3](https://github.com/DLR-RM/stable-baselines3) to the Hugging Face Hub.
+
+[Stable-Baselines3](https://github.com/DLR-RM/stable-baselines3) is one of the most popular PyTorch Deep Reinforcement Learning library that makes it easy to train and test your agents in a variety of environments (Gym, Atari, MuJoco, Procgen...).
+With this integration, you can now host your saved models 💾 and load powerful models from the community.
+
+In this article, we’re going to show how you can do it. 
+
+### Installation
+
+To use stable-baselines3 with Hugging Face Hub, you just need to install these 2 libraries:
+
+```bash
+pip install huggingface_hub
+pip install huggingface_sb3
+```
+
+### Finding Models
+
+We’re currently uploading saved models of agents playing Space Invaders, Breakout, LunarLander and more. On top of this, you can find [all stable-baselines-3 models from the community here](https://huggingface.co/models?other=stable-baselines3)
+
+When you found the model you need, you just have to copy the repository id:
+
+![Image showing how to copy a repository id](assets/47_sb3/repo_id.jpg)
+
+### Download a model from the Hub
+
+The coolest feature of this integration is that you can now very easily load a saved model from Hub to Stable-baselines3. 
+
+In order to do that you just need to copy the repo-id that contains your saved model and the name of the saved model zip file in the repo.
+
+For instance`sb3/demo-hf-CartPole-v1`:
+
+```python
+import gym
+
+from huggingface_sb3 import load_from_hub
+from stable_baselines3 import PPO
+from stable_baselines3.common.evaluation import evaluate_policy
+
+# Retrieve the model from the hub
+## repo_id = id of the model repository from the Hugging Face Hub (repo_id = {organization}/{repo_name})
+## filename = name of the model zip file from the repository including the extension .zip
+checkpoint = load_from_hub(
+    repo_id="sb3/demo-hf-CartPole-v1",
+    filename="ppo-CartPole-v1.zip",
+)
+model = PPO.load(checkpoint)
+
+# Evaluate the agent and watch it
+eval_env = gym.make("CartPole-v1")
+mean_reward, std_reward = evaluate_policy(
+    model, eval_env, render=True, n_eval_episodes=5, deterministic=True, warn=False
+)
+print(f"mean_reward={mean_reward:.2f} +/- {std_reward}")
+```
+
+### Sharing a model to the Hub
+In just a minute, you can get your saved model in the Hub.
+
+First, you need to be logged in to Hugging Face to upload a model:
+- If you're using Colab/Jupyter Notebooks:
+
+````python
+from huggingface_hub import notebook_login
+notebook_login()
+````
+- Else:
+
+`````bash
+huggingface-cli login
+`````
+
+Then, in this example, we train a PPO agent to play CartPole-v1 and push it to a new repo `ThomasSimonini/demo-hf-CartPole-v1`
+`
+`````python
+from huggingface_sb3 import push_to_hub
+from stable_baselines3 import PPO
+
+# Define a PPO model with MLP policy network
+model = PPO("MlpPolicy", "CartPole-v1", verbose=1)
+
+# Train it for 10000 timesteps
+model.learn(total_timesteps=10_000)
+
+# Save the model
+model.save("ppo-CartPole-v1")
+
+# Push this saved model to the hf repo
+# If this repo does not exists it will be created
+## repo_id = id of the model repository from the Hugging Face Hub (repo_id = {organization}/{repo_name})
+## filename: the name of the file == "name" inside model.save("ppo-CartPole-v1")
+push_to_hub(
+    repo_id="ThomasSimonini/demo-hf-CartPole-v1",
+    filename="ppo-CartPole-v1.zip",
+    commit_message="Added Cartpole-v1 model trained with PPO",
+)
+``````
+Try it out and share your models with the community!
+
+### What's next?
+
+In the coming weeks and months, we will be extending the ecosystem by:
+
+- Integrating [RL-baselines3-zoo](https://github.com/DLR-RM/rl-baselines3-zoo)
+- Uploading [RL-trained-agents models](https://github.com/DLR-RM/rl-trained-agents/tree/master) into the Hub: a big collection of pre-trained Reinforcement Learning agents using stable-baselines3
+- Integrating other Deep Reinforcement Learning libraries
+- Implementing Decision Transformers 🔥
+- And more to come 🥳
+
+The best way to keep in touch is to [join our discord server](https://discord.gg/YRAq8fMnUG) to exchange with us and with the community.
+
+And if you want to dive deeper, we wrote a tutorial where you’ll learn:
+- How to train a Deep Reinforcement Learning lander agent to land correctly on the Moon 🌕 
+- How to upload it to the Hub 🚀
+
+![gif](assets/47_sb3/lunarlander.gif)
+
+- How to download and use a saved model from the Hub that plays Space Invaders 👾.
+
+![gif](assets/47_sb3/spaceinvaders.gif)
+
+👉 [The tutorial](https://github.com/huggingface/huggingface_sb3/blob/main/Stable_Baselines_3_and_Hugging_Face_%F0%9F%A4%97_tutorial.ipynb)
+
+
+### Conclusion
+
+We're excited to see what you're working on with Stable-baselines3 and try your models in the Hub 😍.
+
+And we would love to hear your feedback 💖. 📧 Feel free to [reach us](mailto:thomas.simonini@huggingface.co).
+
+Finally, we would like to thank the SB3 team and in particular [Antonin Raffin](https://araffin.github.io/) for their precious help for the integration of the library 🤗.
+
+### Would you like to integrate your library to the Hub?
+
+This integration is possible thanks to the [`huggingface_hub`](https://github.com/huggingface/huggingface_hub) library which has all our widgets and the API for all our supported libraries. If you would like to integrate your library to the Hub, we have a [guide](https://huggingface.co/docs/hub/models-adding-libraries) for you!
+
+Document 2602: --
+title: What's new in Diffusers? 🎨
+thumbnail: /blog/assets/102_diffusers_2nd_month/inpainting.png
+authors:
+- user: osanseviero
+---
+
+# What's new in Diffusers? 🎨
+
+
+A month and a half ago we released `diffusers`, a library that provides a modular toolbox for diffusion models across modalities. A couple of weeks later, we released support for Stable Diffusion, a high quality text-to-image model, with a free demo for anyone to try out. Apart from burning lots of GPUs, in the last three weeks the team has decided to add one or two new features to the library that we hope the community enjoys! This blog post gives a high-level overview of the new features in `diffusers` version 0.3! Remember to give a ⭐ to the [GitHub repository](https://github.com/huggingface/diffusers).
+
+- [Image to Image pipelines](#image-to-image-pipeline)
+- [Textual Inversion](#textual-inversion)
+- [Inpainting](#experimental-inpainting-pipeline)
+- [Optimizations for Smaller GPUs](#optimizations-for-smaller-gpus)
+- [Run on Mac](#diffusers-in-mac-os)
+- [ONNX Exporter](#experimental-onnx-exporter-and-pipeline)
+- [New docs](#new-docs)
+- [Community](#community)
+    - [Generate videos with SD latent space](#stable-diffusion-videos)
+    - [Model Explainability](#diffusers-interpret)
+    - [Japanese Stable Diffusion](#japanese-stable-diffusion)
+    - [High quality fine-tuned model](#waifu-diffusion)
+    - [Cross Attention Control with Stable Diffusion](#cross-attention-control)
+    - [Reusable seeds](#reusable-seeds)
+
+
+## Image to Image pipeline
+
+One of the most requested features was to have image to image generation. This pipeline allows you to input an image and a prompt, and it will generate an image based on that!
+
+Let's see some code based on the official Colab [notebook](https://colab.research.google.com/github/huggingface/notebooks/blob/main/diffusers/image_2_image_using_diffusers.ipynb). 
+
+```python
+from diffusers import StableDiffusionImg2ImgPipeline
+
+pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    revision="fp16", 
+    torch_dtype=torch.float16,
+    use_auth_token=True
+)
+
+# Download an initial image
+# ...
+
+init_image = preprocess(init_img)
+
+prompt = "A fantasy landscape, trending on artstation"
+images = pipe(prompt=prompt, init_image=init_image, strength=0.75, guidance_scale=7.5, generator=generator)["sample"]
+```
+
+Don't have time for code? No worries, we also created a [Space demo](https://huggingface.co/spaces/huggingface/diffuse-the-rest) where you can try it out directly
+
+![image info](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/diffusers-2nd-month/diffuse_the_rest.jpeg)
+
+
+
+## Textual Inversion
+
+Textual Inversion lets you personalize a Stable Diffusion model on your own images with just 3-5 samples. With this tool, you can train a model on a concept, and then share the concept with the rest of the community! 
+
+![image info](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/diffusers-2nd-month/textual_inversion.jpeg)
+
+In just a couple of days, the community shared over 200 concepts! Check them out!
+
+* [Organization](https://huggingface.co/sd-concepts-library) with the concepts. 
+* [Navigator Colab](https://colab.research.google.com/github/huggingface/notebooks/blob/main/diffusers/stable_diffusion_textual_inversion_library_navigator.ipynb): Browse visually and use over 150 concepts created by the community.
+* [Training Colab](https://colab.research.google.com/github/huggingface/notebooks/blob/main/diffusers/sd_textual_inversion_training.ipynb): Teach Stable Diffusion a new concept and share it with the rest of the community.
+* [Inference Colab](https://colab.research.google.com/github/huggingface/notebooks/blob/main/diffusers/stable_conceptualizer_inference.ipynb): Run Stable Diffusion with the learned concepts.
+
+
+## Experimental inpainting pipeline
+
+Inpainting allows to provide an image, then select an area in the image (or provide a mask), and use Stable Diffusion to replace the mask. Here is an example:
+
+<figure class="image table text-center m-0 w-full">
+  <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/diffusers-2nd-month/inpainting.png" alt="Example inpaint of owl being generated from an initial image and a prompt"/>
+</figure>
+
+
+You can try out a minimal Colab [notebook](https://colab.research.google.com/github/huggingface/notebooks/blob/main/diffusers/in_painting_with_stable_diffusion_using_diffusers.ipynb) or check out the code below. A demo is coming soon!
+
+
+```python
+from diffusers import StableDiffusionInpaintPipeline
+
+pipe = StableDiffusionInpaintPipeline.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    revision="fp16", 
+    torch_dtype=torch.float16,
+    use_auth_token=True
+).to(device)
+
+images = pipe(
+    prompt=["a cat sitting on a bench"] * 3,
+    init_image=init_image,
+    mask_image=mask_image,
+    strength=0.75,
+    guidance_scale=7.5,
+    generator=None
+).images
+```
+
+Please note this is experimental, so there is room for improvement.
+
+## Optimizations for smaller GPUs
+
+After some improvements, the diffusion models can take much less VRAM. 🔥 For example, Stable Diffusion only takes 3.2GB! This yields the exact same results at the expense of 10% of speed. Here is how to use these optimizations
+
+```python
+from diffusers import StableDiffusionPipeline
+
+pipe = StableDiffusionPipeline.from_pretrained(
+    "CompVis/stable-diffusion-v1-4", 
+    revision="fp16", 
+    torch_dtype=torch.float16,
+    use_auth_token=True
+)
+pipe = pipe.to("cuda")
+pipe.enable_attention_slicing()
+```
+
+This is super exciting as this will reduce even more the barrier to use these models!
+
+
+## Diffusers in Mac OS
+
+🍎 That's right! Another widely requested feature was just released! Read the full instructions in the [official docs](https://huggingface.co/docs/diffusers/optimization/mps) (including performance comparisons, specs, and more).
+
+Using the PyTorch mps device, people with M1/M2 hardware can run inference with Stable Diffusion. 🤯 This requires minimal setup for users, try it out!
+
+```python
+from diffusers import StableDiffusionPipeline
+
+pipe = StableDiffusionPipeline.from_pretrained("CompVis/stable-diffusion-v1-4", use_auth_token=True)
+pipe = pipe.to("mps")
+
+prompt = "a photo of an astronaut riding a horse on mars"
+image = pipe(prompt).images[0]
+```
+
+## Experimental ONNX exporter and pipeline
+
+The new experimental pipeline allows users to run Stable Diffusion on any hardware that supports ONNX. Here is an example of how to use it (note that the `onnx` revision is being used)
+
+```python
+from diffusers import StableDiffusionOnnxPipeline
+
+pipe = StableDiffusionOnnxPipeline.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    revision="onnx",
+    provider="CPUExecutionProvider",
+    use_auth_token=True,
+)
+
+prompt = "a photo of an astronaut riding a horse on mars"
+image = pipe(prompt).images[0]
+```
+
+Alternatively, you can also convert your SD checkpoints to ONNX directly with the exporter script.
+
+```
+python scripts/convert_stable_diffusion_checkpoint_to_onnx.py --model_path="CompVis/stable-diffusion-v1-4" --output_path="./stable_diffusion_onnx"
+```
+
+## New docs
+
+All of the previous features are very cool. As maintainers of open-source libraries, we know about the importance of high quality documentation to make it as easy as possible for anyone to try out the library.
+
+💅 Because of this, we did a Docs sprint and we're very excited to do a first release of our [documentation](https://huggingface.co/docs/diffusers/v0.3.0/en/index). This is a first version, so there are many things we plan to add (and contributions are always welcome!).
+
+Some highlights of the docs:
+
+* Techniques for [optimization](https://huggingface.co/docs/diffusers/optimization/fp16)
+* The [training overview](https://huggingface.co/docs/diffusers/training/overview)
+* A [contributing guide](https://huggingface.co/docs/diffusers/conceptual/contribution)
+* In-depth API docs for [schedulers](https://huggingface.co/docs/diffusers/api/schedulers)
+* In-depth API docs for [pipelines](https://huggingface.co/docs/diffusers/api/pipelines/overview)
+
+
+## Community
+
+And while we were doing all of the above, the community did not stay idle! Here are some highlights (although not exhaustive) of what has been done out there
+
+
+### Stable Diffusion Videos
+
+Create 🔥 videos with Stable Diffusion by exploring the latent space and morphing between text prompts. You can:
+
+* Dream different versions of the same prompt
+* Morph between different prompts
+
+The [Stable Diffusion Videos](https://github.com/nateraw/stable-diffusion-videos) tool is pip-installable, comes with a Colab notebook and a Gradio notebook, and is super easy to use!
+
+Here is an example
+
+```python
+from stable_diffusion_videos import walk
+
+video_path = walk(['a cat', 'a dog'], [42, 1337], num_steps=3, make_video=True)
+```
+
+
+### Diffusers Interpret
+
+[Diffusers interpret](https://github.com/JoaoLages/diffusers-interpret) is an explainability tool built on top of `diffusers`. It has cool features such as:
+
+* See all the images in the diffusion process
+* Analyze how each token in the prompt influences the generation
+* Analyze within specified bounding boxes if you want to understand a part of the image
+
+![image info](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/diffusers-2nd-month/interpret.gif)
+(Image from the tool repository)
+
+```python
+# pass pipeline to the explainer class
+explainer = StableDiffusionPipelineExplainer(pipe)
+
+# generate an image with `explainer`
+prompt = "Corgi with the Eiffel Tower"
+output = explainer(
+    prompt, 
+    num_inference_steps=15
+)
+
+output.normalized_token_attributions # (token, attribution_percentage)
+#[('corgi', 40),
+# ('with', 5),
+# ('the', 5),
+# ('eiffel', 25),
+# ('tower', 25)]
+```
+
+### Japanese Stable Diffusion
+
+The name says it all! The goal of JSD was to train a model that also captures information about the culture, identity and unique expressions. It was trained with 100 million images with Japanese captions. You can read more about how the model was trained in the [model card](https://huggingface.co/rinna/japanese-stable-diffusion)
+
+
+### Waifu Diffusion
+
+[Waifu Diffusion](https://huggingface.co/hakurei/waifu-diffusion) is a fine-tuned SD model for high-quality anime images generation.
+
+<figure class="image table text-center m-0 w-full">
+  <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/diffusers-2nd-month/waifu.png" alt="Images of high quality anime"/>
+</figure>
+(Image from the tool repository)
+
+
+### Cross Attention Control
+
+[Cross Attention Control](https://github.com/bloc97/CrossAttentionControl) allows fine control of the prompts by modifying the attention maps of the diffusion models. Some cool things you can do:
+
+* Replace a target in the prompt (e.g. replace cat by dog)
+* Reduce or increase the importance of words in the prompt (e.g. if you want less attention to be given to "rocks")
+* Easily inject styles
+
+And much more! Check out the repo.
+
+### Reusable Seeds
+
+One of the most impressive early demos of Stable Diffusion was the reuse of seeds to tweak images. The idea is to use the seed of an image of interest to generate a new image, with a different prompt. This yields some cool results! Check out the [Colab](https://colab.research.google.com/github/pcuenca/diffusers-examples/blob/main/notebooks/stable-diffusion-seeds.ipynb) 
+
+
+## Thanks for reading!
+
+I hope you enjoy reading this! Remember to give a Star in our [GitHub Repository](https://github.com/huggingface/diffusers) and join the [Hugging Face Discord Server](https://hf.co/join/discord), where we have a category of channels just for Diffusion models. Over there the latest news in the library are shared! 
+
+Feel free to open issues with feature requests and bug reports! Everything that has been achieved couldn't have been done without such an amazing community.
+

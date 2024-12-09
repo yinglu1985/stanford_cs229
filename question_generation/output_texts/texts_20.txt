@@ -1,0 +1,1846 @@
+Cluster 798: Documents 373.0,509.0,560.0,565.0,705.0,1727.0,2060.0,2061.0
+Document 373:  Spaces Overview
+
+Hugging Face Spaces make it easy for you to create and deploy ML-powered demos in minutes. Watch the following video for a quick introduction to Spaces:
+
+<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/3bSVKNKb_PY" title="Spaces intro" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+In the following sections, you'll learn the basics of creating a Space, configuring it, and deploying your code to it.
+
+## Creating a new Space
+
+**To make a new Space**, visit the [Spaces main page](https://huggingface.co/spaces) and click on **Create new Space**. Along with choosing a name for your Space, selecting an optional license, and setting your Space's visibility, you'll be prompted to choose the **SDK** for your Space. The Hub offers four SDK options: Gradio, Streamlit, Docker and static HTML. If you select "Gradio" as your SDK, you'll be navigated to a new repo showing the following page:
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/spaces-blank-space.png"/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/spaces-blank-space-dark.png"/>
+</div>
+
+Under the hood, Spaces stores your code inside a git repository, just like the model and dataset repositories. Thanks to this, the same tools we use for all the [other repositories on the Hub](./repositories) (`git` and `git-lfs`) also work for Spaces. Follow the same flow as in [Getting Started with Repositories](./repositories-getting-started) to add files to your Space. Each time a new commit is pushed, the Space will automatically rebuild and restart.
+
+For step-by-step tutorials to creating your first Space, see the guides below:
+* [Creating a Gradio Space](./spaces-sdks-gradio)
+* [Creating a Streamlit Space](./spaces-sdks-streamlit)
+* [Creating a Docker Space](./spaces-sdks-docker-first-demo)
+
+## Hardware resources
+
+Each Spaces environment is limited to 16GB RAM, 2 CPU cores and 50GB of (not persistent) disk space by default, which you can use free of charge. You can upgrade to better hardware, including a variety of GPU accelerators and persistent storage, for a [competitive price](https://huggingface.co/pricing#spaces). To request an upgrade, please click the _Settings_ button in your Space and select your preferred hardware environment.
+
+| **Hardware**        	| **GPU Memory** 	| **CPU** 	| **Memory** 	| **Disk** 	| **Hourly Price** 	|
+|---------------------	|----------------	|----------	|------------	|----------	| ----------------	|
+| CPU Basic           	| -             	| 2 vCPU  	| 16 GB     	| 50 GB    	| Free!            	|
+| CPU Upgrade         	| -             	| 8 vCPU  	| 32 GB      	| 50 GB    	| $0.03            	|
+| Nvidia T4 - small   	| 16GB          	| 4 vCPU  	| 15 GB      	| 50 GB    	| $0.60            	|
+| Nvidia T4 - medium  	| 16GB          	| 8 vCPU  	| 30 GB      	| 100 GB   	| $0.90            	|
+| Nvidia A10G - small 	| 24GB          	| 4 vCPU  	| 15 GB      	| 110 GB   	| $1.05            	|
+| Nvidia A10G - large 	| 24GB          	| 12 vCPU 	| 46 GB      	| 200 GB   	| $3.15            	|
+| 2x Nvidia A10G - large| 48GB          	| 24 vCPU 	| 92 GB      	| 1000 GB  	| $5.70            	|
+| 4x Nvidia A10G - large| 96GB          	| 48 vCPU 	| 184 GB     	| 2000 GB  	| $10.80           	|
+| Nvidia A100 - large 	| 40GB          	| 12 vCPU 	| 142 GB     	| 1000 GB  	| $4.13            	|
+ 
+| **Storage tier**     	| **Size**             	| **Persistent** 	| **Monthly price** 	|
+|---------------------	|----------------------	|------------------	| ---------------------	|
+| Ephemeral (default) 	| 50GB                	| No               	| Free!                	|
+| Small               	| Ephemeral + 20GB    	| Yes              	| $5                   	|
+| Medium              	| Ephemeral + 150GB   	| Yes              	| $25                  	|
+| Large               	| Ephemeral + 1TB     	| yes              	| $100                 	|
+
+Note: Find more detailed and comprehensive pricing information on [our pricing page](https://huggingface.co/pricing).
+
+Do you have an awesome Space but need help covering the hardware upgrade costs? We love helping out those with an innovative Space so please feel free to apply for a community GPU grant using the link in the _Settings_ tab of your Space and see if yours makes the cut!
+
+Read more in our dedicated sections on [Spaces GPU Upgrades](./spaces-gpus) and [Spaces Storage Upgrades](./spaces-storage).
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/spaces-gpu-settings.png"/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/spaces-gpu-settings-dark.png"/>
+</div>
+
+## Managing secrets and environment variables[[managing-secrets]]
+<a id="managing-secrets"></a>
+If your app requires environment variables (for instance, secret keys or tokens), do not hard-code them inside your app! Instead, go to the **Settings** page of your Space repository and add a new variable or secret. Use variables if you need to store non-sensitive configuration values and secrets for storing access tokens, API keys, or any sensitive value or credentials.
+
+<div class="flex justify-center">
+	<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/secrets-and-variables.png"/>
+	<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/secrets-and-variables-dark.png"/>
+</div>
+
+
+Variables are publicly accessible and viewable and will be automatically added to Spaces duplicated from your repository. They are exposed to your app as environment variables. For Docker Spaces, check out [environment management with Docker](./spaces-sdks-docker#secrets-and-variables-management).
+
+Secrets are private and their value cannot be retrieved once set. They won't be added to Spaces duplicated from your repository. The secrets will be exposed to your app with [Streamlit Secrets Management](https://blog.streamlit.io/secrets-in-sharing-apps/) if you use Streamlit, and as environment variables in other cases. For Docker Spaces, please check out [environment management with Docker](./spaces-sdks-docker#secrets-and-variables-management). Users are warned when our `Spaces Secrets Scanner` [finds hard-coded secrets](./security-secrets).
+
+## Duplicating a Space
+
+Duplicating a Space can be useful if you want to build a new demo using another demo as an initial template. Duplicated Spaces can also be useful if you want to have an individual Upgraded Space for your use with fast inference.
+
+If you want to duplicate a Space, you can click the three dots at the top right of the space and click **Duplicate this Space**. Once you do this, you will be able to change the following attributes:
+
+* Owner: The duplicated Space can be under your account or any organization in which you have write access
+* Space name
+* Visibility: The Space is private by default. Read more about private repositories [here](./repositories-settings#private-repositories). 
+* Hardware: You can choose the hardware on which the Space will be running. Read more about hardware upgrades [here](./spaces-gpus).
+* Storage: If the original repo uses persistent storage, you will be prompted to choose a storage tier. Read more about persistent storage [here](./spaces-storage).
+* Secrets and variables: If the original repo has set some secrets and variables, you'll be able to set them while duplicating the repo.
+
+Some Spaces might have environment variables that you may need to set up. In these cases, the duplicate workflow will auto-populate the public Variables from the source Space, and give you a warning about setting up the Secrets. The duplicated Space will use a free CPU hardware by default, but you can later upgrade if needed.
+
+## Networking
+
+If your Space needs to make any network requests, you can make requests through the standard HTTP and HTTPS ports (80 and 443) along with port 8080. Any requests going to other ports will be blocked.
+
+## Lifecycle management
+
+On free hardware, your Space will "go to sleep" and stop executing after a period of time if unused. If you wish for your Space to run indefinitely, consider [upgrading to a paid hardware](./spaces-gpus). You can also manually pause your Space from the **Settings** tab. A paused Space stops executing until manually restarted by its owner.
+Paused time is not billed.
+
+## Helper environment variables
+
+In some cases, you might be interested in having programmatic access to the Space author or repository name. This feature is particularly useful when you expect users to duplicate your Space. To help with this, Spaces exposes different environment variables at runtime. Given a Space [`osanseviero/i-like-flan`](https://huggingface.co/spaces/osanseviero/i-like-flan):
+
+* `CPU_CORES`: 4
+* `MEMORY`: 15Gi 
+* `SPACE_AUTHOR_NAME`: osanseviero
+* `SPACE_REPO_NAME`: i-like-flan
+* `SPACE_TITLE`: I Like Flan (specified in the README file)
+* `SPACE_ID`: `osanseviero/i-like-flan`
+* `SPACE_HOST`: `osanseviero-i-like-flan.hf.space`
+
+In case [OAuth](./spaces-oauth) is enabled for your Space, the following variables will also be available:
+
+* `OAUTH_CLIENT_ID`: the client ID of your OAuth app (public)
+* `OAUTH_CLIENT_SECRET`: the client secret of your OAuth app
+* `OAUTH_SCOPES`: scopes accessible by your OAuth app. Currently, this is always `"openid profile"`.
+* `OPENID_PROVIDER_URL`: The URL of the OpenID provider. The OpenID metadata will be available at [`{OPENID_PROVIDER_URL}/.well-known/openid-configuration`](https://huggingface.co/.well-known/openid-configuration).
+
+## Clone the Repository
+
+You can easily clone your Space repo locally. Start by clicking on the dropdown menu in the top right of your Space page: 
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/SpacesCloneRepo2.png"/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/SpacesCloneRepo1.png"/>
+</div>
+
+Select "Clone repository", and then you'll be able to follow the instructions to clone the Space repo to your local machine using HTTPS or SSH. 
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/HttpsClone2.png"/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/HttpsClone1.png"/>
+</div>
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/SSHClone2.png"/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/hub/SSHClone1.png"/>
+</div>
+
+## Linking Models and Datasets on the Hub
+
+You can showcase all the models and datasets that your Space links to by adding their identifier in your Space's README metadata. To do so, you can define them under the `models` and `datasets` keys. In addition to listing the artefacts in the README file, you can also record them in any `.py`, `.ini` or `.html` file as well. We'll parse it auto-magically! 
+
+Here's an example linking two models from a space:
+
+```
+title: My lovely space
+emoji: 🤗
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+models:
+- reach-vb/musicgen-large-fp16-endpoint
+- reach-vb/wav2vec2-large-xls-r-1B-common_voice7-lt-ft
+```
+
+Document 509:  Datasets without language challenge
+
+Related to https://github.com/huggingface/hub-docs/issues/986.
+
+## Context
+
+The Hugging Face Hub hosts hundreds of thousands of public models and datasets. These datasets and models cover a wide range of languages. One of the main ways in which it's possible to know what language a dataset is in is by looking at the `language` field in the dataset's [metadata](https://huggingface.co/docs/hub/datasets-cards#dataset-card-metadata)  section of the dataset card. 
+
+```yaml
+language: 
+- "List of ISO 639-1 code for your language"
+- lang1
+pretty_name: "Pretty Name of the Dataset"
+tags:
+- tag1
+- tag2
+license: "any valid license identifier"
+task_categories:
+- task1
+```
+
+Having this field filled in is essential for users to find datasets in their language and give a better idea of the languages that the Hub covers. However, the dataset's author has only sometimes filled this field. This challenge is to fill in the `language` field for datasets that don't have it filled in.
+
+
+## How to contribute?
+
+How can you help improve the coverage of language metadata on the Hub?
+
+For each dataset, the workflow is the following:
+
+1. Find a dataset that doesn't have the `language` field filled in. You can find a list of datasets without the `language` field filled in [here](#datasets-without-language-field-filled-in). We start with datasets that have the most downloads and likes.
+2. **Check that the dataset doesn't already have a PR to add a language tag(s).** Someone else may have already started working on it. You can check this by looking in the discussion section of the dataset page. 
+3. If there is no PR to add language metadata already open, your next step is to identify the language (if possible for the dataset). There are a few main ways you can often identify the language
+   1. The dataset's name. Often, the name of the dataset will include the language. Sometimes as a full name, i.e. `imdb_german` or sometimes as a language code, i.e. `imdb_de`. You can use that as the language tag if the dataset name includes the language.
+   2. The dataset card will sometimes mention the language(s) of the dataset explicitly. 
+   3. Many datasets will have an active [dataset viewer](https://huggingface.co/docs/hub/datasets-viewer) for the dataset. This will allow you to see examples from the dataset. You may identify the language by looking at the text examples. 
+   4. Sometimes, the dataset will have a column specifying the language of the text. You can use this column to fill in the language tag(s).
+   5. If the dataset viewer is available for the dataset, but you don't recognize the language, you can use the [facebook/fasttext-language-identification](https://huggingface.co/facebook/fasttext-language-identification) model or [Google Translate](https://translate.google.com/) to try to identify the language. 
+4. Once you've identified the language(s) of the dataset, you can add the language tag(s) to the dataset card. You can do this by clicking the `Edit` button on the dataset card. This will open a PR to the dataset repo. You can add the language tag(s) to the `language` field in the dataset card. Some datasets may have multiple languages. Try and add all of the languages you have identified. 
+5. Once done, open a PR on GitHub to update the table below. Once merged, this will count as a Hacktoberfest contribution! Add the `pr_url` (the one on the Hub) and a status (      , merged, closed) in the PR. 
+6. Adding a language tag to some of the datasets below may not make sense. If so, add `not relevant` as the link in the `pr_url`. There may also be datasets where you need help with the language. In these cases, you can open a discussion to suggest a language tag(s) is added to the dataset. 
+
+## F.A.Q.
+
+### Does it make sense to add language metadata to all datasets?
+
+No! This is why we have focused on datasets with a `task_categories` field indicating that the dataset has a text-related task. 
+
+### Can I use a script to automate the process?
+
+While it is possible to use machine learning to help assist this process, see [this blog](https://huggingface.co/blog/huggy-lingo) as an example; checking the accuracy of the PRs you are making is still important. 
+
+## What about datasets with multiple languages?
+
+Some datasets may have more than one language. Do your best to add all the languages you can identify in the datasets. If there is a vast number, this may be tricky. In this case, do your best. 
+
+## What about code? 
+
+Currently, you can add a language tag for `code`. You will need to do this directly in the `YAML` rather than the visual editor since using the visual editor will lead to an auto-completion for the `co` language code (Corsican). 
+
+## Can I update the table with new datasets?
+
+Yes, it's fine to add new rows if there are other datasets where it makes sense to have language metadata. However, we'll focus only on datasets with at least ten downloads in the past 30 days to have the most impact. You can see download information alongside the dataset on the Hub website or access this information via the API. For example, to filter datasets to have at least 20 downloads you could do the following 
+
+```python
+from huggingface_hub import list_datasets
+
+datasets = list_datasets(full=True)
+datasets_with_at_least_20_downloads = [dataset for dataset in datasets if dataset.downloads >20]
+```
+
+## Datasets without language field filled in
+
+| status | pr_url                                                                                                                            | hub_id                                                                                                                                                             | downloads | likes |
+|--------|-----------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|-------|
+| Merged | [here](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k/discussions/5)                                                    | [sahil2801/CodeAlpaca-20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k)                                                                               | 2124      | 104   |
+|        |                                                                                                                                   | [facebook/winoground](https://huggingface.co/datasets/facebook/winoground)                                                                                         | 5468      | 57    |
+|        |                                                                                                                                   | [oscar-corpus/OSCAR-2301](https://huggingface.co/datasets/oscar-corpus/OSCAR-2301)                                                                                 | 7814      | 56    |
+|        | [here](https://huggingface.co/datasets/HuggingFaceH4/CodeAlpaca_20K/discussions/1)                                                      | [HuggingFaceH4/CodeAlpaca_20K](https://huggingface.co/datasets/HuggingFaceH4/CodeAlpaca_20K)                                                                       | 850       | 36    |
+|        |[here](https://huggingface.co/datasets/huggan/wikiart/discussions/3)                                                                                    | [huggan/wikiart](https://huggingface.co/datasets/huggan/wikiart)                                                                                                   | 344       | 38    |
+|        |[here](https://huggingface.co/datasets/MMInstruction/M3IT/discussions/7)                                                | [MMInstruction/M3IT](https://huggingface.co/datasets/MMInstruction/M3IT)                                                                                           | 62902     | 47    |
+| Merged | [here](https://huggingface.co/datasets/codeparrot/self-instruct-starcoder/discussions/3)                                                   | [codeparrot/self-instruct-starcoder](https://huggingface.co/datasets/codeparrot/self-instruct-starcoder)                                                           | 454       | 25    |
+|        | [here](https://huggingface.co/datasets/unaidedelf87777/openapi-function-invocations-25k/discussions/3)                            | [unaidedelf87777/openapi-function-invocations-25k](https://huggingface.co/datasets/unaidedelf87777/openapi-function-invocations-25k)                               | 47        | 20    |
+|        | [here](https://huggingface.co/datasets/Matthijs/cmu-arctic-xvectors/discussions/4)                                                | [Matthijs/cmu-arctic-xvectors](https://huggingface.co/datasets/Matthijs/cmu-arctic-xvectors)                                                                       | 158508    | 19    |
+|        | [here](https://huggingface.co/datasets/skg/toxigen-data/discussions/4)                                                          | [skg/toxigen-data](https://huggingface.co/datasets/skg/toxigen-data)                                                                                               | 957       | 17    |
+|        |                                                                                                                                   | [oscar-corpus/colossal-oscar-1.0](https://huggingface.co/datasets/oscar-corpus/colossal-oscar-1.0)                                                                 | 66        | 17    |
+| Merged | [here](https://huggingface.co/datasets/aadityaubhat/GPT-wiki-intro/discussions/2)                                                 | [aadityaubhat/GPT-wiki-intro](https://huggingface.co/datasets/aadityaubhat/GPT-wiki-intro)                                                                         | 267       | 15    |
+|        | [here](https://huggingface.co/datasets/codeparrot/github-jupyter-code-to-text/discussions/1)                                                  | [codeparrot/github-jupyter-code-to-text](https://huggingface.co/datasets/codeparrot/github-jupyter-code-to-text)                                                   | 11        | 14    |
+|        | [here](https://huggingface.co/datasets/cfilt/iitb-english-hindi/discussions/1#651ab7559c4067f3b896564f)                           | [cfilt/iitb-english-hindi](https://huggingface.co/datasets/cfilt/iitb-english-hindi)                                                                               | 1147      | 11    |
+|        | [here](https://huggingface.co/datasets/iamtarun/python_code_instructions_18k_alpaca/discussions/1)                                | [iamtarun/python_code_instructions_18k_alpaca](https://huggingface.co/datasets/iamtarun/python_code_instructions_18k_alpaca)                                       | 1424      | 10    |
+| Merged | [here](https://huggingface.co/datasets/argilla/databricks-dolly-15k-curated-en/discussions/1#651ab6e569d3438f0f246312)            | [argilla/databricks-dolly-15k-curated-en](https://huggingface.co/datasets/argilla/databricks-dolly-15k-curated-en)                                                 | 9651261   | 9     |
+|        |                                                                                                                                   | [sander-wood/irishman](https://huggingface.co/datasets/sander-wood/irishman)                                                                                       | 456       | 9     |
+|        |                                                                                                                                   | [OleehyO/latex-formulas](https://huggingface.co/datasets/OleehyO/latex-formulas)                                                                                   | 46        | 9     |
+| Merged | [here](https://huggingface.co/datasets/german-nlp-group/german_common_crawl/discussions/1)                                        | [german-nlp-group/german_common_crawl](https://huggingface.co/datasets/german-nlp-group/german_common_crawl)                                                       | 116       | 7     |
+|        | [here](https://huggingface.co/datasets/kunishou/databricks-dolly-69k-ja-en-translation/discussions/1#651aba1b1c53eaa6dbaca648)    | [kunishou/databricks-dolly-69k-ja-en-translation](https://huggingface.co/datasets/kunishou/databricks-dolly-69k-ja-en-translation)                                 | 22        | 7     |
+|        |                                                                                                                                   | [Muennighoff/flores200](https://huggingface.co/datasets/Muennighoff/flores200)                                                                                     | 93084     | 5     |
+|        | [here](https://huggingface.co/datasets/nanelimon/turkish-social-media-bullying-dataset/discussions/1#651ae8247d45b917399dbade)    | [nanelimon/turkish-social-media-bullying-dataset](https://huggingface.co/datasets/nanelimon/turkish-social-media-bullying-dataset)                                 | 3         | 5     |
+|        |  [here](https://huggingface.co/datasets/vivym/midjourney-prompts/discussions/1)                                                                    | [vivym/midjourney-prompts](https://huggingface.co/datasets/vivym/midjourney-prompts)                                                                               | 126       | 4     |
+|        |                                                                                                                                   | [yuweiyin/FinBench](https://huggingface.co/datasets/yuweiyin/FinBench)                                                                                             | 102       | 4     |
+| Merged | [here](https://huggingface.co/datasets/NbAiLab/norwegian-xsum/discussions/2#651b2951b08a2b1588b8d99e)                             | [NbAiLab/norwegian-xsum](https://huggingface.co/datasets/NbAiLab/norwegian-xsum)                                                                                   | 0         | 4     |
+|        | [here](https://huggingface.co/datasets/merve/turkish_instructions/discussions/1#651ae7a8cc1c891376b4bb45)                         | [merve/turkish_instructions](https://huggingface.co/datasets/merve/turkish_instructions)                                                                           | 36        | 4     |
+|        |                                                                                                                                   | [tianyang/repobench-c](https://huggingface.co/datasets/tianyang/repobench-c)                                                                                       | 240       | 3     |
+|        | [here](https://huggingface.co/datasets/HuggingFaceH4/self_instruct/discussions/1)                                                 | [HuggingFaceH4/self_instruct](https://huggingface.co/datasets/HuggingFaceH4/self_instruct)                                                                         | 219       | 3     |
+|        | [here](https://huggingface.co/datasets/iamtarun/code_instructions_120k_alpaca/discussions/1)                                      | [iamtarun/code_instructions_120k_alpaca](https://huggingface.co/datasets/iamtarun/code_instructions_120k_alpaca)                                                   | 141       | 3     |
+|        | [here](https://huggingface.co/datasets/j0selit0/insurance-qa-en/discussions/2#651ab933aa7da01954bdc21f)                           | [j0selit0/insurance-qa-en](https://huggingface.co/datasets/j0selit0/insurance-qa-en)                                                                               | 64        | 3     |
+|        |                                                                                                                                   | [billray110/corpus-of-diverse-styles](https://huggingface.co/datasets/billray110/corpus-of-diverse-styles)                                                         | 18        | 3     |
+|        | [here](https://huggingface.co/datasets/dmayhem93/agieval-sat-en/discussions/1#651ab8b5e8b2318cdb755b17)                           | [dmayhem93/agieval-sat-en](https://huggingface.co/datasets/dmayhem93/agieval-sat-en)                                                                               | 87        | 2     |
+|        |                                                                                                                                   | [polymer/dolphin-only-gpt-4](https://huggingface.co/datasets/polymer/dolphin-only-gpt-4)                                                                           | 69        | 2     |
+|        | [here](https://huggingface.co/datasets/RafaelMPereira/HealthCareMagic-100k-Chat-Format-en/discussions/1#651abaea4dba2d9ed143b11d) | [RafaelMPereira/HealthCareMagic-100k-Chat-Format-en](https://huggingface.co/datasets/RafaelMPereira/HealthCareMagic-100k-Chat-Format-en)                           | 7         | 2     |
+|        | [here](https://huggingface.co/datasets/fathyshalab/Dialogsum-german-kurz/discussions/1)                                           | [fathyshalab/Dialogsum-german-kurz](https://huggingface.co/datasets/fathyshalab/Dialogsum-german-kurz)                                                             | 0         | 2     |
+|        | [here](https://huggingface.co/datasets/philschmid/test_german_squad/discussions/1)                                                | [philschmid/test_german_squad](https://huggingface.co/datasets/philschmid/test_german_squad)                                                                       | 0         | 2     |
+|        |                                                                                                                                   | [gia-project/gia-dataset](https://huggingface.co/datasets/gia-project/gia-dataset)                                                                                 | 1727      | 1     |
+|        | [here](https://huggingface.co/datasets/stas/wmt14-en-de-pre-processed/discussions/1#651ab7aa8a5c072ce16774ac)                     | [stas/wmt14-en-de-pre-processed](https://huggingface.co/datasets/stas/wmt14-en-de-pre-processed)                                                                   | 423       | 1     |
+|        | [here](https://huggingface.co/datasets/ajaykarthick/imdb-movie-reviews/discussions/1)                                             | [ajaykarthick/imdb-movie-reviews](https://huggingface.co/datasets/ajaykarthick/imdb-movie-reviews)                                                                 | 222       | 1     |
+|        |                                                                                                                                   | [MMInstruction/M3IT-80](https://huggingface.co/datasets/MMInstruction/M3IT-80)                                                                                     | 108       | 1     |
+| Merged | [here](https://huggingface.co/datasets/rizerphe/sharegpt-hyperfiltered-3k-llama/discussions/1)                                    | [rizerphe/sharegpt-hyperfiltered-3k-llama](https://huggingface.co/datasets/rizerphe/sharegpt-hyperfiltered-3k-llama)                                               | 35        | 1     |
+|        | [here](https://huggingface.co/datasets/alvations/globalvoices-en-es/discussions/1#651ab996996b00d2900f310f)                       | [alvations/globalvoices-en-es](https://huggingface.co/datasets/alvations/globalvoices-en-es)                                                                       | 33        | 1     |
+|        |                                                                                                                                   | [ejschwartz/oo-method-test](https://huggingface.co/datasets/ejschwartz/oo-method-test)                                                                             | 27        | 1     |
+|        | [here](https://huggingface.co/datasets/soymia/boudoir-dataset/discussions/1)                                                      | [soymia/boudoir-dataset](https://huggingface.co/datasets/soymia/boudoir-dataset)                                                                                   | 25        | 1     |
+|        |                                                                                                                                   | [strombergnlp/offenseval_2020](https://huggingface.co/datasets/strombergnlp/offenseval_2020)                                                                       | 24        | 1     |
+|        | [here](https://huggingface.co/datasets/vhtran/de-en-2023/discussions/1#651aba022bc734f0fa0c36af)                                  | [vhtran/de-en-2023](https://huggingface.co/datasets/vhtran/de-en-2023)                                                                                             | 23        | 1     |
+|        |                                                                                                                                   | [cw1521/ember2018-malware](https://huggingface.co/datasets/cw1521/ember2018-malware)                                                                               | 17        | 1     |
+|        | [here](https://huggingface.co/datasets/AgentWaller/german-formatted-oasst1/discussions/1)                                         | [AgentWaller/german-formatted-oasst1](https://huggingface.co/datasets/AgentWaller/german-formatted-oasst1)                                                         | 15        | 1     |
+|        | [here](https://huggingface.co/datasets/Senem/Nostalgic_Sentiment_Analysis_of_YouTube_Comments_Data/discussions/1)                 | [Senem/Nostalgic_Sentiment_Analysis_of_YouTube_Comments_Data](https://huggingface.co/datasets/Senem/Nostalgic_Sentiment_Analysis_of_YouTube_Comments_Data)         | 12        | 1     |
+| Merged | [here](https://huggingface.co/datasets/Photolens/oasst1-en/discussions/2#651aba64e8b2318cdb759528)                                | [Photolens/oasst1-en](https://huggingface.co/datasets/Photolens/oasst1-en)                                                                                         | 10        | 1     |
+|        | [here](https://huggingface.co/datasets/vhtran/id-en/discussions/1#651ababdc4fdc1c93efb0f2b)                                       | [vhtran/id-en](https://huggingface.co/datasets/vhtran/id-en)                                                                                                       | 8         | 1     |
+| Merged | [here](https://huggingface.co/datasets/openmachinetranslation/tatoeba-en-fr/discussions/1#651aba96b693acb51958884b)               | [openmachinetranslation/tatoeba-en-fr](https://huggingface.co/datasets/openmachinetranslation/tatoeba-en-fr)                                                       | 8         | 1     |
+|        | [here](https://huggingface.co/datasets/vhtran/uniq-de-en/discussions/1#651abb5e2bc734f0fa0c7f44)                                  | [vhtran/uniq-de-en](https://huggingface.co/datasets/vhtran/uniq-de-en)                                                                                             | 5         | 1     |
+|        | [here](https://huggingface.co/datasets/marksverdhei/wordnet-definitions-en-2021/discussions/1#651abcd1a9e1c4c6cdd06042)           | [marksverdhei/wordnet-definitions-en-2021](https://huggingface.co/datasets/marksverdhei/wordnet-definitions-en-2021)                                               | 1         | 1     |
+|        | [here](https://huggingface.co/datasets/nogyxo/question-answering-ukrainian/discussions/1)                                         | [nogyxo/question-answering-ukrainian](https://huggingface.co/datasets/nogyxo/question-answering-ukrainian)                                                         | 1         | 1     |
+|        | [here](https://huggingface.co/datasets/dandrade/es-en/discussions/1#651ac2720047dc5f7aae8124)                                     | [dandrade/es-en](https://huggingface.co/datasets/dandrade/es-en)                                                                                                   | 0         | 1     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-vi-train-split-v1/discussions/1#651ac23fb61121b1283a0402)      | [shreevigneshs/iwslt-2023-en-vi-train-split-v1](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-vi-train-split-v1)                                     | 0         | 1     |
+| Merged | [here](https://huggingface.co/datasets/loresiensis/corpus-en-es/discussions/1#651ac1e328c2633de960131e)                           | [loresiensis/corpus-en-es](https://huggingface.co/datasets/loresiensis/corpus-en-es)                                                                               | 0         | 1     |
+| Merged | [here](https://huggingface.co/datasets/Photolens/DISC-Med-SFT-en-translated-only-CMeKG/discussions/1#651ac9dfa9a91bf39df7489f)    | [Photolens/DISC-Med-SFT-en-translated-only-CMeKG](https://huggingface.co/datasets/Photolens/DISC-Med-SFT-en-translated-only-CMeKG)                                 | 0         | 1     |
+|        | [here](https://huggingface.co/datasets/joelniklaus/german_rental_agreements/discussions/1)                                        | [joelniklaus/german_rental_agreements](https://huggingface.co/datasets/joelniklaus/german_rental_agreements)                                                       | 0         | 1     |
+|        | [here](https://huggingface.co/datasets/fathyshalab/Dialogsum-german/discussions/1)                                                | [fathyshalab/Dialogsum-german](https://huggingface.co/datasets/fathyshalab/Dialogsum-german)                                                                       | 0         | 1     |
+|        | [here](https://huggingface.co/datasets/Harsit/xnli2.0_german/discussions/1)                                                       | [Harsit/xnli2.0_german](https://huggingface.co/datasets/Harsit/xnli2.0_german)                                                                                     | 0         | 1     |
+|        | [here](https://huggingface.co/datasets/typevoid/german-company-addresses/discussions/1)                                           | [typevoid/german-company-addresses](https://huggingface.co/datasets/typevoid/german-company-addresses)                                                             | 0         | 1     |
+|        | [here](https://huggingface.co/datasets/FreedomIntelligence/evol-instruct-italian/discussions/1)                                   | [FreedomIntelligence/evol-instruct-italian](https://huggingface.co/datasets/FreedomIntelligence/evol-instruct-italian)                                             | 0         | 1     |
+| Merged | [here](https://huggingface.co/datasets/kmkarakaya/turkishReviews-ds/discussions/1#651ae845eb6c502094745048)                       | [kmkarakaya/turkishReviews-ds](https://huggingface.co/datasets/kmkarakaya/turkishReviews-ds)                                                                       | 0         | 1     |
+|        |                                                                                                                                   | [gia-project/gia-dataset-parquet](https://huggingface.co/datasets/gia-project/gia-dataset-parquet)                                                                 | 10293     | 0     |
+|        | [here](https://huggingface.co/datasets/Jackmin108/c4-en-validation/discussions/1#651ab782bf3fb2499d4e8199)                        | [Jackmin108/c4-en-validation](https://huggingface.co/datasets/Jackmin108/c4-en-validation)                                                                         | 1131      | 0     |
+|        | [here](https://huggingface.co/datasets/germank/hh-generated_flan_t5_large_with_features2/discussions/1)                           | [germank/hh-generated_flan_t5_large_with_features2](https://huggingface.co/datasets/germank/hh-generated_flan_t5_large_with_features2)                             | 681       | 0     |
+|        | [here](https://huggingface.co/datasets/germank/hh-rlhf_with_features_flan_t5_large/discussions/1)                                 | [germank/hh-rlhf_with_features_flan_t5_large](https://huggingface.co/datasets/germank/hh-rlhf_with_features_flan_t5_large)                                         | 336       | 0     |
+|        |                                                                                                                                   | [nimaster/Devign_for_VD](https://huggingface.co/datasets/nimaster/Devign_for_VD)                                                                                   | 239       | 0     |
+|        | [here](https://huggingface.co/datasets/vhtran/uniq-id-en/discussions/1#651ab8329e0bf1e7f82fd3eb)                                  | [vhtran/uniq-id-en](https://huggingface.co/datasets/vhtran/uniq-id-en)                                                                                             | 118       | 0     |
+|        | [here](https://huggingface.co/datasets/manu/wmt-en-fr/discussions/1#651ab850e3558015826cde35)                                     | [manu/wmt-en-fr](https://huggingface.co/datasets/manu/wmt-en-fr)                                                                                                   | 107       | 0     |
+|        |                                                                                                                                   | [Jeska/autonlp-data-vaccinfaq](https://huggingface.co/datasets/Jeska/autonlp-data-vaccinfaq)                                                                       | 104       | 0     |
+|        |                                                                                                                                   | [alvp/autonlp-data-alberti-stanza-names](https://huggingface.co/datasets/alvp/autonlp-data-alberti-stanza-names)                                                   | 102       | 0     |
+|        |                                                                                                                                   | [alvp/autonlp-data-alberti-stanzas-finetuning](https://huggingface.co/datasets/alvp/autonlp-data-alberti-stanzas-finetuning)                                       | 102       | 0     |
+| Merged | [here](https://huggingface.co/datasets/jegormeister/dutch-snli/discussions/1)                                                     | [jegormeister/dutch-snli](https://huggingface.co/datasets/jegormeister/dutch-snli)                                                                                 | 90        | 0     |
+|        | [here](https://huggingface.co/datasets/Iskaj/dutch_corpora_parliament_processed/discussions/1)                                    | [Iskaj/dutch_corpora_parliament_processed](https://huggingface.co/datasets/Iskaj/dutch_corpora_parliament_processed)                                               | 88        | 0     |
+|        | [here](https://huggingface.co/datasets/mtc/german_seahorse_dataset_with_articles/discussions/1)                                   | [mtc/german_seahorse_dataset_with_articles](https://huggingface.co/datasets/mtc/german_seahorse_dataset_with_articles)                                             | 87        | 0     |
+|        | [here](https://huggingface.co/datasets/dmayhem93/agieval-logiqa-en/discussions/1#651ab8cd9e0bf1e7f82ffa01)                        | [dmayhem93/agieval-logiqa-en](https://huggingface.co/datasets/dmayhem93/agieval-logiqa-en)                                                                         | 86        | 0     |
+|        | [here](https://huggingface.co/datasets/dmayhem93/agieval-sat-en-without-passage/discussions/1#651ab8efda7605b21396f125)           | [dmayhem93/agieval-sat-en-without-passage](https://huggingface.co/datasets/dmayhem93/agieval-sat-en-without-passage)                                               | 86        | 0     |
+|        | [here](https://huggingface.co/datasets/manu/opus100-en-fr/discussions/1#651ab90de570bf249254d7ae)                                 | [manu/opus100-en-fr](https://huggingface.co/datasets/manu/opus100-en-fr)                                                                                           | 76        | 0     |
+|        | [here](https://huggingface.co/datasets/manu/french_librispeech_text_only/discussions/1)                                           | [manu/french_librispeech_text_only](https://huggingface.co/datasets/manu/french_librispeech_text_only)                                                             | 76        | 0     |
+|        | [here](https://huggingface.co/datasets/roskoN/stereoset_german/discussions/1)                                                     | [roskoN/stereoset_german](https://huggingface.co/datasets/roskoN/stereoset_german)                                                                                 | 74        | 0     |
+|        |                                                                                                                                   | [ejschwartz/oo-method-test-split](https://huggingface.co/datasets/ejschwartz/oo-method-test-split)                                                                 | 53        | 0     |
+|        |                                                                                                                                   | [PierreLepagnol/WRENCH](https://huggingface.co/datasets/PierreLepagnol/WRENCH)                                                                                     | 49        | 0     |
+|        |                                                                                                                                   | [mammoth-blaze/ParcelSummaryDS](https://huggingface.co/datasets/mammoth-blaze/ParcelSummaryDS)                                                                     | 49        | 0     |
+|        | [here](https://huggingface.co/datasets/afkfatih/turkishdataset/discussions/1#651ae795fa4bf59ced650092)                            | [afkfatih/turkishdataset](https://huggingface.co/datasets/afkfatih/turkishdataset)                                                                                 | 48        | 0     |
+|        |                                                                                                                                   | [Isaak-Carter/Function_Calling_Private_GG](https://huggingface.co/datasets/Isaak-Carter/Function_Calling_Private_GG)                                               | 43        | 0     |
+|        | [here](https://huggingface.co/datasets/stas/wmt16-en-ro-pre-processed/discussions/1#651ab96911f562eb7f04aa5e)                     | [stas/wmt16-en-ro-pre-processed](https://huggingface.co/datasets/stas/wmt16-en-ro-pre-processed)                                                                   | 40        | 0     |
+| Merged | [here](https://huggingface.co/datasets/paoloitaliani/news_articles/discussions/1)                                                 | [paoloitaliani/news_articles](https://huggingface.co/datasets/paoloitaliani/news_articles)                                                                         | 40        | 0     |
+| Merged | [here](https://huggingface.co/datasets/pszemraj/simplepile-lite/discussions/1)                                                    | [pszemraj/simplepile-lite](https://huggingface.co/datasets/pszemraj/simplepile-lite)                                                                               | 33        | 0     |
+|        | [here](https://huggingface.co/datasets/webimmunization/COVID-19-conspiracy-theories-tweets/discussions/2)                         | [webimmunization/COVID-19-conspiracy-theories-tweets](https://huggingface.co/datasets/webimmunization/COVID-19-conspiracy-theories-tweets)                         | 31        | 0     |
+|        |                                                                                                                                   | [rdpahalavan/UNSW-NB15](https://huggingface.co/datasets/rdpahalavan/UNSW-NB15)                                                                                     | 30        | 0     |
+|        |                                                                                                                                   | [marekk/testing_dataset_article_category](https://huggingface.co/datasets/marekk/testing_dataset_article_category)                                                 | 28        | 0     |
+| Merged | [here](https://huggingface.co/datasets/Suchinthana/Databricks-Dolly-15k-si-en-mix/discussions/1#651ab9d4c69ca64b8dac2f8e)         | [Suchinthana/Databricks-Dolly-15k-si-en-mix](https://huggingface.co/datasets/Suchinthana/Databricks-Dolly-15k-si-en-mix)                                           | 24        | 0     |
+|        |                                                                                                                                   | [rdpahalavan/CIC-IDS2017](https://huggingface.co/datasets/rdpahalavan/CIC-IDS2017)                                                                                 | 22        | 0     |
+|        |                                                                                                                                   | [Admin08077/STUPID](https://huggingface.co/datasets/Admin08077/STUPID)                                                                                             | 21        | 0     |
+|        | [here](https://huggingface.co/datasets/serbog/job_listing_german_cleaned_bert/discussions/1)                                      | [serbog/job_listing_german_cleaned_bert](https://huggingface.co/datasets/serbog/job_listing_german_cleaned_bert)                                                   | 20        | 0     |
+|        | [here](https://huggingface.co/datasets/germank/hh-generated_flan_t5_large_with_features2_flan_t5_large/discussions/1)             | [germank/hh-generated_flan_t5_large_with_features2_flan_t5_large](https://huggingface.co/datasets/germank/hh-generated_flan_t5_large_with_features2_flan_t5_large) | 16        | 0     |
+|        | [here](https://huggingface.co/datasets/W4nkel/turkish-sentiment-dataset/discussions/1#651ae7c3ad11961965111641)                   | [W4nkel/turkish-sentiment-dataset](https://huggingface.co/datasets/W4nkel/turkish-sentiment-dataset)                                                               | 16        | 0     |
+|        |                                                                                                                                   | [irds/nyt](https://huggingface.co/datasets/irds/nyt)                                                                                                               | 15        | 0     |
+|        | [here](https://huggingface.co/datasets/pere/italian_tweets_500k/discussions/1)                                                    | [pere/italian_tweets_500k](https://huggingface.co/datasets/pere/italian_tweets_500k)                                                                               | 14        | 0     |
+|        | [here](https://huggingface.co/datasets/generative-newsai/news-unmasked/discussions/1)                                             | [generative-newsai/news-unmasked](https://huggingface.co/datasets/generative-newsai/news-unmasked)                                                                 | 12        | 0     |
+| Merged | [here](https://huggingface.co/datasets/irds/dpr-w100/discussions/1)                                                           | [irds/dpr-w100](https://huggingface.co/datasets/irds/dpr-w100)                                                                                                     | 12        | 0     |
+|        | [here](https://huggingface.co/datasets/pere/italian_tweets_10M/discussions/1)                                                     | [pere/italian_tweets_10M](https://huggingface.co/datasets/pere/italian_tweets_10M)                                                                                 | 11        | 0     |
+|        | [here](https://huggingface.co/datasets/vhtran/de-en/discussions/1#651abad1b61121b12838a021)                                       | [vhtran/de-en](https://huggingface.co/datasets/vhtran/de-en)                                                                                                       | 8         | 0     |
+|        | [here](https://huggingface.co/datasets/tbboukhari/Alpaca-in-french/discussions/1)                                                 | [tbboukhari/Alpaca-in-french](https://huggingface.co/datasets/tbboukhari/Alpaca-in-french)                                                                         | 8         | 0     |
+|        | [here](https://huggingface.co/datasets/ismailiismail/multi_paraphrasing_french/discussions/2)                                     | [ismailiismail/multi_paraphrasing_french](https://huggingface.co/datasets/ismailiismail/multi_paraphrasing_french)                                                 | 6         | 0     |
+| Merged | [here](https://huggingface.co/datasets/TigerResearch/tigerbot-wiki-qa-bart-en-10k/discussions/1#651abb4488af1b75481d2eb5)         | [TigerResearch/tigerbot-wiki-qa-bart-en-10k](https://huggingface.co/datasets/TigerResearch/tigerbot-wiki-qa-bart-en-10k)                                           | 5         | 0     |
+|        | [here](https://huggingface.co/datasets/vhtran/de-en-official/discussions/1#651abbbbc69ca64b8dac7779)                              | [vhtran/de-en-official](https://huggingface.co/datasets/vhtran/de-en-official)                                                                                     | 4         | 0     |
+|        | [here](https://huggingface.co/datasets/yongsun-yoon/open-ner-english/discussions/1#651abba3996b00d2900f86a7)                      | [yongsun-yoon/open-ner-english](https://huggingface.co/datasets/yongsun-yoon/open-ner-english)                                                                     | 4         | 0     |
+|        | [here](https://huggingface.co/datasets/Shularp/un_multi-ar-en/discussions/1#651abb81da7605b213974dc7)                             | [Shularp/un_multi-ar-en](https://huggingface.co/datasets/Shularp/un_multi-ar-en)                                                                                   | 4         | 0     |
+|        | [here](https://huggingface.co/datasets/FreedomIntelligence/alpaca-gpt4-french/discussions/1)                                      | [FreedomIntelligence/alpaca-gpt4-french](https://huggingface.co/datasets/FreedomIntelligence/alpaca-gpt4-french)                                                   | 4         | 0     |
+| Merged | [here](https://huggingface.co/datasets/kmkarakaya/turkishReviews-ds-mini/discussions/1#651ae7d9ccad5410910c4bc3)                  | [kmkarakaya/turkishReviews-ds-mini](https://huggingface.co/datasets/kmkarakaya/turkishReviews-ds-mini)                                                             | 4         | 0     |
+|        | [here](https://huggingface.co/datasets/erkanxyzalaca/turkishKuran/discussions/1#651ae80b5e0d2101c96638e2)                         | [erkanxyzalaca/turkishKuran](https://huggingface.co/datasets/erkanxyzalaca/turkishKuran)                                                                           | 4         | 0     |
+| Merged | [here](https://huggingface.co/datasets/indiejoseph/wikipedia-en-filtered/discussions/1#651abc11a9e1c4c6cdd03916)                  | [indiejoseph/wikipedia-en-filtered](https://huggingface.co/datasets/indiejoseph/wikipedia-en-filtered)                                                             | 3         | 0     |
+| Merged | [here](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-en-fr/discussions/1#651abbf7be3dd64112847e1d)         | [thesistranslation/distilled-ccmatrix-en-fr](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-en-fr)                                           | 3         | 0     |
+|        | [here](https://huggingface.co/datasets/lsb/million-english-numbers/discussions/1#651abbd556e1d8e756d2c65d)                        | [lsb/million-english-numbers](https://huggingface.co/datasets/lsb/million-english-numbers)                                                                         | 3         | 0     |
+|        | [here](https://huggingface.co/datasets/thomasavare/italian-dataset-deepl2/discussions/2)                                          | [thomasavare/italian-dataset-deepl2](https://huggingface.co/datasets/thomasavare/italian-dataset-deepl2)                                                           | 3         | 0     |
+|        | [here](https://huggingface.co/datasets/Jackmin108/c4-en-validation-mini/discussions/1#651abcac977774bdec1784e0)                   | [Jackmin108/c4-en-validation-mini](https://huggingface.co/datasets/Jackmin108/c4-en-validation-mini)                                                               | 2         | 0     |
+| Merged | [here](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-de-en/discussions/1#651abc82aa88d6caadcc0410)         | [thesistranslation/distilled-ccmatrix-de-en](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-de-en)                                           | 2         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-zh-en/discussions/1#651abc526a6b822b88debf13)                             | [yezhengli9/wmt20-zh-en](https://huggingface.co/datasets/yezhengli9/wmt20-zh-en)                                                                                   | 2         | 0     |
+|        | [here](https://huggingface.co/datasets/masoudjs/c4-en-html-with-metadata-ppl-clean/discussions/1#651abc31be3dd64112848501)        | [masoudjs/c4-en-html-with-metadata-ppl-clean](https://huggingface.co/datasets/masoudjs/c4-en-html-with-metadata-ppl-clean)                                         | 2         | 0     |
+|        | [here](https://huggingface.co/datasets/FreedomIntelligence/sharegpt-french/discussions/1)                                         | [FreedomIntelligence/sharegpt-french](https://huggingface.co/datasets/FreedomIntelligence/sharegpt-french)                                                         | 2         | 0     |
+|        | [here](https://huggingface.co/datasets/serbog/job_listing_german_cleaned/discussions/1)                                           | [serbog/job_listing_german_cleaned](https://huggingface.co/datasets/serbog/job_listing_german_cleaned)                                                             | 2         | 0     |
+|        | [here](https://huggingface.co/datasets/erebos/germanZickleinLLAMA2Dataset/discussions/1)                                          | [erebos/germanZickleinLLAMA2Dataset](https://huggingface.co/datasets/erebos/germanZickleinLLAMA2Dataset)                                                           | 2         | 0     |
+|        | [here](https://huggingface.co/datasets/FreedomIntelligence/sharegpt-italian/discussions/1)                                        | [FreedomIntelligence/sharegpt-italian](https://huggingface.co/datasets/FreedomIntelligence/sharegpt-italian)                                                       | 2         | 0     |
+|        | [here](https://huggingface.co/datasets/thomasavare/italian-dataset-helsinki/discussions/1)                                        | [thomasavare/italian-dataset-helsinki](https://huggingface.co/datasets/thomasavare/italian-dataset-helsinki)                                                       | 2         | 0     |
+|        | [here](https://huggingface.co/datasets/OpenFact/CLEF23-CheckThat-1b-en/discussions/1#651ac040977774bdec18067f)                    | [OpenFact/CLEF23-CheckThat-1b-en](https://huggingface.co/datasets/OpenFact/CLEF23-CheckThat-1b-en)                                                                 | 1         | 0     |
+| Merged | [here](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-es-en/discussions/1#651ac0267febf41d1222745f)         | [thesistranslation/distilled-ccmatrix-es-en](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-es-en)                                           | 1         | 0     |
+| Merged | [here](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-en-es/discussions/1#651ac014715329b230298f88)         | [thesistranslation/distilled-ccmatrix-en-es](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-en-es)                                           | 1         | 0     |
+| Merged | [here](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-fr-en/discussions/1#651ac002c3093392e0480676)         | [thesistranslation/distilled-ccmatrix-fr-en](https://huggingface.co/datasets/thesistranslation/distilled-ccmatrix-fr-en)                                           | 1         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-vi-train-split/discussions/1#651abcf5bab322bb63de27da)         | [shreevigneshs/iwslt-2023-en-vi-train-split](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-vi-train-split)                                           | 1         | 0     |
+|        | [here](https://huggingface.co/datasets/vekkt/french_CEFR/discussions/1)                                                           | [vekkt/french_CEFR](https://huggingface.co/datasets/vekkt/french_CEFR)                                                                                             | 1         | 0     |
+|        | [here](https://huggingface.co/datasets/thisserand/health_care_german/discussions/1)                                               | [thisserand/health_care_german](https://huggingface.co/datasets/thisserand/health_care_german)                                                                     | 1         | 0     |
+|        | [here](https://huggingface.co/datasets/scribis/italian-literature-corpus-mini/discussions/1)                                      | [scribis/italian-literature-corpus-mini](https://huggingface.co/datasets/scribis/italian-literature-corpus-mini)                                                   | 1         | 0     |
+|        | [here](https://huggingface.co/datasets/FreedomIntelligence/alpaca-gpt4-italian/discussions/1)                                     | [FreedomIntelligence/alpaca-gpt4-italian](https://huggingface.co/datasets/FreedomIntelligence/alpaca-gpt4-italian)                                                 | 1         | 0     |
+|        | [here](https://huggingface.co/datasets/manu/europarl-en-fr/discussions/1#651ac9bf11f562eb7f079e78)                                | [manu/europarl-en-fr](https://huggingface.co/datasets/manu/europarl-en-fr)                                                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/buddhist-nlp/buddhist-zh-en-with-gpt/discussions/1#651ac9a1a36fadd8776b76dd)               | [buddhist-nlp/buddhist-zh-en-with-gpt](https://huggingface.co/datasets/buddhist-nlp/buddhist-zh-en-with-gpt)                                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/neil-code/subset-data-en-zh/discussions/1#651ac98a9c4067f3b89935c0)                        | [neil-code/subset-data-en-zh](https://huggingface.co/datasets/neil-code/subset-data-en-zh)                                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-ente-da-sys-test/discussions/1#651ac9449e0bf1e7f8331b82)         | [dipteshkanojia/t5-qe-2023-ente-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-ente-da-sys-test)                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enta-da-sys-test/discussions/1#651ac937aa7da01954c03a27)         | [dipteshkanojia/t5-qe-2023-enta-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enta-da-sys-test)                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enmr-da-sys-test/discussions/1#651ac926d03e9190093559a3)         | [dipteshkanojia/t5-qe-2023-enmr-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enmr-da-sys-test)                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enhi-da-sys-test/discussions/1#651ac91569d3438f0f27501c)         | [dipteshkanojia/t5-qe-2023-enhi-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enhi-da-sys-test)                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-engu-da-sys-test/discussions/1#651ac904394b647a6434d949)         | [dipteshkanojia/t5-qe-2023-engu-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-engu-da-sys-test)                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-ente-da-test/discussions/1#651ac8f4996b00d29011d611)             | [dipteshkanojia/t5-qe-2023-ente-da-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-ente-da-test)                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enmr-da-test/discussions/1#651ac8e44dba2d9ed14616c4)             | [dipteshkanojia/t5-qe-2023-enmr-da-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enmr-da-test)                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enta-da-test/discussions/1#651ac8d8394b647a6434d2f6)             | [dipteshkanojia/t5-qe-2023-enta-da-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enta-da-test)                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enhi-da-test/discussions/1#651ac8c1551c9a100b07e5ec)             | [dipteshkanojia/t5-qe-2023-enhi-da-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-enhi-da-test)                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-engu-da-test/discussions/1#651ac8ae394b647a6434ccc2)             | [dipteshkanojia/t5-qe-2023-engu-da-test](https://huggingface.co/datasets/dipteshkanojia/t5-qe-2023-engu-da-test)                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-ente-da-sys-test/discussions/1#651ac8957febf41d12242744)    | [dipteshkanojia/llama-2-qe-2023-ente-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-ente-da-sys-test)                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enta-da-sys-test/discussions/1#651ac886b3e605cc4cea0859)    | [dipteshkanojia/llama-2-qe-2023-enta-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enta-da-sys-test)                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enmr-da-sys-test/discussions/1#651ac8768a5c072ce16a39f0)    | [dipteshkanojia/llama-2-qe-2023-enmr-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enmr-da-sys-test)                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enhi-da-sys-test/discussions/1#651ac8646effdc27ae2b0cca)    | [dipteshkanojia/llama-2-qe-2023-enhi-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enhi-da-sys-test)                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-engu-da-sys-test/discussions/1#651ac854977774bdec191193)    | [dipteshkanojia/llama-2-qe-2023-engu-da-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-engu-da-sys-test)                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-ente-da-test/discussions/1#651ac841a36fadd8776b3cf7)        | [dipteshkanojia/llama-2-qe-2023-ente-da-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-ente-da-test)                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enta-da-test/discussions/1#651ac83114846378181edef0)        | [dipteshkanojia/llama-2-qe-2023-enta-da-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enta-da-test)                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enmr-da-test/discussions/1#651ac82328c2633de9611ba2)        | [dipteshkanojia/llama-2-qe-2023-enmr-da-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enmr-da-test)                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enhi-da-test/discussions/1#651ac813c4fdc1c93efd1abd)        | [dipteshkanojia/llama-2-qe-2023-enhi-da-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enhi-da-test)                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-engu-da-test/discussions/1#651ac803dcfe1eed916654c9)        | [dipteshkanojia/llama-2-qe-2023-engu-da-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-engu-da-test)                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enta-sys-test/discussions/1#651ac7f1c4fdc1c93efd150c)       | [dipteshkanojia/llama-2-qe-2023-enta-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enta-sys-test)                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-ente-sys-test/discussions/1#651ac7e1715329b2302b309e)       | [dipteshkanojia/llama-2-qe-2023-ente-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-ente-sys-test)                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enmr-sys-test/discussions/1#651ac7cdaa7da01954bff621)       | [dipteshkanojia/llama-2-qe-2023-enmr-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enmr-sys-test)                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enhi-sys-test/discussions/1#651ac7c196e6bcaa1411b5d3)       | [dipteshkanojia/llama-2-qe-2023-enhi-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enhi-sys-test)                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-engu-sys-test/discussions/1#651ac7b32bc734f0fa0e7b0c)       | [dipteshkanojia/llama-2-qe-2023-engu-sys-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-engu-sys-test)                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-ente-test/discussions/1#651ac7a3e3558015826f1b0a)           | [dipteshkanojia/llama-2-qe-2023-ente-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-ente-test)                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enta-test/discussions/1#651ac786be3dd641128612f0)           | [dipteshkanojia/llama-2-qe-2023-enta-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enta-test)                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enmr-test/discussions/1#651ac776655e3fdc2a80c0bc)           | [dipteshkanojia/llama-2-qe-2023-enmr-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enmr-test)                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enhi-test/discussions/1#651ac766c4fdc1c93efd0661)           | [dipteshkanojia/llama-2-qe-2023-enhi-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-enhi-test)                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-engu-test/discussions/1#651ac74ef4c139a2f7fa3351)           | [dipteshkanojia/llama-2-qe-2023-engu-test](https://huggingface.co/datasets/dipteshkanojia/llama-2-qe-2023-engu-test)                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/ahazeemi/opus-it-en-de-new/discussions/1#651ac72ed03e91900935037f)                         | [ahazeemi/opus-it-en-de-new](https://huggingface.co/datasets/ahazeemi/opus-it-en-de-new)                                                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/aimona/stripchat-fixed-grammar-eng/discussions/1#651ac72156e1d8e756d4acd7)                 | [aimona/stripchat-fixed-grammar-eng](https://huggingface.co/datasets/aimona/stripchat-fixed-grammar-eng)                                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/phi0108/demo-noun-phrase-en/discussions/1#651ac6f8655e3fdc2a80a8bb)                        | [phi0108/demo-noun-phrase-en](https://huggingface.co/datasets/phi0108/demo-noun-phrase-en)                                                                         | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/ChanceFocus/flare-multifin-en/discussions/1#651ac6e68e62b015b8438a94)                      | [ChanceFocus/flare-multifin-en](https://huggingface.co/datasets/ChanceFocus/flare-multifin-en)                                                                     | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/kaleinaNyan/wmt19_ru-en/discussions/1#651ac6d0977774bdec18e32b)                            | [kaleinaNyan/wmt19_ru-en](https://huggingface.co/datasets/kaleinaNyan/wmt19_ru-en)                                                                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/VFiona/covid-19-synthetic-it-en-5000/discussions/1#651ac6be7febf41d1223cf89)               | [VFiona/covid-19-synthetic-it-en-5000](https://huggingface.co/datasets/VFiona/covid-19-synthetic-it-en-5000)                                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/ahazeemi/opus-law-en-de-new/discussions/1#651ac6ac2bc734f0fa0e5785)                        | [ahazeemi/opus-law-en-de-new](https://huggingface.co/datasets/ahazeemi/opus-law-en-de-new)                                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/VFiona/covid-19-synthetic-it-en-10000/discussions/1#651ac69a28c2633de960de71)              | [VFiona/covid-19-synthetic-it-en-10000](https://huggingface.co/datasets/VFiona/covid-19-synthetic-it-en-10000)                                                     | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/flozi00/oasst1-en-to-de/discussions/1#651ac67f655e3fdc2a80981b)                            | [flozi00/oasst1-en-to-de](https://huggingface.co/datasets/flozi00/oasst1-en-to-de)                                                                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/pvduy/oasst-h4-en/discussions/2#651ac64ada7605b213993185)                                  | [pvduy/oasst-h4-en](https://huggingface.co/datasets/pvduy/oasst-h4-en)                                                                                             | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-ta/discussions/1#651ac635dcfe1eed916608a8)                             | [yezhengli9/wmt20-en-ta](https://huggingface.co/datasets/yezhengli9/wmt20-en-ta)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-cs-en/discussions/1#651ac588394b647a64343774)                             | [yezhengli9/wmt20-cs-en](https://huggingface.co/datasets/yezhengli9/wmt20-cs-en)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-cs/discussions/1#651ac57a28c2633de960b37a)                             | [yezhengli9/wmt20-en-cs](https://huggingface.co/datasets/yezhengli9/wmt20-en-cs)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-iu-en/discussions/1#651ac567c4fdc1c93efcc6b0)                             | [yezhengli9/wmt20-iu-en](https://huggingface.co/datasets/yezhengli9/wmt20-iu-en)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-ru/discussions/1#651ac558bab322bb63df9277)                             | [yezhengli9/wmt20-en-ru](https://huggingface.co/datasets/yezhengli9/wmt20-en-ru)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-ps/discussions/1#651ac54adeec0b994149f510)                             | [yezhengli9/wmt20-en-ps](https://huggingface.co/datasets/yezhengli9/wmt20-en-ps)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-ta-en/discussions/1#651ac52d11f562eb7f06ed57)                             | [yezhengli9/wmt20-ta-en](https://huggingface.co/datasets/yezhengli9/wmt20-ta-en)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-pl-en/discussions/1#651ac51f11f562eb7f06ea7f)                             | [yezhengli9/wmt20-pl-en](https://huggingface.co/datasets/yezhengli9/wmt20-pl-en)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-zh/discussions/1#651ac50fbe3dd6411285aba2)                             | [yezhengli9/wmt20-en-zh](https://huggingface.co/datasets/yezhengli9/wmt20-en-zh)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-ps-en/discussions/1#651ac4fcf0354540aa1c8b2c)                             | [yezhengli9/wmt20-ps-en](https://huggingface.co/datasets/yezhengli9/wmt20-ps-en)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-pl/discussions/1#651ac4e2c69ca64b8dadb35f)                             | [yezhengli9/wmt20-en-pl](https://huggingface.co/datasets/yezhengli9/wmt20-en-pl)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-ru-en/discussions/1#651ac4cd9c4067f3b8985810)                             | [yezhengli9/wmt20-ru-en](https://huggingface.co/datasets/yezhengli9/wmt20-ru-en)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-iu/discussions/1#651ac4ba0b13514f9885e927)                             | [yezhengli9/wmt20-en-iu](https://huggingface.co/datasets/yezhengli9/wmt20-en-iu)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-ja-en/discussions/1#651ac48fd03e9190093470a5)                             | [yezhengli9/wmt20-ja-en](https://huggingface.co/datasets/yezhengli9/wmt20-ja-en)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-ja/discussions/1#651ac47ce3558015826ea6d1)                             | [yezhengli9/wmt20-en-ja](https://huggingface.co/datasets/yezhengli9/wmt20-en-ja)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-km/discussions/1#651ac46a88af1b75481eba7c)                             | [yezhengli9/wmt20-en-km](https://huggingface.co/datasets/yezhengli9/wmt20-en-km)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-en-de/discussions/1#651ac4326e33be3f9b0e20af)                             | [yezhengli9/wmt20-en-de](https://huggingface.co/datasets/yezhengli9/wmt20-en-de)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yezhengli9/wmt20-de-en/discussions/1#651ac41a1c53eaa6dbae71fd)                             | [yezhengli9/wmt20-de-en](https://huggingface.co/datasets/yezhengli9/wmt20-de-en)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/alvations/globalvoices-de-en/discussions/1#651ac4069e0bf1e7f83212cf)                       | [alvations/globalvoices-de-en](https://huggingface.co/datasets/alvations/globalvoices-de-en)                                                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/alvations/aymara-english/discussions/1#651ac3f2b693acb5195a3bd2)                           | [alvations/aymara-english](https://huggingface.co/datasets/alvations/aymara-english)                                                                               | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-ru-train-val-split-0.2/discussions/1#651ac3b16e33be3f9b0e026b) | [shreevigneshs/iwslt-2023-en-ru-train-val-split-0.2](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-ru-train-val-split-0.2)                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-pt-train-val-split-0.2/discussions/1#651ac3a1e3558015826e969d) | [shreevigneshs/iwslt-2023-en-pt-train-val-split-0.2](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-pt-train-val-split-0.2)                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-ko-train-val-split-0.2/discussions/1#651ac38cd007d5f9b5b33157) | [shreevigneshs/iwslt-2023-en-ko-train-val-split-0.2](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-ko-train-val-split-0.2)                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-vi-train-val-split-0.2/discussions/1#651ac378822edee297c97ec8) | [shreevigneshs/iwslt-2023-en-vi-train-val-split-0.2](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-vi-train-val-split-0.2)                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-es-train-val-split-0.1/discussions/1#651ac2b4d007d5f9b5b31565) | [shreevigneshs/iwslt-2023-en-es-train-val-split-0.1](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-es-train-val-split-0.1)                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-ko-train-val-split-0.1/discussions/1#651ac2a1d007d5f9b5b3111a) | [shreevigneshs/iwslt-2023-en-ko-train-val-split-0.1](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-ko-train-val-split-0.1)                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-vi-train-val-split-0.1/discussions/1#651ac28bf4c139a2f7f976e3) | [shreevigneshs/iwslt-2023-en-vi-train-val-split-0.1](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-vi-train-val-split-0.1)                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/cahya/instructions-en/discussions/1#651ac25fbf3fb2499d502b3e)                              | [cahya/instructions-en](https://huggingface.co/datasets/cahya/instructions-en)                                                                                     | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2022-en-de/discussions/1#651ac225f4c139a2f7f9632a)                     | [shreevigneshs/iwslt-2022-en-de](https://huggingface.co/datasets/shreevigneshs/iwslt-2022-en-de)                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-ko-train-split/discussions/1#651ac2146a6b822b88dfbd96)         | [shreevigneshs/iwslt-2023-en-ko-train-split](https://huggingface.co/datasets/shreevigneshs/iwslt-2023-en-ko-train-split)                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/shreevigneshs/iwslt-2022-en-es/discussions/1#651ac200f0354540aa1bded1)                     | [shreevigneshs/iwslt-2022-en-es](https://huggingface.co/datasets/shreevigneshs/iwslt-2022-en-es)                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/NadiaHassan/ar-en/discussions/1#651ac1936a6b822b88dfa214)                                  | [NadiaHassan/ar-en](https://huggingface.co/datasets/NadiaHassan/ar-en)                                                                                             | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Rexhaif/mintaka-qa-en/discussions/1#651ac12e6a6b822b88df8eb2)                              | [Rexhaif/mintaka-qa-en](https://huggingface.co/datasets/Rexhaif/mintaka-qa-en)                                                                                     | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/mbarnig/Tatoeba-en-lb/discussions/1#651ac0f324e76a098722c960)                              | [mbarnig/Tatoeba-en-lb](https://huggingface.co/datasets/mbarnig/Tatoeba-en-lb)                                                                                     | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yogiyulianto/twitter-sentiment-dataset-en/discussions/1#651ac0cba9e1c4c6cdd0fc71)          | [yogiyulianto/twitter-sentiment-dataset-en](https://huggingface.co/datasets/yogiyulianto/twitter-sentiment-dataset-en)                                             | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/vocab-transformers/wiki-en-passages-20210101/discussions/1#651ac05bb61121b128399516)       | [vocab-transformers/wiki-en-passages-20210101](https://huggingface.co/datasets/vocab-transformers/wiki-en-passages-20210101)                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/AgentWaller/dutch-formatted-oasst1/discussions/1)                                          | [AgentWaller/dutch-formatted-oasst1](https://huggingface.co/datasets/AgentWaller/dutch-formatted-oasst1)                                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/AgentWaller/dutch-oasst1-qlora-format/discussions/1)                                       | [AgentWaller/dutch-oasst1-qlora-format](https://huggingface.co/datasets/AgentWaller/dutch-oasst1-qlora-format)                                                     | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/BramVanroy/stackoverflow-chat-dutch-llamav2-format/discussions/1)                          | [BramVanroy/stackoverflow-chat-dutch-llamav2-format](https://huggingface.co/datasets/BramVanroy/stackoverflow-chat-dutch-llamav2-format)                           | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/Harsit/xnli2.0_train_french/discussions/1)                                                 | [Harsit/xnli2.0_train_french](https://huggingface.co/datasets/Harsit/xnli2.0_train_french)                                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Makxxx/french_CEFR/discussions/1)                                                          | [Makxxx/french_CEFR](https://huggingface.co/datasets/Makxxx/french_CEFR)                                                                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/sugam11/french-snli/discussions/1)                                                         | [sugam11/french-snli](https://huggingface.co/datasets/sugam11/french-snli)                                                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Brendan/nlp244_french_snli/discussions/1)                                                  | [Brendan/nlp244_french_snli](https://huggingface.co/datasets/Brendan/nlp244_french_snli)                                                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/pvisnrt/french-snli/discussions/1)                                                         | [pvisnrt/french-snli](https://huggingface.co/datasets/pvisnrt/french-snli)                                                                                         | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/pranjali97/french_translated_snli/discussions/1)                                           | [pranjali97/french_translated_snli](https://huggingface.co/datasets/pranjali97/french_translated_snli)                                                             | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/FreedomIntelligence/evol-instruct-french/discussions/1)                                    | [FreedomIntelligence/evol-instruct-french](https://huggingface.co/datasets/FreedomIntelligence/evol-instruct-french)                                               | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/gollumeo/french-litterature/discussions/1)                                                 | [gollumeo/french-litterature](https://huggingface.co/datasets/gollumeo/french-litterature)                                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/nielsr/datacomp_small_french_captions/discussions/1)                                       | [nielsr/datacomp_small_french_captions](https://huggingface.co/datasets/nielsr/datacomp_small_french_captions)                                                     | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/manu/french_5p/discussions/1)                                                              | [manu/french_5p](https://huggingface.co/datasets/manu/french_5p)                                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/fathyshalab/google-presto-german/discussions/1)                                            | [fathyshalab/google-presto-german](https://huggingface.co/datasets/fathyshalab/google-presto-german)                                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/dvilasuero/alpaca-german-validation/discussions/1)                                         | [dvilasuero/alpaca-german-validation](https://huggingface.co/datasets/dvilasuero/alpaca-german-validation)                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/fathyshalab/germanquad_qg_qg_dataset/discussions/1)                                        | [fathyshalab/germanquad_qg_qg_dataset](https://huggingface.co/datasets/fathyshalab/germanquad_qg_qg_dataset)                                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/fathyshalab/germanquad_qaeval_dataset/discussions/1)                                       | [fathyshalab/germanquad_qaeval_dataset](https://huggingface.co/datasets/fathyshalab/germanquad_qaeval_dataset)                                                     | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/AgentWaller/german-oasst1-qlora-format/discussions/2)                                      | [AgentWaller/german-oasst1-qlora-format](https://huggingface.co/datasets/AgentWaller/german-oasst1-qlora-format)                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/AgentWaller/german-oasst1-qa-format/discussions/1)                                         | [AgentWaller/german-oasst1-qa-format](https://huggingface.co/datasets/AgentWaller/german-oasst1-qa-format)                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Jakelolipopp/truthful_qa-validation-german_q_n_a/discussions/1)                            | [Jakelolipopp/truthful_qa-validation-german_q_n_a](https://huggingface.co/datasets/Jakelolipopp/truthful_qa-validation-german_q_n_a)                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/germank/hh-rlhf_with_features/discussions/1)                                               | [germank/hh-rlhf_with_features](https://huggingface.co/datasets/germank/hh-rlhf_with_features)                                                                     | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/germank/hh-rlhf_with_features_flan_t5_large-no_eos/discussions/1)                          | [germank/hh-rlhf_with_features_flan_t5_large-no_eos](https://huggingface.co/datasets/germank/hh-rlhf_with_features_flan_t5_large-no_eos)                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/germank/hh-rlhf_with_features_flan_t5_large_lll_relabeled/discussions/1)                   | [germank/hh-rlhf_with_features_flan_t5_large_lll_relabeled](https://huggingface.co/datasets/germank/hh-rlhf_with_features_flan_t5_large_lll_relabeled)             | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/germank/hh-rlhf_with_features_flan_t5_large_rx/discussions/1)                              | [germank/hh-rlhf_with_features_flan_t5_large_rx](https://huggingface.co/datasets/germank/hh-rlhf_with_features_flan_t5_large_rx)                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/philschmid/prompted-germanquad/discussions/1)                                              | [philschmid/prompted-germanquad](https://huggingface.co/datasets/philschmid/prompted-germanquad)                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Harsit/xnli2.0_train_german/discussions/1)                                                 | [Harsit/xnli2.0_train_german](https://huggingface.co/datasets/Harsit/xnli2.0_train_german)                                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/akash418/german_europarl/discussions/1)                                                    | [akash418/german_europarl](https://huggingface.co/datasets/akash418/german_europarl)                                                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/flxclxc/english-norwegian-bible-set/discussions/1#651b292fccad5410911777de)                | [flxclxc/english-norwegian-bible-set](https://huggingface.co/datasets/flxclxc/english-norwegian-bible-set)                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/volkanaltintas/turkishTradeReviews-ds-mini-4000/discussions/1#651ae85ba6e00a1678bf6469)    | [volkanaltintas/turkishTradeReviews-ds-mini-4000](https://huggingface.co/datasets/volkanaltintas/turkishTradeReviews-ds-mini-4000)                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/cansen88/turkishReviews_5_topic/discussions/1#651ae93877d6b4b1ea4e17d7)                    | [cansen88/turkishReviews_5_topic](https://huggingface.co/datasets/cansen88/turkishReviews_5_topic)                                                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/orhanxakarsu/turkishReviews-ds-mini/discussions/1#651ae958003b43b95133496f)                | [orhanxakarsu/turkishReviews-ds-mini](https://huggingface.co/datasets/orhanxakarsu/turkishReviews-ds-mini)                                                         | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/orhanxakarsu/turkishPoe-ds-mini1/discussions/1#651ae99c0010bbb67013b4da)                   | [orhanxakarsu/turkishPoe-ds-mini1](https://huggingface.co/datasets/orhanxakarsu/turkishPoe-ds-mini1)                                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/orhanxakarsu/turkishPoe-ds-mini2/discussions/1#651aeaa4cd08536ba4cb9abe)                   | [orhanxakarsu/turkishPoe-ds-mini2](https://huggingface.co/datasets/orhanxakarsu/turkishPoe-ds-mini2)                                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/orhanxakarsu/turkishPoe-generation/discussions/1#651aeab6a6e00a1678bfc778)                 | [orhanxakarsu/turkishPoe-generation](https://huggingface.co/datasets/orhanxakarsu/turkishPoe-generation)                                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/orhanxakarsu/turkishPoe-generation-1/discussions/1#651aeacd888a4dcfa4918bce)               | [orhanxakarsu/turkishPoe-generation-1](https://huggingface.co/datasets/orhanxakarsu/turkishPoe-generation-1)                                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/orhanxakarsu/turkish-poem-generation/discussions/1#651aeadcdae56722e34b4735)               | [orhanxakarsu/turkish-poem-generation](https://huggingface.co/datasets/orhanxakarsu/turkish-poem-generation)                                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Harsit/xnli2.0_turkish/discussions/1#651aeb0c14145f2a00e9af5c)                             | [Harsit/xnli2.0_turkish](https://huggingface.co/datasets/Harsit/xnli2.0_turkish)                                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Harsit/xnli2.0_train_turkish/discussions/1#651aeb1f14145f2a00e9b55b)                       | [Harsit/xnli2.0_train_turkish](https://huggingface.co/datasets/Harsit/xnli2.0_train_turkish)                                                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/eminecg/turkishReviews-ds-mini/discussions/1#651aeb33b08a2b1588ae791b)                     | [eminecg/turkishReviews-ds-mini](https://huggingface.co/datasets/eminecg/turkishReviews-ds-mini)                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/erkanxyzalaca/turkishReviews-ds-mini/discussions/1#651aeb43bec377c8b84dccef)               | [erkanxyzalaca/turkishReviews-ds-mini](https://huggingface.co/datasets/erkanxyzalaca/turkishReviews-ds-mini)                                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/ozz/turkishReviews-ds-mini/discussions/1#651aeb55a467986d401a35df)                         | [ozz/turkishReviews-ds-mini](https://huggingface.co/datasets/ozz/turkishReviews-ds-mini)                                                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/erytrn/turkishReviews-ds-mini/discussions/1#651aeb97b117eac9222b70f2)                      | [erytrn/turkishReviews-ds-mini](https://huggingface.co/datasets/erytrn/turkishReviews-ds-mini)                                                                     | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/erytrn/turkishReviews-ds-mini2/discussions/1#651aeba5b08a2b1588ae89a6)                     | [erytrn/turkishReviews-ds-mini2](https://huggingface.co/datasets/erytrn/turkishReviews-ds-mini2)                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/ramazank2000/turkishReviews-ds-mini1/discussions/1#651aebb3704bfab3988e1608)               | [ramazank2000/turkishReviews-ds-mini1](https://huggingface.co/datasets/ramazank2000/turkishReviews-ds-mini1)                                                       | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Hilalcelik/turkishReviews-ds-mini/discussions/1#651aebc10010bbb6701436ab)                  | [Hilalcelik/turkishReviews-ds-mini](https://huggingface.co/datasets/Hilalcelik/turkishReviews-ds-mini)                                                             | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/sebinbusra/turkishReviews-ds-mini/discussions/1#651aebcf1a90782f9c92b201)                  | [sebinbusra/turkishReviews-ds-mini](https://huggingface.co/datasets/sebinbusra/turkishReviews-ds-mini)                                                             | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/kaaniince/turkishReviews-project/discussions/1#651aebeb2930812657b3138f)                   | [kaaniince/turkishReviews-project](https://huggingface.co/datasets/kaaniince/turkishReviews-project)                                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/kaaniince/turkishReviews-ds-textGeneration/discussions/1#651aebfa52659d023a23671d)         | [kaaniince/turkishReviews-ds-textGeneration](https://huggingface.co/datasets/kaaniince/turkishReviews-ds-textGeneration)                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/AzerKBU/turkishReviews-ds-mini/discussions/1#651aec0b52659d023a23692f)                     | [AzerKBU/turkishReviews-ds-mini](https://huggingface.co/datasets/AzerKBU/turkishReviews-ds-mini)                                                                   | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/bosnakdev/turkishReviews-ds-mini/discussions/1#651aec1b7a7ad76a365d0051)                   | [bosnakdev/turkishReviews-ds-mini](https://huggingface.co/datasets/bosnakdev/turkishReviews-ds-mini)                                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yankihue/tweets-turkish/discussions/1#651aec2e52659d023a236e34)                            | [yankihue/tweets-turkish](https://huggingface.co/datasets/yankihue/tweets-turkish)                                                                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/yankihue/turkish-news-categories/discussions/1#651aec3dcd08536ba4cbd825)                   | [yankihue/turkish-news-categories](https://huggingface.co/datasets/yankihue/turkish-news-categories)                                                               | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/Mursel/turkishReviews-ds-mini/discussions/1#651aec4ddae56722e34b779d)                      | [Mursel/turkishReviews-ds-mini](https://huggingface.co/datasets/Mursel/turkishReviews-ds-mini)                                                                     | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Veyselbyte/turkishReviews-ds-mini/discussions/1#651aec5f6ca982328d0e7463)                  | [Veyselbyte/turkishReviews-ds-mini](https://huggingface.co/datasets/Veyselbyte/turkishReviews-ds-mini)                                                             | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/cagrimehmet/turkishReviews-ds-mini/discussions/1#651aec6adf4244e94a7710a6)                 | [cagrimehmet/turkishReviews-ds-mini](https://huggingface.co/datasets/cagrimehmet/turkishReviews-ds-mini)                                                           | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/styraist/turkishReview-ds-mini/discussions/1#651aec77cd08536ba4cbe0c7)                     | [styraist/turkishReview-ds-mini](https://huggingface.co/datasets/styraist/turkishReview-ds-mini)                                                                   | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/serkandyck/turkish_instructions/discussions/1#651aec89d67d22a16abaed2a)                    | [serkandyck/turkish_instructions](https://huggingface.co/datasets/serkandyck/turkish_instructions)                                                                 | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/Memis/turkishReviews-ds-mini/discussions/1#651aec95a6e00a1678c00c78)                       | [Memis/turkishReviews-ds-mini](https://huggingface.co/datasets/Memis/turkishReviews-ds-mini)                                                                       | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/PulsarAI/turkish_movie_sentiment/discussions/1#651aecb96ef522c487d5ef62)                   | [PulsarAI/turkish_movie_sentiment](https://huggingface.co/datasets/PulsarAI/turkish_movie_sentiment)                                                               | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/ahmet1338/turkishReviews-ds-mini/discussions/1#651aecc4d76ad9bc085fe5e5)                   | [ahmet1338/turkishReviews-ds-mini](https://huggingface.co/datasets/ahmet1338/turkishReviews-ds-mini)                                                               | 0         | 0     |
+|        | [here](https://huggingface.co/datasets/nogyxo/question-answering-ukrainian-json-answers/discussions/1)                            | [nogyxo/question-answering-ukrainian-json-answers](https://huggingface.co/datasets/nogyxo/question-answering-ukrainian-json-answers)                               | 0         | 0     |
+| Merged | [here](https://huggingface.co/datasets/TokenBender/Tamil_chat_dataset/discussions/1#6527abe4d7bedf9045c20ad5)                            | [TokenBender/Tamil_chat_dataset](https://huggingface.co/datasets/TokenBender/Tamil_chat_dataset)                               | 1         | 1     |
+| Merged | [here](https://huggingface.co/datasets/AnanthZeke/tamil_sentences_sample/discussions/1#6528ef7a64aaab7f818a7874)                            | [AnanthZeke/tamil_sentences_sample](https://huggingface.co/datasets/AnanthZeke/tamil_sentences_sample)                               | 21         | 0     |
+| Merged | [here](https://huggingface.co/datasets/DeepPavlov/verbalist_prompts/discussions/2)                            | [DeepPavlov/verbalist_prompts](https://huggingface.co/datasets/DeepPavlov/verbalist_prompts)                               | 0         | 1     |
+
+Document 560: !--Copyright 2020 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+⚠️ Note that this file is in Markdown but contain specific syntax for our doc-builder (similar to MDX) that may not be
+rendered properly in your Markdown viewer.
+
+-->
+
+# What 🤗 Transformers can do
+
+🤗 Transformers is a library of pretrained state-of-the-art models for natural language processing (NLP), computer vision, and audio and speech processing tasks. Not only does the library contain Transformer models, but it also has non-Transformer models like modern convolutional networks for computer vision tasks. If you look at some of the most popular consumer products today, like smartphones, apps, and televisions, odds are that some kind of deep learning technology is behind it. Want to remove a background object from a picture taken by your smartphone? This is an example of a panoptic segmentation task (don't worry if you don't know what this means yet, we'll describe it in the following sections!). 
+
+This page provides an overview of the different speech and audio, computer vision, and NLP tasks that can be solved with the 🤗 Transformers library in just three lines of code!
+
+## Audio
+
+Audio and speech processing tasks are a little different from the other modalities mainly because audio as an input is a continuous signal. Unlike text, a raw audio waveform can't be neatly split into discrete chunks the way a sentence can be divided into words. To get around this, the raw audio signal is typically sampled at regular intervals. If you take more samples within an interval, the sampling rate is higher, and the audio more closely resembles the original audio source.
+
+Previous approaches preprocessed the audio to extract useful features from it. It is now more common to start audio and speech processing tasks by directly feeding the raw audio waveform to a feature encoder to extract an audio representation. This simplifies the preprocessing step and allows the model to learn the most essential features.
+
+### Audio classification
+
+Audio classification is a task that labels audio data from a predefined set of classes. It is a broad category with many specific applications, some of which include:
+
+* acoustic scene classification: label audio with a scene label ("office", "beach", "stadium")
+* acoustic event detection: label audio with a sound event label ("car horn", "whale calling", "glass breaking")
+* tagging: label audio containing multiple sounds (birdsongs, speaker identification in a meeting)
+* music classification: label music with a genre label ("metal", "hip-hop", "country")
+
+```py
+>>> from transformers import pipeline
+
+>>> classifier = pipeline(task="audio-classification", model="superb/hubert-base-superb-er")
+>>> preds = classifier("https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/mlk.flac")
+>>> preds = [{"score": round(pred["score"], 4), "label": pred["label"]} for pred in preds]
+>>> preds
+[{'score': 0.4532, 'label': 'hap'},
+ {'score': 0.3622, 'label': 'sad'},
+ {'score': 0.0943, 'label': 'neu'},
+ {'score': 0.0903, 'label': 'ang'}]
+```
+
+### Automatic speech recognition
+
+Automatic speech recognition (ASR) transcribes speech into text. It is one of the most common audio tasks due partly to speech being such a natural form of human communication. Today, ASR systems are embedded in "smart" technology products like speakers, phones, and cars. We can ask our virtual assistants to play music, set reminders, and tell us the weather. 
+
+But one of the key challenges Transformer architectures have helped with is in low-resource languages. By pretraining on large amounts of speech data, finetuning the model on only one hour of labeled speech data in a low-resource language can still produce high-quality results compared to previous ASR systems trained on 100x more labeled data.
+
+```py
+>>> from transformers import pipeline
+
+>>> transcriber = pipeline(task="automatic-speech-recognition", model="openai/whisper-small")
+>>> transcriber("https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/mlk.flac")
+{'text': ' I have a dream that one day this nation will rise up and live out the true meaning of its creed.'}
+```
+
+## Computer vision
+
+One of the first and earliest successful computer vision tasks was recognizing images of zip code numbers using a [convolutional neural network (CNN)](glossary#convolution). An image is composed of pixels, and each pixel has a numerical value. This makes it easy to represent an image as a matrix of pixel values. Each particular combination of pixel values describes the colors of an image. 
+
+Two general ways computer vision tasks can be solved are:
+
+1. Use convolutions to learn the hierarchical features of an image from low-level features to high-level abstract things.
+2. Split an image into patches and use a Transformer to gradually learn how each image patch is related to each other to form an image. Unlike the bottom-up approach favored by a CNN, this is kind of like starting out with a blurry image and then gradually bringing it into focus.
+
+### Image classification
+
+Image classification labels an entire image from a predefined set of classes. Like most classification tasks, there are many practical use cases for image classification, some of which include:
+
+* healthcare: label medical images to detect disease or monitor patient health
+* environment: label satellite images to monitor deforestation, inform wildland management or detect wildfires
+* agriculture: label images of crops to monitor plant health or satellite images for land use monitoring 
+* ecology: label images of animal or plant species to monitor wildlife populations or track endangered species
+
+```py
+>>> from transformers import pipeline
+
+>>> classifier = pipeline(task="image-classification")
+>>> preds = classifier(
+...     "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/pipeline-cat-chonk.jpeg"
+... )
+>>> preds = [{"score": round(pred["score"], 4), "label": pred["label"]} for pred in preds]
+>>> print(*preds, sep="\n")
+{'score': 0.4335, 'label': 'lynx, catamount'}
+{'score': 0.0348, 'label': 'cougar, puma, catamount, mountain lion, painter, panther, Felis concolor'}
+{'score': 0.0324, 'label': 'snow leopard, ounce, Panthera uncia'}
+{'score': 0.0239, 'label': 'Egyptian cat'}
+{'score': 0.0229, 'label': 'tiger cat'}
+```
+
+### Object detection
+
+Unlike image classification, object detection identifies multiple objects within an image and the objects' positions in an image (defined by the bounding box). Some example applications of object detection include:
+
+* self-driving vehicles: detect everyday traffic objects such as other vehicles, pedestrians, and traffic lights
+* remote sensing: disaster monitoring, urban planning, and weather forecasting
+* defect detection: detect cracks or structural damage in buildings, and manufacturing defects
+
+```py
+>>> from transformers import pipeline
+
+>>> detector = pipeline(task="object-detection")
+>>> preds = detector(
+...     "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/pipeline-cat-chonk.jpeg"
+... )
+>>> preds = [{"score": round(pred["score"], 4), "label": pred["label"], "box": pred["box"]} for pred in preds]
+>>> preds
+[{'score': 0.9865,
+  'label': 'cat',
+  'box': {'xmin': 178, 'ymin': 154, 'xmax': 882, 'ymax': 598}}]
+```
+
+### Image segmentation
+
+Image segmentation is a pixel-level task that assigns every pixel in an image to a class. It differs from object detection, which uses bounding boxes to label and predict objects in an image because segmentation is more granular. Segmentation can detect objects at a pixel-level. There are several types of image segmentation:
+
+* instance segmentation: in addition to labeling the class of an object, it also labels each distinct instance of an object ("dog-1", "dog-2")
+* panoptic segmentation: a combination of semantic and instance segmentation; it labels each pixel with a semantic class **and** each distinct instance of an object
+
+Segmentation tasks are helpful in self-driving vehicles to create a pixel-level map of the world around them so they can navigate safely around pedestrians and other vehicles. It is also useful for medical imaging, where the task's finer granularity can help identify abnormal cells or organ features. Image segmentation can also be used in ecommerce to virtually try on clothes or create augmented reality experiences by overlaying objects in the real world through your camera.
+
+```py
+>>> from transformers import pipeline
+
+>>> segmenter = pipeline(task="image-segmentation")
+>>> preds = segmenter(
+...     "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/pipeline-cat-chonk.jpeg"
+... )
+>>> preds = [{"score": round(pred["score"], 4), "label": pred["label"]} for pred in preds]
+>>> print(*preds, sep="\n")
+{'score': 0.9879, 'label': 'LABEL_184'}
+{'score': 0.9973, 'label': 'snow'}
+{'score': 0.9972, 'label': 'cat'}
+```
+
+### Depth estimation
+
+Depth estimation predicts the distance of each pixel in an image from the camera. This computer vision task is especially important for scene understanding and reconstruction. For example, in self-driving cars, vehicles need to understand how far objects like pedestrians, traffic signs, and other vehicles are to avoid obstacles and collisions. Depth information is also helpful for constructing 3D representations from 2D images and can be used to create high-quality 3D representations of biological structures or buildings.
+
+There are two approaches to depth estimation:
+
+* stereo: depths are estimated by comparing two images of the same image from slightly different angles
+* monocular: depths are estimated from a single image
+
+```py
+>>> from transformers import pipeline
+
+>>> depth_estimator = pipeline(task="depth-estimation")
+>>> preds = depth_estimator(
+...     "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/pipeline-cat-chonk.jpeg"
+... )
+```
+
+## Natural language processing
+
+NLP tasks are among the most common types of tasks because text is such a natural way for us to communicate. To get text into a format recognized by a model, it needs to be tokenized. This means dividing a sequence of text into separate words or subwords (tokens) and then converting these tokens into numbers. As a result, you can represent a sequence of text as a sequence of numbers, and once you have a sequence of numbers, it can be input into a model to solve all sorts of NLP tasks!
+
+### Text classification
+
+Like classification tasks in any modality, text classification labels a sequence of text (it can be sentence-level, a paragraph, or a document) from a predefined set of classes. There are many practical applications for text classification, some of which include:
+
+* sentiment analysis: label text according to some polarity like `positive` or `negative` which can inform and support decision-making in fields like politics, finance, and marketing
+* content classification: label text according to some topic to help organize and filter information in news and social media feeds (`weather`, `sports`, `finance`, etc.)
+
+```py
+>>> from transformers import pipeline
+
+>>> classifier = pipeline(task="sentiment-analysis")
+>>> preds = classifier("Hugging Face is the best thing since sliced bread!")
+>>> preds = [{"score": round(pred["score"], 4), "label": pred["label"]} for pred in preds]
+>>> preds
+[{'score': 0.9991, 'label': 'POSITIVE'}]
+```
+
+### Token classification
+
+In any NLP task, text is preprocessed by separating the sequence of text into individual words or subwords. These are known as [tokens](glossary#token). Token classification assigns each token a label from a predefined set of classes. 
+
+Two common types of token classification are:
+
+* named entity recognition (NER): label a token according to an entity category like organization, person, location or date. NER is especially popular in biomedical settings, where it can label genes, proteins, and drug names.
+* part-of-speech tagging (POS): label a token according to its part-of-speech like noun, verb, or adjective. POS is useful for helping translation systems understand how two identical words are grammatically different (bank as a noun versus bank as a verb).
+
+```py
+>>> from transformers import pipeline
+
+>>> classifier = pipeline(task="ner")
+>>> preds = classifier("Hugging Face is a French company based in New York City.")
+>>> preds = [
+...     {
+...         "entity": pred["entity"],
+...         "score": round(pred["score"], 4),
+...         "index": pred["index"],
+...         "word": pred["word"],
+...         "start": pred["start"],
+...         "end": pred["end"],
+...     }
+...     for pred in preds
+... ]
+>>> print(*preds, sep="\n")
+{'entity': 'I-ORG', 'score': 0.9968, 'index': 1, 'word': 'Hu', 'start': 0, 'end': 2}
+{'entity': 'I-ORG', 'score': 0.9293, 'index': 2, 'word': '##gging', 'start': 2, 'end': 7}
+{'entity': 'I-ORG', 'score': 0.9763, 'index': 3, 'word': 'Face', 'start': 8, 'end': 12}
+{'entity': 'I-MISC', 'score': 0.9983, 'index': 6, 'word': 'French', 'start': 18, 'end': 24}
+{'entity': 'I-LOC', 'score': 0.999, 'index': 10, 'word': 'New', 'start': 42, 'end': 45}
+{'entity': 'I-LOC', 'score': 0.9987, 'index': 11, 'word': 'York', 'start': 46, 'end': 50}
+{'entity': 'I-LOC', 'score': 0.9992, 'index': 12, 'word': 'City', 'start': 51, 'end': 55}
+```
+
+### Question answering
+
+Question answering is another token-level task that returns an answer to a question, sometimes with context (open-domain) and other times without context (closed-domain). This task happens whenever we ask a virtual assistant something like whether a restaurant is open. It can also provide customer or technical support and help search engines retrieve the relevant information you're asking for. 
+
+There are two common types of question answering:
+
+* extractive: given a question and some context, the answer is a span of text from the context the model must extract
+* abstractive: given a question and some context, the answer is generated from the context; this approach is handled by the [`Text2TextGenerationPipeline`] instead of the [`QuestionAnsweringPipeline`] shown below
+
+
+```py
+>>> from transformers import pipeline
+
+>>> question_answerer = pipeline(task="question-answering")
+>>> preds = question_answerer(
+...     question="What is the name of the repository?",
+...     context="The name of the repository is huggingface/transformers",
+... )
+>>> print(
+...     f"score: {round(preds['score'], 4)}, start: {preds['start']}, end: {preds['end']}, answer: {preds['answer']}"
+... )
+score: 0.9327, start: 30, end: 54, answer: huggingface/transformers
+```
+
+### Summarization
+
+Summarization creates a shorter version of a text from a longer one while trying to preserve most of the meaning of the original document. Summarization is a sequence-to-sequence task; it outputs a shorter text sequence than the input. There are a lot of long-form documents that can be summarized to help readers quickly understand the main points. Legislative bills, legal and financial documents, patents, and scientific papers are a few examples of documents that could be summarized to save readers time and serve as a reading aid.
+
+Like question answering, there are two types of summarization:
+
+* extractive: identify and extract the most important sentences from the original text
+* abstractive: generate the target summary (which may include new words not in the input document) from the original text; the [`SummarizationPipeline`] uses the abstractive approach
+
+```py
+>>> from transformers import pipeline
+
+>>> summarizer = pipeline(task="summarization")
+>>> summarizer(
+...     "In this work, we presented the Transformer, the first sequence transduction model based entirely on attention, replacing the recurrent layers most commonly used in encoder-decoder architectures with multi-headed self-attention. For translation tasks, the Transformer can be trained significantly faster than architectures based on recurrent or convolutional layers. On both WMT 2014 English-to-German and WMT 2014 English-to-French translation tasks, we achieve a new state of the art. In the former task our best model outperforms even all previously reported ensembles."
+... )
+[{'summary_text': ' The Transformer is the first sequence transduction model based entirely on attention . It replaces the recurrent layers most commonly used in encoder-decoder architectures with multi-headed self-attention . For translation tasks, the Transformer can be trained significantly faster than architectures based on recurrent or convolutional layers .'}]
+```
+
+### Translation
+
+Translation converts a sequence of text in one language to another. It is important in helping people from different backgrounds communicate with each other, help translate content to reach wider audiences, and even be a learning tool to help people learn a new language. Along with summarization, translation is a sequence-to-sequence task, meaning the model receives an input sequence and returns a target output sequence. 
+
+In the early days, translation models were mostly monolingual, but recently, there has been increasing interest in multilingual models that can translate between many pairs of languages.
+
+```py
+>>> from transformers import pipeline
+
+>>> text = "translate English to French: Hugging Face is a community-based open-source platform for machine learning."
+>>> translator = pipeline(task="translation", model="t5-small")
+>>> translator(text)
+[{'translation_text': "Hugging Face est une tribune communautaire de l'apprentissage des machines."}]
+```
+
+### Language modeling
+
+Language modeling is a task that predicts a word in a sequence of text. It has become a very popular NLP task because a pretrained language model can be finetuned for many other downstream tasks. Lately, there has been a lot of interest in large language models (LLMs) which demonstrate zero- or few-shot learning. This means the model can solve tasks it wasn't explicitly trained to do! Language models can be used to generate fluent and convincing text, though you need to be careful since the text may not always be accurate.
+
+There are two types of language modeling:
+
+* causal: the model's objective is to predict the next token in a sequence, and future tokens are masked
+
+    ```py
+    >>> from transformers import pipeline
+
+    >>> prompt = "Hugging Face is a community-based open-source platform for machine learning."
+    >>> generator = pipeline(task="text-generation")
+    >>> generator(prompt)  # doctest: +SKIP
+    ```
+
+* masked: the model's objective is to predict a masked token in a sequence with full access to the tokens in the sequence
+    
+    ```py
+    >>> text = "Hugging Face is a community-based open-source <mask> for machine learning."
+    >>> fill_mask = pipeline(task="fill-mask")
+    >>> preds = fill_mask(text, top_k=1)
+    >>> preds = [
+    ...     {
+    ...         "score": round(pred["score"], 4),
+    ...         "token": pred["token"],
+    ...         "token_str": pred["token_str"],
+    ...         "sequence": pred["sequence"],
+    ...     }
+    ...     for pred in preds
+    ... ]
+    >>> preds
+    [{'score': 0.2236,
+      'token': 1761,
+      'token_str': ' platform',
+      'sequence': 'Hugging Face is a community-based open-source platform for machine learning.'}]
+    ```
+
+## Multimodal
+
+Multimodal tasks require a model to process multiple data modalities (text, image, audio, video) to solve a particular problem. Image captioning is an example of a multimodal task where the model takes an image as input and outputs a sequence of text describing the image or some properties of the image. 
+
+Although multimodal models work with different data types or modalities, internally, the preprocessing steps help the model convert all the data types into embeddings (vectors or list of numbers that holds meaningful information about the data). For a task like image captioning, the model learns relationships between image embeddings and text embeddings.
+
+### Document question answering
+
+Document question answering is a task that answers natural language questions from a document. Unlike a token-level question answering task which takes text as input, document question answering takes an image of a document as input along with a question about the document and returns an answer. Document question answering can be used to parse structured documents and extract key information from it. In the example below, the total amount and change due can be extracted from a receipt.
+
+```py
+>>> from transformers import pipeline
+>>> from PIL import Image
+>>> import requests
+
+>>> url = "https://datasets-server.huggingface.co/assets/hf-internal-testing/example-documents/--/hf-internal-testing--example-documents/test/2/image/image.jpg"
+>>> image = Image.open(requests.get(url, stream=True).raw)
+
+>>> doc_question_answerer = pipeline("document-question-answering", model="magorshunov/layoutlm-invoices")
+>>> preds = doc_question_answerer(
+...     question="What is the total amount?",
+...     image=image,
+... )
+>>> preds
+[{'score': 0.8531, 'answer': '17,000', 'start': 4, 'end': 4}]
+```
+
+Hopefully, this page has given you some more background information about all the types of tasks in each modality and the practical importance of each one. In the next [section](tasks_explained), you'll learn **how** 🤗 Transformers work to solve these tasks.
+Document 565: !---
+Copyright 2020 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+# Generating the documentation
+
+To generate the documentation, you first have to build it. Several packages are necessary to build the doc,
+you can install them with the following command, at the root of the code repository:
+
+```bash
+pip install -e ".[docs]"
+```
+
+Then you need to install our special tool that builds the documentation:
+
+```bash
+pip install git+https://github.com/huggingface/doc-builder
+```
+
+---
+**NOTE**
+
+You only need to generate the documentation to inspect it locally (if you're planning changes and want to
+check how they look like before committing for instance). You don't have to commit the built documentation.
+
+---
+
+## Building the documentation
+
+Once you have setup the `doc-builder` and additional packages, you can generate the documentation by typing th
+following command:
+
+```bash
+doc-builder build simulate docs/source/ --build_dir ~/tmp/test-build
+```
+
+You can adapt the `--build_dir` to set any temporary folder that you prefer. This command will create it and generate
+the MDX files that will be rendered as the documentation on the main website. You can inspect them in your favorite
+Markdown editor.
+
+---
+**NOTE**
+
+It's not possible to see locally how the final documentation will look like for now. Once you have opened a PR, you
+will see a bot add a comment to a link where the documentation with your changes lives.
+
+---
+
+## Adding a new element to the navigation bar
+
+Accepted files are Markdown (.md or .mdx).
+
+Create a file with its extension and put it in the source directory. You can then link it to the toc-tree by putting
+the filename without the extension in the [`_toctree.yml`](https://github.com/huggingface/transformers/blob/master/docs/source/_toctree.yml) file.
+
+## Renaming section headers and moving sections
+
+It helps to keep the old links working when renaming section header and/or moving sections from one document to another. This is because the old links are likely to be used in Issues, Forums and Social media and it'd be make for a much more superior user experience if users reading those months later could still easily navigate to the originally intended information.
+
+Therefore we simply keep a little map of moved sections at the end of the document where the original section was. The key is to preserve the original anchor.
+
+So if you renamed a section from: "Section A" to "Section B", then you can add at the end of the file:
+
+```
+Sections that were moved:
+
+[ <a href="#section-b">Section A</a><a id="section-a"></a> ]
+```
+and of course if you moved it to another file, then:
+
+```
+Sections that were moved:
+
+[ <a href="../new-file#section-b">Section A</a><a id="section-a"></a> ]
+```
+
+Use the relative style to link to the new file so that the versioned docs continue to work.
+
+For an example of a rich moved sections set please see the very end of [the Trainer doc](https://github.com/huggingface/transformers/blob/master/docs/source/main_classes/trainer.mdx).
+
+
+## Writing Documentation - Specification
+
+The `huggingface/transformers` documentation follows the
+[Google documentation](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) style for docstrings,
+although we can write them directly in Markdown.
+
+### Adding a new tutorial
+
+Adding a new tutorial or section is done in two steps:
+
+- Add a new file under `./source`. This file can either be ReStructuredText (.rst) or Markdown (.md).
+- Link that file in `./source/_toctree.yml` on the correct toc-tree.
+
+Make sure to put your new file under the proper section. It's unlikely to go in the first section (*Get Started*), so
+depending on the intended targets (beginners, more advanced users or researchers) it should go in section two, three or
+four.
+
+### Adding a new model
+
+When adding a new model:
+
+- Create a file `xxx.mdx` or under `./source/model_doc` (don't hesitate to copy an existing file as template).
+- Link that file in `./source/_toctree.yml`.
+- Write a short overview of the model:
+    - Overview with paper & authors
+    - Paper abstract
+    - Tips and tricks and how to use it best
+- Add the classes that should be linked in the model. This generally includes the configuration, the tokenizer, and
+  every model of that class (the base model, alongside models with additional heads), both in PyTorch and TensorFlow.
+  The order is generally:
+    - Configuration,
+    - Tokenizer
+    - PyTorch base model
+    - PyTorch head models
+    - TensorFlow base model
+    - TensorFlow head models
+    - Flax base model
+    - Flax head models
+
+These classes should be added using our Markdown syntax. Usually as follows:
+
+```
+## XXXConfig
+
+[[autodoc]] XXXConfig
+```
+
+This will include every public method of the configuration that is documented. If for some reason you wish for a method
+not to be displayed in the documentation, you can do so by specifying which methods should be in the docs:
+
+```
+## XXXTokenizer
+
+[[autodoc]] XXXTokenizer
+    - build_inputs_with_special_tokens
+    - get_special_tokens_mask
+    - create_token_type_ids_from_sequences
+    - save_vocabulary
+```
+
+If you just want to add a method that is not documented (for instance magic method like `__call__` are not documented
+byt default) you can put the list of methods to add in a list that contains `all`:
+
+```
+## XXXTokenizer
+
+[[autodoc]] XXXTokenizer
+    - all
+    - __call__
+```
+
+### Writing source documentation
+
+Values that should be put in `code` should either be surrounded by backticks: \`like so\`. Note that argument names
+and objects like True, None or any strings should usually be put in `code`.
+
+When mentioning a class, function or method, it is recommended to use our syntax for internal links so that our tool
+adds a link to its documentation with this syntax: \[\`XXXClass\`\] or \[\`function\`\]. This requires the class or 
+function to be in the main package.
+
+If you want to create a link to some internal class or function, you need to
+provide its path. For instance: \[\`file_utils.ModelOutput\`\]. This will be converted into a link with
+`file_utils.ModelOutput` in the description. To get rid of the path and only keep the name of the object you are
+linking to in the description, add a ~: \[\`~file_utils.ModelOutput\`\] will generate a link with `ModelOutput` in the description.
+
+The same works for methods so you can either use \[\`XXXClass.method\`\] or \[~\`XXXClass.method\`\].
+
+#### Defining arguments in a method
+
+Arguments should be defined with the `Args:` (or `Arguments:` or `Parameters:`) prefix, followed by a line return and
+an indentation. The argument should be followed by its type, with its shape if it is a tensor, a colon and its
+description:
+
+```
+    Args:
+        n_layers (`int`): The number of layers of the model.
+```
+
+If the description is too long to fit in one line, another indentation is necessary before writing the description
+after th argument.
+
+Here's an example showcasing everything so far:
+
+```
+    Args:
+        input_ids (`torch.LongTensor` of shape `(batch_size, sequence_length)`):
+            Indices of input sequence tokens in the vocabulary.
+
+            Indices can be obtained using [`AlbertTokenizer`]. See [`~PreTrainedTokenizer.encode`] and
+            [`~PreTrainedTokenizer.__call__`] for details.
+
+            [What are input IDs?](../glossary#input-ids)
+```
+
+For optional arguments or arguments with defaults we follow the following syntax: imagine we have a function with the
+following signature:
+
+```
+def my_function(x: str = None, a: float = 1):
+```
+
+then its documentation should look like this:
+
+```
+    Args:
+        x (`str`, *optional*):
+            This argument controls ...
+        a (`float`, *optional*, defaults to 1):
+            This argument is used to ...
+```
+
+Note that we always omit the "defaults to \`None\`" when None is the default for any argument. Also note that even
+if the first line describing your argument type and its default gets long, you can't break it on several lines. You can
+however write as many lines as you want in the indented description (see the example above with `input_ids`).
+
+#### Writing a multi-line code block
+
+Multi-line code blocks can be useful for displaying examples. They are done between two lines of three backticks as usual in Markdown:
+
+
+````
+```
+# first line of code
+# second line
+# etc
+```
+````
+
+We follow the [doctest](https://docs.python.org/3/library/doctest.html) syntax for the examples to automatically test
+the results stay consistent with the library.
+
+#### Writing a return block
+
+The return block should be introduced with the `Returns:` prefix, followed by a line return and an indentation.
+The first line should be the type of the return, followed by a line return. No need to indent further for the elements
+building the return.
+
+Here's an example for a single value return:
+
+```
+    Returns:
+        `List[int]`: A list of integers in the range [0, 1] --- 1 for a special token, 0 for a sequence token.
+```
+
+Here's an example for tuple return, comprising several objects:
+
+```
+    Returns:
+        `tuple(torch.FloatTensor)` comprising various elements depending on the configuration ([`BertConfig`]) and inputs:
+        - ** loss** (*optional*, returned when `masked_lm_labels` is provided) `torch.FloatTensor` of shape `(1,)` --
+          Total loss as the sum of the masked language modeling loss and the next sequence prediction (classification) loss.
+        - **prediction_scores** (`torch.FloatTensor` of shape `(batch_size, sequence_length, config.vocab_size)`) --
+          Prediction scores of the language modeling head (scores for each vocabulary token before SoftMax).
+```
+
+#### Adding an image
+
+Due to the rapidly growing repository, it is important to make sure that no files that would significantly weigh down the repository are added. This includes images, videos and other non-text files. We prefer to leverage a hf.co hosted `dataset` like
+the ones hosted on [`hf-internal-testing`](https://huggingface.co/hf-internal-testing) in which to place these files and reference
+them by URL. We recommend putting them in the following dataset: [huggingface/documentation-images](https://huggingface.co/datasets/huggingface/documentation-images).
+If an external contribution, feel free to add the images to your PR and ask a Hugging Face member to migrate your images
+to this dataset.
+
+## Styling the docstring
+
+We have an automatic script running with the `make style` comment that will make sure that:
+- the docstrings fully take advantage of the line width
+- all code examples are formatted using black, like the code of the Transformers library
+
+This script may have some weird failures if you made a syntax mistake or if you uncover a bug. Therefore, it's
+recommended to commit your changes before running `make style`, so you can revert the changes done by that script
+easily.
+Document 705:  Gradio Demo: calculator_list_and_dict
+
+
+```
+!pip install -q gradio 
+```
+
+
+```
+import gradio as gr
+
+with gr.Blocks() as demo:
+    a = gr.Number(label="a")
+    b = gr.Number(label="b")
+    with gr.Row():
+        add_btn = gr.Button("Add")
+        sub_btn = gr.Button("Subtract")
+    c = gr.Number(label="sum")
+
+    def add(num1, num2):
+        return num1 + num2
+    add_btn.click(add, inputs=[a, b], outputs=c)
+
+    def sub(data):
+        return data[a] - data[b]
+    sub_btn.click(sub, inputs={a, b}, outputs=c)
+
+
+if __name__ == "__main__":
+    demo.launch()
+```
+
+Document 1727:  Hugging Face Hub Client library
+
+## Download files from the Hub
+
+The `hf_hub_download()` function is the main function to download files from the Hub. One
+advantage of using it is that files are cached locally, so you won't have to
+download the files multiple times. If there are changes in the repository, the
+files will be automatically downloaded again.
+
+
+### `hf_hub_download`
+
+The function takes the following parameters, downloads the remote file,
+stores it to disk (in a version-aware way) and returns its local file path.
+
+Parameters:
+- a `repo_id` (a user or organization name and a repo name, separated by `/`, like `julien-c/EsperBERTo-small`)
+- a `filename` (like `pytorch_model.bin`)
+- an optional Git revision id (can be a branch name, a tag, or a commit hash)
+- a `cache_dir` which you can specify if you want to control where on disk the
+  files are cached.
+
+```python
+from huggingface_hub import hf_hub_download
+hf_hub_download("lysandre/arxiv-nlp", filename="config.json")
+```
+
+### `snapshot_download`
+
+Using `hf_hub_download()` works well when you know which files you want to download;
+for example a model file alongside a configuration file, both with static names.
+There are cases in which you will prefer to download all the files of the remote
+repository at a specified revision. That's what `snapshot_download()` does. It
+downloads and stores a remote repository to disk (in a versioning-aware way) and
+returns its local file path.
+
+Parameters:
+- a `repo_id` in the format `namespace/repository`
+- a `revision` on which the repository will be downloaded
+- a `cache_dir` which you can specify if you want to control where on disk the
+  files are cached
+
+### `hf_hub_url`
+
+Internally, the library uses `hf_hub_url()` to return the URL to download the actual files:
+`https://huggingface.co/julien-c/EsperBERTo-small/resolve/main/pytorch_model.bin`
+
+
+Parameters:
+- a `repo_id` (a user or organization name and a repo name seperated by a `/`, like `julien-c/EsperBERTo-small`)
+- a `filename` (like `pytorch_model.bin`)
+- an optional `subfolder`, corresponding to a folder inside the model repo
+- an optional `repo_type`, such as `dataset` or `space`
+- an optional Git revision id (can be a branch name, a tag, or a commit hash)
+
+If you check out this URL's headers with a `HEAD` http request (which you can do
+from the command line with `curl -I`) for a few different files, you'll see
+that:
+- small files are returned directly
+- large files (i.e. the ones stored through
+  [git-lfs](https://git-lfs.github.com/)) are returned via a redirect to a
+  Cloudfront URL. Cloudfront is a Content Delivery Network, or CDN, that ensures
+  that downloads are as fast as possible from anywhere on the globe.
+
+<br>
+
+## Publish files to the Hub
+
+If you've used Git before, this will be very easy since Git is used to manage
+files in the Hub. You can find a step-by-step guide on how to upload your model
+to the Hub: https://huggingface.co/docs/hub/adding-a-model. 
+
+
+### API utilities in `hf_api.py`
+
+You don't need them for the standard publishing workflow (ie. using git command line), however, if you need a
+programmatic way of creating a repo, deleting it (`⚠️ caution`), pushing a
+single file to a repo or listing models from the Hub, you'll find helpers in
+`hf_api.py`. Some example functionality available with the `HfApi` class:
+
+* `whoami()`
+* `create_repo()`
+* `list_repo_files()`
+* `list_repo_objects()`
+* `delete_repo()`
+* `update_repo_visibility()`
+* `create_commit()`
+* `upload_file()`
+* `delete_file()`
+* `delete_folder()`
+
+Those API utilities are also exposed through the `huggingface-cli` CLI:
+
+```bash
+huggingface-cli login
+huggingface-cli logout
+huggingface-cli whoami
+huggingface-cli repo create
+```
+
+With the `HfApi` class there are methods to query models, datasets, and metrics by specific tags (e.g. if you want to list models compatible with your library):
+- **Models**:
+  - `list_models()`
+  - `model_info()`
+  - `get_model_tags()`
+- **Datasets**:
+  - `list_datasets()`
+  - `dataset_info()`
+  - `get_dataset_tags()`
+- **Spaces**:
+  - `list_spaces()`
+  - `space_info()`
+
+These lightly wrap around the API Endpoints. Documentation for valid parameters and descriptions can be found [here](https://huggingface.co/docs/hub/endpoints).
+  
+
+### Advanced programmatic repository management 
+
+The `Repository` class helps manage both offline Git repositories and Hugging
+Face Hub repositories. Using the `Repository` class requires `git` and `git-lfs`
+to be installed.
+
+Instantiate a `Repository` object by calling it with a path to a local Git
+clone/repository:
+
+```python
+>>> from huggingface_hub import Repository
+>>> repo = Repository("<path>/<to>/<folder>")
+```
+
+The `Repository` takes a `clone_from` string as parameter. This can stay as
+`None` for offline management, but can also be set to any URL pointing to a Git
+repo to clone that repository in the specified directory:
+
+```python
+>>> repo = Repository("huggingface-hub", clone_from="https://github.com/huggingface/huggingface_hub")
+```
+
+The `clone_from` method can also take any Hugging Face model ID as input, and
+will clone that repository:
+
+```python
+>>> repo = Repository("w2v2", clone_from="facebook/wav2vec2-large-960h-lv60")
+```
+
+If the repository you're cloning is one of yours or one of your organisation's,
+then having the ability to commit and push to that repository is important. In
+order to do that, you should make sure to be logged-in using `huggingface-cli
+login`, and to have the `token` parameter set to `True` (the default)
+when  instantiating the `Repository` object:
+
+```python
+>>> repo = Repository("my-model", clone_from="<user>/<model_id>", token=True)
+```
+
+This works for models, datasets and spaces repositories; but you will need to
+explicitely specify the type for the last two options:
+
+```python
+>>> repo = Repository("my-dataset", clone_from="<user>/<dataset_id>", token=True, repo_type="dataset")
+```
+
+You can also change between branches:
+
+```python
+>>> repo = Repository("huggingface-hub", clone_from="<user>/<dataset_id>", revision='branch1')
+>>> repo.git_checkout("branch2")
+```
+
+The `clone_from` method can also take any Hugging Face model ID as input, and
+will clone that repository:
+
+```python
+>>> repo = Repository("w2v2", clone_from="facebook/wav2vec2-large-960h-lv60")
+```
+
+Finally, you can choose to specify the Git username and email attributed to that
+clone directly by using the `git_user` and `git_email` parameters. When
+committing to that repository, Git will therefore be aware of who you are and
+who will be the author of the commits:
+
+```python
+>>> repo = Repository(
+...   "my-dataset", 
+...   clone_from="<user>/<dataset_id>", 
+...   token=True, 
+...   repo_type="dataset",
+...   git_user="MyName",
+...   git_email="me@cool.mail"
+... )
+```
+
+The repository can be managed through this object, through wrappers of
+traditional Git methods:
+
+- `git_add(pattern: str, auto_lfs_track: bool)`. The `auto_lfs_track` flag
+  triggers auto tracking of large files (>10MB) with `git-lfs`
+- `git_commit(commit_message: str)`
+- `git_pull(rebase: bool)`
+- `git_push()`
+- `git_checkout(branch)`
+
+The `git_push` method has a parameter `blocking` which is `True` by default. When set to `False`, the push will
+happen behind the scenes - which can be helpful if you would like your script to continue on while the push is 
+happening.
+
+LFS-tracking methods:
+
+- `lfs_track(pattern: Union[str, List[str]], filename: bool)`. Setting
+  `filename` to `True` will use the `--filename` parameter, which will consider
+  the pattern(s) as filenames, even if they contain special glob characters.
+- `lfs_untrack()`.
+- `auto_track_large_files()`: automatically tracks files that are larger than
+  10MB. Make sure to call this after adding files to the index.
+
+On top of these unitary methods lie some useful additional methods:
+
+- `push_to_hub(commit_message)`: consecutively does `git_add`, `git_commit` and
+  `git_push`.
+- `commit(commit_message: str, track_large_files: bool)`: this is a context
+  manager utility that handles committing to a repository. This automatically
+  tracks large files (>10Mb) with `git-lfs`. The `track_large_files` argument can
+  be set to `False` if you wish to ignore that behavior.
+
+These two methods also have support for the `blocking` parameter.
+
+Examples using the `commit` context manager:
+```python
+>>> with Repository("text-files", clone_from="<user>/text-files", token=True).commit("My first file :)"):
+...     with open("file.txt", "w+") as f:
+...         f.write(json.dumps({"hey": 8}))
+```
+
+```python
+>>> import torch
+>>> model = torch.nn.Transformer()
+>>> with Repository("torch-model", clone_from="<user>/torch-model", token=True).commit("My cool model :)"):
+...     torch.save(model.state_dict(), "model.pt")
+  ```
+
+### Non-blocking behavior
+
+The pushing methods have access to a `blocking` boolean parameter to indicate whether the push should happen
+asynchronously.
+
+In order to see if the push has finished or its status code (to spot a failure), one should use the `command_queue`
+property on the `Repository` object.
+
+For example:
+
+```python
+from huggingface_hub import Repository
+
+repo = Repository("<local_folder>", clone_from="<user>/<model_name>")
+
+with repo.commit("Commit message", blocking=False):
+    # Save data
+
+last_command = repo.command_queue[-1]
+
+# Status of the push command
+last_command.status  
+# Will return the status code
+#     -> -1 will indicate the push is still ongoing
+#     -> 0 will indicate the push has completed successfully
+#     -> non-zero code indicates the error code if there was an error
+
+# if there was an error, the stderr may be inspected
+last_command.stderr
+
+# Whether the command finished or if it is still ongoing
+last_command.is_done
+
+# Whether the command errored-out.
+last_command.failed
+```
+
+When using `blocking=False`, the commands will be tracked and your script will exit only when all pushes are done, even
+if other errors happen in your script (a failed push counts as done).
+
+
+### Need to upload very large (>5GB) files?
+
+To upload large files (>5GB 🔥) from git command-line, you need to install the custom transfer agent
+for git-lfs, bundled in this package. 
+
+To install, just run:
+
+```bash
+$ huggingface-cli lfs-enable-largefiles
+```
+
+This should be executed once for each model repo that contains a model file
+>5GB. If you just try to push a file bigger than 5GB without running that
+command, you will get an error with a message reminding you to run it.
+
+Finally, there's a `huggingface-cli lfs-multipart-upload` command but that one
+is internal (called by lfs directly) and is not meant to be called by the user.
+
+<br>
+
+## Using the Inference API wrapper
+
+`huggingface_hub` comes with a wrapper client to make calls to the Inference
+API! You can find some examples below, but we encourage you to visit the
+Inference API
+[documentation](https://api-inference.huggingface.co/docs/python/html/detailed_parameters.html)
+to review the specific parameters for the different tasks.
+
+When you instantiate the wrapper to the Inference API, you specify the model
+repository id. The pipeline (`text-classification`,  `text-to-speech`, etc) is
+automatically extracted from the
+[repository](https://huggingface.co/docs/hub/main#how-is-a-models-type-of-inference-api-and-widget-determined),
+but you can also override it as shown below.
+
+
+### Examples
+
+Here is a basic example of calling the Inference API for a `fill-mask` task
+using the `bert-base-uncased` model. The `fill-mask` task only expects a string
+(or list of strings) as input.
+
+```python
+from huggingface_hub.inference_api import InferenceApi
+inference = InferenceApi("bert-base-uncased", token=API_TOKEN)
+inference(inputs="The goal of life is [MASK].")
+>> [{'sequence': 'the goal of life is life.', 'score': 0.10933292657136917, 'token': 2166, 'token_str': 'life'}]
+```
+
+This is an example of a task (`question-answering`) which requires a dictionary
+as input thas has the `question` and `context` keys.
+
+```python
+inference = InferenceApi("deepset/roberta-base-squad2", token=API_TOKEN)
+inputs = {"question":"What's my name?", "context":"My name is Clara and I live in Berkeley."}
+inference(inputs)
+>> {'score': 0.9326569437980652, 'start': 11, 'end': 16, 'answer': 'Clara'}
+```
+
+Some tasks might also require additional params in the request. Here is an
+example using a `zero-shot-classification` model.
+
+```python
+inference = InferenceApi("typeform/distilbert-base-uncased-mnli", token=API_TOKEN)
+inputs = "Hi, I recently bought a device from your company but it is not working as advertised and I would like to get reimbursed!"
+params = {"candidate_labels":["refund", "legal", "faq"]}
+inference(inputs, params)
+>> {'sequence': 'Hi, I recently bought a device from your company but it is not working as advertised and I would like to get reimbursed!', 'labels': ['refund', 'faq', 'legal'], 'scores': [0.9378499388694763, 0.04914155602455139, 0.013008488342165947]}
+```
+
+Finally, there are some models that might support multiple tasks. For example,
+`sentence-transformers` models can do `sentence-similarity` and
+`feature-extraction`. You can override the configured task when initializing the
+API.
+
+```python
+inference = InferenceApi("bert-base-uncased", task="feature-extraction", token=API_TOKEN)
+```
+
+
+Document 2060: !--Copyright 2023 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+-->
+
+# Text-to-image
+
+The Stable Diffusion model was created by researchers and engineers from [CompVis](https://github.com/CompVis), [Stability AI](https://stability.ai/), [Runway](https://github.com/runwayml), and [LAION](https://laion.ai/). The [`StableDiffusionPipeline`] is capable of generating photorealistic images given any text input. It's trained on 512x512 images from a subset of the LAION-5B dataset. This model uses a frozen CLIP ViT-L/14 text encoder to condition the model on text prompts. With its 860M UNet and 123M text encoder, the model is relatively lightweight and can run on consumer GPUs. Latent diffusion is the research on top of which Stable Diffusion was built. It was proposed in [High-Resolution Image Synthesis with Latent Diffusion Models](https://huggingface.co/papers/2112.10752) by Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, Björn Ommer.
+
+The abstract from the paper is:
+
+*By decomposing the image formation process into a sequential application of denoising autoencoders, diffusion models (DMs) achieve state-of-the-art synthesis results on image data and beyond. Additionally, their formulation allows for a guiding mechanism to control the image generation process without retraining. However, since these models typically operate directly in pixel space, optimization of powerful DMs often consumes hundreds of GPU days and inference is expensive due to sequential evaluations. To enable DM training on limited computational resources while retaining their quality and flexibility, we apply them in the latent space of powerful pretrained autoencoders. In contrast to previous work, training diffusion models on such a representation allows for the first time to reach a near-optimal point between complexity reduction and detail preservation, greatly boosting visual fidelity. By introducing cross-attention layers into the model architecture, we turn diffusion models into powerful and flexible generators for general conditioning inputs such as text or bounding boxes and high-resolution synthesis becomes possible in a convolutional manner. Our latent diffusion models (LDMs) achieve a new state of the art for image inpainting and highly competitive performance on various tasks, including unconditional image generation, semantic scene synthesis, and super-resolution, while significantly reducing computational requirements compared to pixel-based DMs. Code is available at https://github.com/CompVis/latent-diffusion.*
+
+<Tip>
+
+Make sure to check out the Stable Diffusion [Tips](overview#tips) section to learn how to explore the tradeoff between scheduler speed and quality, and how to reuse pipeline components efficiently!
+
+If you're interested in using one of the official checkpoints for a task, explore the [CompVis](https://huggingface.co/CompVis), [Runway](https://huggingface.co/runwayml), and [Stability AI](https://huggingface.co/stabilityai) Hub organizations!
+
+</Tip>
+
+## StableDiffusionPipeline
+
+[[autodoc]] StableDiffusionPipeline
+	- all
+	- __call__
+	- enable_attention_slicing
+	- disable_attention_slicing
+	- enable_vae_slicing
+	- disable_vae_slicing
+	- enable_xformers_memory_efficient_attention
+	- disable_xformers_memory_efficient_attention
+	- enable_vae_tiling
+	- disable_vae_tiling
+	- load_textual_inversion
+	- from_single_file
+	- load_lora_weights
+	- save_lora_weights
+
+## StableDiffusionPipelineOutput
+
+[[autodoc]] pipelines.stable_diffusion.StableDiffusionPipelineOutput
+
+## FlaxStableDiffusionPipeline
+
+[[autodoc]] FlaxStableDiffusionPipeline
+	- all
+	- __call__
+
+## FlaxStableDiffusionPipelineOutput
+
+[[autodoc]] pipelines.stable_diffusion.FlaxStableDiffusionPipelineOutput
+
+Document 2061: !--Copyright 2020 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+⚠️ Note that this file is in Markdown but contain specific syntax for our doc-builder (similar to MDX) that may not be
+rendered properly in your Markdown viewer.
+
+-->
+
+# MBart and MBart-50
+
+<div class="flex flex-wrap space-x-1">
+<a href="https://huggingface.co/models?filter=mbart">
+<img alt="Models" src="https://img.shields.io/badge/All_model_pages-mbart-blueviolet">
+</a>
+<a href="https://huggingface.co/spaces/docs-demos/mbart-large-50-one-to-many-mmt">
+<img alt="Spaces" src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue">
+</a>
+</div>
+
+
+## Overview of MBart
+
+The MBart model was presented in [Multilingual Denoising Pre-training for Neural Machine Translation](https://arxiv.org/abs/2001.08210) by Yinhan Liu, Jiatao Gu, Naman Goyal, Xian Li, Sergey Edunov Marjan
+Ghazvininejad, Mike Lewis, Luke Zettlemoyer.
+
+According to the abstract, MBART is a sequence-to-sequence denoising auto-encoder pretrained on large-scale monolingual
+corpora in many languages using the BART objective. mBART is one of the first methods for pretraining a complete
+sequence-to-sequence model by denoising full texts in multiple languages, while previous approaches have focused only
+on the encoder, decoder, or reconstructing parts of the text.
+
+This model was contributed by [valhalla](https://huggingface.co/valhalla). The Authors' code can be found [here](https://github.com/pytorch/fairseq/tree/master/examples/mbart)
+
+### Training of MBart
+
+MBart is a multilingual encoder-decoder (sequence-to-sequence) model primarily intended for translation task. As the
+model is multilingual it expects the sequences in a different format. A special language id token is added in both the
+source and target text. The source text format is `X [eos, src_lang_code]` where `X` is the source text. The
+target text format is `[tgt_lang_code] X [eos]`. `bos` is never used.
+
+The regular [`~MBartTokenizer.__call__`] will encode source text format passed as first argument or with the `text`
+keyword, and target text format passed with the `text_label` keyword argument.
+
+- Supervised training
+
+```python
+>>> from transformers import MBartForConditionalGeneration, MBartTokenizer
+
+>>> tokenizer = MBartTokenizer.from_pretrained("facebook/mbart-large-en-ro", src_lang="en_XX", tgt_lang="ro_RO")
+>>> example_english_phrase = "UN Chief Says There Is No Military Solution in Syria"
+>>> expected_translation_romanian = "Şeful ONU declară că nu există o soluţie militară în Siria"
+
+>>> inputs = tokenizer(example_english_phrase, text_target=expected_translation_romanian, return_tensors="pt")
+
+>>> model = MBartForConditionalGeneration.from_pretrained("facebook/mbart-large-en-ro")
+>>> # forward pass
+>>> model(**inputs)
+```
+
+- Generation
+
+  While generating the target text set the `decoder_start_token_id` to the target language id. The following
+  example shows how to translate English to Romanian using the *facebook/mbart-large-en-ro* model.
+
+```python
+>>> from transformers import MBartForConditionalGeneration, MBartTokenizer
+
+>>> tokenizer = MBartTokenizer.from_pretrained("facebook/mbart-large-en-ro", src_lang="en_XX")
+>>> article = "UN Chief Says There Is No Military Solution in Syria"
+>>> inputs = tokenizer(article, return_tensors="pt")
+>>> translated_tokens = model.generate(**inputs, decoder_start_token_id=tokenizer.lang_code_to_id["ro_RO"])
+>>> tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)[0]
+"Şeful ONU declară că nu există o soluţie militară în Siria"
+```
+
+## Overview of MBart-50
+
+MBart-50 was introduced in the [Multilingual Translation with Extensible Multilingual Pretraining and Finetuning](https://arxiv.org/abs/2008.00401) paper by Yuqing Tang, Chau Tran, Xian Li, Peng-Jen Chen, Naman Goyal, Vishrav
+Chaudhary, Jiatao Gu, Angela Fan. MBart-50 is created using the original *mbart-large-cc25* checkpoint by extendeding
+its embedding layers with randomly initialized vectors for an extra set of 25 language tokens and then pretrained on 50
+languages.
+
+According to the abstract
+
+*Multilingual translation models can be created through multilingual finetuning. Instead of finetuning on one
+direction, a pretrained model is finetuned on many directions at the same time. It demonstrates that pretrained models
+can be extended to incorporate additional languages without loss of performance. Multilingual finetuning improves on
+average 1 BLEU over the strongest baselines (being either multilingual from scratch or bilingual finetuning) while
+improving 9.3 BLEU on average over bilingual baselines from scratch.*
+
+
+### Training of MBart-50
+
+The text format for MBart-50 is slightly different from mBART. For MBart-50 the language id token is used as a prefix
+for both source and target text i.e the text format is `[lang_code] X [eos]`, where `lang_code` is source
+language id for source text and target language id for target text, with `X` being the source or target text
+respectively.
+
+
+MBart-50 has its own tokenizer [`MBart50Tokenizer`].
+
+-  Supervised training
+
+```python
+from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
+
+model = MBartForConditionalGeneration.from_pretrained("facebook/mbart-large-50")
+tokenizer = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50", src_lang="en_XX", tgt_lang="ro_RO")
+
+src_text = " UN Chief Says There Is No Military Solution in Syria"
+tgt_text = "Şeful ONU declară că nu există o soluţie militară în Siria"
+
+model_inputs = tokenizer(src_text, text_target=tgt_text, return_tensors="pt")
+
+model(**model_inputs)  # forward pass
+```
+
+- Generation
+
+  To generate using the mBART-50 multilingual translation models, `eos_token_id` is used as the
+  `decoder_start_token_id` and the target language id is forced as the first generated token. To force the
+  target language id as the first generated token, pass the *forced_bos_token_id* parameter to the *generate* method.
+  The following example shows how to translate between Hindi to French and Arabic to English using the
+  *facebook/mbart-50-large-many-to-many* checkpoint.
+
+```python
+from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
+
+article_hi = "संयुक्त राष्ट्र के प्रमुख का कहना है कि सीरिया में कोई सैन्य समाधान नहीं है"
+article_ar = "الأمين العام للأمم المتحدة يقول إنه لا يوجد حل عسكري في سوريا."
+
+model = MBartForConditionalGeneration.from_pretrained("facebook/mbart-large-50-many-to-many-mmt")
+tokenizer = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50-many-to-many-mmt")
+
+# translate Hindi to French
+tokenizer.src_lang = "hi_IN"
+encoded_hi = tokenizer(article_hi, return_tensors="pt")
+generated_tokens = model.generate(**encoded_hi, forced_bos_token_id=tokenizer.lang_code_to_id["fr_XX"])
+tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+# => "Le chef de l 'ONU affirme qu 'il n 'y a pas de solution militaire en Syria."
+
+# translate Arabic to English
+tokenizer.src_lang = "ar_AR"
+encoded_ar = tokenizer(article_ar, return_tensors="pt")
+generated_tokens = model.generate(**encoded_ar, forced_bos_token_id=tokenizer.lang_code_to_id["en_XX"])
+tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+# => "The Secretary-General of the United Nations says there is no military solution in Syria."
+```
+
+## Documentation resources
+
+- [Text classification task guide](../tasks/sequence_classification)
+- [Question answering task guide](../tasks/question_answering)
+- [Causal language modeling task guide](../tasks/language_modeling)
+- [Masked language modeling task guide](../tasks/masked_language_modeling)
+- [Translation task guide](../tasks/translation)
+- [Summarization task guide](../tasks/summarization)
+
+## MBartConfig
+
+[[autodoc]] MBartConfig
+
+## MBartTokenizer
+
+[[autodoc]] MBartTokenizer
+    - build_inputs_with_special_tokens
+
+## MBartTokenizerFast
+
+[[autodoc]] MBartTokenizerFast
+
+## MBart50Tokenizer
+
+[[autodoc]] MBart50Tokenizer
+
+## MBart50TokenizerFast
+
+[[autodoc]] MBart50TokenizerFast
+
+<frameworkcontent>
+<pt>
+
+## MBartModel
+
+[[autodoc]] MBartModel
+
+## MBartForConditionalGeneration
+
+[[autodoc]] MBartForConditionalGeneration
+
+## MBartForQuestionAnswering
+
+[[autodoc]] MBartForQuestionAnswering
+
+## MBartForSequenceClassification
+
+[[autodoc]] MBartForSequenceClassification
+
+## MBartForCausalLM
+
+[[autodoc]] MBartForCausalLM
+    - forward
+
+</pt>
+<tf>
+
+## TFMBartModel
+
+[[autodoc]] TFMBartModel
+    - call
+
+## TFMBartForConditionalGeneration
+
+[[autodoc]] TFMBartForConditionalGeneration
+    - call
+
+</tf>
+<jax>
+
+## FlaxMBartModel
+
+[[autodoc]] FlaxMBartModel
+    - __call__
+    - encode
+    - decode
+
+## FlaxMBartForConditionalGeneration
+
+[[autodoc]] FlaxMBartForConditionalGeneration
+    - __call__
+    - encode
+    - decode
+
+## FlaxMBartForSequenceClassification
+
+[[autodoc]] FlaxMBartForSequenceClassification
+    - __call__
+    - encode
+    - decode
+
+## FlaxMBartForQuestionAnswering
+
+[[autodoc]] FlaxMBartForQuestionAnswering
+    - __call__
+    - encode
+    - decode
+
+</jax>
+</frameworkcontent>
+

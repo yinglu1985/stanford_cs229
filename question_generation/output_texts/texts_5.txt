@@ -1,0 +1,3800 @@
+Cluster 644: Documents 148.0,188.0,359.0,586.0,743.0,744.0,745.0,1095.0,2436.0,2528.0,2529.0
+Document 148: !--⚠️ Note that this file is in Markdown but contain specific syntax for our doc-builder (similar to MDX) that may not be
+rendered properly in your Markdown viewer.
+-->
+
+# Upload files to the Hub
+
+Sharing your files and work is an important aspect of the Hub. The `huggingface_hub` offers several options for uploading your files to the Hub. You can use these functions independently or integrate them into your library, making it more convenient for your users to interact with the Hub. This guide will show you how to push files:
+
+- without using Git.
+- that are very large with [Git LFS](https://git-lfs.github.com/).
+- with the `commit` context manager.
+- with the [`~Repository.push_to_hub`] function.
+
+Whenever you want to upload files to the Hub, you need to log in to your Hugging Face account. For more details about authentication, check out [this section](../quick-start#authentication).
+
+## Upload a file
+
+Once you've created a repository with [`create_repo`], you can upload a file to your repository using [`upload_file`].
+
+Specify the path of the file to upload, where you want to upload the file to in the repository, and the name of the repository you want to add the file to. Depending on your repository type, you can optionally set the repository type as a `dataset`, `model`, or `space`.
+
+```py
+>>> from huggingface_hub import HfApi
+>>> api = HfApi()
+>>> api.upload_file(
+...     path_or_fileobj="/path/to/local/folder/README.md",
+...     path_in_repo="README.md",
+...     repo_id="username/test-dataset",
+...     repo_type="dataset",
+... )
+```
+
+## Upload a folder
+
+Use the [`upload_folder`] function to upload a local folder to an existing repository. Specify the path of the local folder
+to upload, where you want to upload the folder to in the repository, and the name of the repository you want to add the
+folder to. Depending on your repository type, you can optionally set the repository type as a `dataset`, `model`, or `space`.
+
+```py
+>>> from huggingface_hub import HfApi
+>>> api = HfApi()
+
+# Upload all the content from the local folder to your remote Space.
+# By default, files are uploaded at the root of the repo
+>>> api.upload_folder(
+...     folder_path="/path/to/local/space",
+...     repo_id="username/my-cool-space",
+...     repo_type="space",
+... )
+```
+
+By default, the `.gitignore` file will be taken into account to know which files should be committed or not. By default we check if a `.gitignore` file is present in a commit, and if not, we check if it exists on the Hub. Please be aware that only a `.gitignore` file present at the root of the directory with be used. We do not check for `.gitignore` files in subdirectories.
+
+If you don't want to use an hardcoded `.gitignore` file, you can use the `allow_patterns` and `ignore_patterns` arguments to filter which files to upload. These parameters accept either a single pattern or a list of patterns. Patterns are Standard Wildcards (globbing patterns) as documented [here](https://tldp.org/LDP/GNU-Linux-Tools-Summary/html/x11655.htm). If both `allow_patterns` and `ignore_patterns` are provided, both constraints apply.
+
+Beside the `.gitignore` file and allow/ignore patterns, any `.git/` folder present in any subdirectory will be ignored.
+
+```py
+>>> api.upload_folder(
+...     folder_path="/path/to/local/folder",
+...     path_in_repo="my-dataset/train", # Upload to a specific folder
+...     repo_id="username/test-dataset",
+...     repo_type="dataset",
+...     ignore_patterns="**/logs/*.txt", # Ignore all text logs
+... )
+```
+
+You can also use the `delete_patterns` argument to specify files you want to delete from the repo in the same commit.
+This can prove useful if you want to clean a remote folder before pushing files in it and you don't know which files
+already exists.
+
+The example below uploads the local `./logs` folder to the remote `/experiment/logs/` folder. Only txt files are uploaded
+but before that, all previous logs on the repo on deleted. All of this in a single commit.
+```py
+>>> api.upload_folder(
+...     folder_path="/path/to/local/folder/logs",
+...     repo_id="username/trained-model",
+...     path_in_repo="experiment/logs/",
+...     allow_patterns="*.txt", # Upload all local text files
+...     delete_patterns="*.txt", # Delete all remote text files before
+... )
+```
+
+## Upload from the CLI
+
+You can use the `huggingface-cli upload` command from the terminal to directly upload files to the Hub. Internally it uses the same [`upload_file`] and [`upload_folder`] helpers described above.
+
+You can either upload a single file or an entire folder:
+
+```bash
+# Usage:  huggingface-cli upload [repo_id] [local_path] [path_in_repo]
+>>> huggingface-cli upload Wauplin/my-cool-model ./models/model.safetensors model.safetensors
+https://huggingface.co/Wauplin/my-cool-model/blob/main/model.safetensors
+
+>>> huggingface-cli upload Wauplin/my-cool-model ./models .
+https://huggingface.co/Wauplin/my-cool-model/tree/main
+```
+
+`local_path` and `path_in_repo` are optional and can be implicitly inferred. If `local_path` is not set, the tool will
+check if a local folder or file has the same name as the `repo_id`. If that's the case, its content will be uploaded.
+Otherwise, an exception is raised asking the user to explicitly set `local_path`. In any case, if `path_in_repo` is not
+set, files are uploaded at the root of the repo.
+
+For more details about the CLI upload command, please refer to the [CLI guide](./cli#huggingface-cli-upload).
+
+## Advanced features
+
+In most cases, you won't need more than [`upload_file`] and [`upload_folder`] to upload your files to the Hub.
+However, `huggingface_hub` has more advanced features to make things easier. Let's have a look at them!
+
+
+### Non-blocking uploads
+
+In some cases, you want to push data without blocking your main thread. This is particularly useful to upload logs and
+artifacts while continuing a training. To do so, you can use the `run_as_future` argument in both [`upload_file`] and
+[`upload_folder`]. This will return a [`concurrent.futures.Future`](https://docs.python.org/3/library/concurrent.futures.html#future-objects)
+object that you can use to check the status of the upload.
+
+```py
+>>> from huggingface_hub import HfApi
+>>> api = HfApi()
+>>> future = api.upload_folder( # Upload in the background (non-blocking action)
+...     repo_id="username/my-model",
+...     folder_path="checkpoints-001",
+...     run_as_future=True,
+... )
+>>> future
+Future(...)
+>>> future.done()
+False
+>>> future.result() # Wait for the upload to complete (blocking action)
+...
+```
+
+<Tip>
+
+Background jobs are queued when using `run_as_future=True`. This means that you are guaranteed that the jobs will be
+executed in the correct order.
+
+</Tip>
+
+Even though background jobs are mostly useful to upload data/create commits, you can queue any method you like using
+[`run_as_future`]. For instance, you can use it to create a repo and then upload data to it in the background. The
+built-in `run_as_future` argument in upload methods is just an alias around it.
+
+```py
+>>> from huggingface_hub import HfApi
+>>> api = HfApi()
+>>> api.run_as_future(api.create_repo, "username/my-model", exists_ok=True)
+Future(...)
+>>> api.upload_file(
+...     repo_id="username/my-model",
+...     path_in_repo="file.txt",
+...     path_or_fileobj=b"file content",
+...     run_as_future=True,
+... )
+Future(...)
+```
+
+### Upload a folder by chunks
+
+[`upload_folder`] makes it easy to upload an entire folder to the Hub. However, for large folders (thousands of files or
+hundreds of GB), it can still be challenging. If you have a folder with a lot of files, you might want to upload
+it in several commits. If you experience an error or a connection issue during the upload, you would not have to resume
+the process from the beginning.
+
+To upload a folder in multiple commits, just pass `multi_commits=True` as argument. Under the hood, `huggingface_hub`
+will list the files to upload/delete and split them in several commits. The "strategy" (i.e. how to split the commits)
+is based on the number and size of the files to upload. A PR is open on the Hub to push all the commits. Once the PR is
+ready, the commits are squashed into a single commit. If the process is interrupted before completing, you can rerun
+your script to resume the upload. The created PR will be automatically detected and the upload will resume from where
+it stopped. It is recommended to pass `multi_commits_verbose=True` to get a better understanding of the upload and its
+progress.
+
+The example below will upload the checkpoints folder to a dataset in multiple commits. A PR will be created on the Hub
+and merged automatically once the upload is complete. If you prefer the PR to stay open and review it manually, you can
+pass `create_pr=True`. 
+
+```py
+>>> upload_folder(
+...     folder_path="local/checkpoints",
+...     repo_id="username/my-dataset",
+...     repo_type="dataset",
+...     multi_commits=True,
+...     multi_commits_verbose=True,
+... )
+```
+
+If you want a better control on the upload strategy (i.e. the commits that are created), you can have a look at the
+low-level [`plan_multi_commits`] and [`create_commits_on_pr`] methods.
+
+<Tip warning={true}>
+
+`multi_commits` is still an experimental feature. Its API and behavior is subject to change in the future without prior
+notice.
+
+</Tip>
+
+### Scheduled uploads
+
+The Hugging Face Hub makes it easy to save and version data. However, there are some limitations when updating the same file thousands of times. For instance, you might want to save logs of a training process or user
+feedback on a deployed Space. In these cases, uploading the data as a dataset on the Hub makes sense, but it can be hard to do properly. The main reason is that you don't want to version every update of your data because it'll make the git repository unusable. The [`CommitScheduler`] class offers a solution to this problem.
+
+The idea is to run a background job that regularly pushes a local folder to the Hub. Let's assume you have a
+Gradio Space that takes as input some text and generates two translations of it. Then, the user can select their preferred translation. For each run, you want to save the input, output, and user preference to analyze the results. This is a
+perfect use case for [`CommitScheduler`]; you want to save data to the Hub (potentially millions of user feedback), but
+you don't _need_ to save in real-time each user's input. Instead, you can save the data locally in a JSON file and
+upload it every 10 minutes. For example:
+
+```py
+>>> import json
+>>> import uuid
+>>> from pathlib import Path
+>>> import gradio as gr
+>>> from huggingface_hub import CommitScheduler
+
+# Define the file where to save the data. Use UUID to make sure not to overwrite existing data from a previous run.
+>>> feedback_file = Path("user_feedback/") / f"data_{uuid.uuid4()}.json"
+>>> feedback_folder = feedback_file.parent
+
+# Schedule regular uploads. Remote repo and local folder are created if they don't already exist.
+>>> scheduler = CommitScheduler(
+...     repo_id="report-translation-feedback",
+...     repo_type="dataset",
+...     folder_path=feedback_folder,
+...     path_in_repo="data",
+...     every=10,
+... )
+
+# Define the function that will be called when the user submits its feedback (to be called in Gradio)
+>>> def save_feedback(input_text:str, output_1: str, output_2:str, user_choice: int) -> None:
+...     """
+...     Append input/outputs and user feedback to a JSON Lines file using a thread lock to avoid concurrent writes from different users.
+...     """
+...     with scheduler.lock:
+...         with feedback_file.open("a") as f:
+...             f.write(json.dumps({"input": input_text, "output_1": output_1, "output_2": output_2, "user_choice": user_choice}))
+...             f.write("\n")
+
+# Start Gradio
+>>> with gr.Blocks() as demo:
+>>>     ... # define Gradio demo + use `save_feedback`
+>>> demo.launch()
+```
+
+And that's it! User input/outputs and feedback will be available as a dataset on the Hub. By using a unique JSON file name, you are guaranteed you won't overwrite data from a previous run or data from another
+Spaces/replicas pushing concurrently to the same repository.
+
+For more details about the [`CommitScheduler`], here is what you need to know:
+- **append-only:**
+    It is assumed that you will only add content to the folder. You must only append data to existing files or create
+    new files. Deleting or overwriting a file might corrupt your repository.
+- **git history**:
+    The scheduler will commit the folder every `every` minutes. To avoid polluting the git repository too much, it is
+    recommended to set a minimal value of 5 minutes. Besides, the scheduler is designed to avoid empty commits. If no
+    new content is detected in the folder, the scheduled commit is dropped.
+- **errors:**
+    The scheduler run as background thread. It is started when you instantiate the class and never stops. In particular,
+    if an error occurs during the upload (example: connection issue), the scheduler will silently ignore it and retry
+    at the next scheduled commit.
+- **thread-safety:**
+    In most cases it is safe to assume that you can write to a file without having to worry about a lock file. The
+    scheduler will not crash or be corrupted if you write content to the folder while it's uploading. In practice,
+    _it is possible_ that concurrency issues happen for heavy-loaded apps. In this case, we advice to use the
+    `scheduler.lock` lock to ensure thread-safety. The lock is blocked only when the scheduler scans the folder for
+    changes, not when it uploads data. You can safely assume that it will not affect the user experience on your Space.
+
+#### Space persistence demo
+
+Persisting data from a Space to a Dataset on the Hub is the main use case for [`CommitScheduler`]. Depending on the use
+case, you might want to structure your data differently. The structure has to be robust to concurrent users and
+restarts which often implies generating UUIDs. Besides robustness, you should upload data in a format readable by the 🤗 Datasets library for later reuse. We created a [Space](https://huggingface.co/spaces/Wauplin/space_to_dataset_saver)
+that demonstrates how to save several different data formats (you may need to adapt it for your own specific needs).
+
+#### Custom uploads
+
+[`CommitScheduler`] assumes your data is append-only and should be uploading "as is". However, you
+might want to customize the way data is uploaded. You can do that by creating a class inheriting from [`CommitScheduler`]
+and overwrite the `push_to_hub` method (feel free to overwrite it any way you want). You are guaranteed it will
+be called every `every` minutes in a background thread. You don't have to worry about concurrency and errors but you
+must be careful about other aspects, such as pushing empty commits or duplicated data.
+
+In the (simplified) example below, we overwrite `push_to_hub` to zip all PNG files in a single archive to avoid
+overloading the repo on the Hub:
+
+```py
+class ZipScheduler(CommitScheduler):
+    def push_to_hub(self):
+        # 1. List PNG files
+          png_files = list(self.folder_path.glob("*.png"))
+          if len(png_files) == 0:
+              return None  # return early if nothing to commit
+
+        # 2. Zip png files in a single archive
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_path = Path(tmpdir) / "train.zip"
+            with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as zip:
+                for png_file in png_files:
+                    zip.write(filename=png_file, arcname=png_file.name)
+
+            # 3. Upload archive
+            self.api.upload_file(..., path_or_fileobj=archive_path)
+
+        # 4. Delete local png files to avoid re-uploading them later
+        for png_file in png_files:
+            png_file.unlink()
+```
+
+When you overwrite `push_to_hub`, you have access to the attributes of [`CommitScheduler`] and especially:
+- [`HfApi`] client: `api`
+- Folder parameters: `folder_path` and `path_in_repo`
+- Repo parameters: `repo_id`, `repo_type`, `revision`
+- The thread lock: `lock`
+
+<Tip>
+
+For more examples of custom schedulers, check out our [demo Space](https://huggingface.co/spaces/Wauplin/space_to_dataset_saver)
+containing different implementations depending on your use cases.
+
+</Tip>
+
+### create_commit
+
+The [`upload_file`] and [`upload_folder`] functions are high-level APIs that are generally convenient to use. We recommend
+trying these functions first if you don't need to work at a lower level. However, if you want to work at a commit-level,
+you can use the [`create_commit`] function directly.
+
+There are three types of operations supported by [`create_commit`]:
+
+- [`CommitOperationAdd`] uploads a file to the Hub. If the file already exists, the file contents are overwritten. This operation accepts two arguments:
+
+  - `path_in_repo`: the repository path to upload a file to.
+  - `path_or_fileobj`: either a path to a file on your filesystem or a file-like object. This is the content of the file to upload to the Hub.
+
+- [`CommitOperationDelete`] removes a file or a folder from a repository. This operation accepts `path_in_repo` as an argument.
+
+- [`CommitOperationCopy`] copies a file within a repository. This operation accepts three arguments:
+
+  - `src_path_in_repo`: the repository path of the file to copy.
+  - `path_in_repo`: the repository path where the file should be copied.
+  - `src_revision`: optional - the revision of the file to copy if your want to copy a file from a different branch/revision.
+
+For example, if you want to upload two files and delete a file in a Hub repository:
+
+1. Use the appropriate `CommitOperation` to add or delete a file and to delete a folder:
+
+```py
+>>> from huggingface_hub import HfApi, CommitOperationAdd, CommitOperationDelete
+>>> api = HfApi()
+>>> operations = [
+...     CommitOperationAdd(path_in_repo="LICENSE.md", path_or_fileobj="~/repo/LICENSE.md"),
+...     CommitOperationAdd(path_in_repo="weights.h5", path_or_fileobj="~/repo/weights-final.h5"),
+...     CommitOperationDelete(path_in_repo="old-weights.h5"),
+...     CommitOperationDelete(path_in_repo="logs/"),
+...     CommitOperationCopy(src_path_in_repo="image.png", path_in_repo="duplicate_image.png"),
+... ]
+```
+
+2. Pass your operations to [`create_commit`]:
+
+```py
+>>> api.create_commit(
+...     repo_id="lysandre/test-model",
+...     operations=operations,
+...     commit_message="Upload my model weights and license",
+... )
+```
+
+In addition to [`upload_file`] and [`upload_folder`], the following functions also use [`create_commit`] under the hood:
+
+- [`delete_file`] deletes a single file from a repository on the Hub.
+- [`delete_folder`] deletes an entire folder from a repository on the Hub.
+- [`metadata_update`] updates a repository's metadata.
+
+For more detailed information, take a look at the [`HfApi`] reference.
+
+### Preupload LFS files before commit
+
+In some cases, you might want to upload huge files to S3 **before** making the commit call. For example, if you are
+committing a dataset in several shards that are generated in-memory, you would need to upload the shards one by one
+to avoid an out-of-memory issue. A solution is to upload each shard as a separate commit on the repo. While being
+perfectly valid, this solution has the drawback of potentially messing the git history by generating tens of commits.
+To overcome this issue, you can upload your files one by one to S3 and then create a single commit at the end. This
+is possible using [`preupload_lfs_files`] in combination with [`create_commit`].
+
+<Tip warning={true}>
+
+This is a power-user method. Directly using [`upload_file`], [`upload_folder`] or [`create_commit`] instead of handling
+the low-level logic of pre-uploading files is the way to go in the vast majority of cases. The main caveat of
+[`preupload_lfs_files`] is that until the commit is actually made, the upload files are not accessible on the repo on
+the Hub. If you have a question, feel free to ping us on our Discord or in a GitHub issue.
+
+</Tip>
+
+Here is a simple example illustrating how to pre-upload files:
+
+```py
+>>> from huggingface_hub import CommitOperationAdd, preupload_lfs_files, create_commit, create_repo
+
+>>> repo_id = create_repo("test_preupload").repo_id
+
+>>> operations = [] # List of all `CommitOperationAdd` objects that will be generated
+>>> for i in range(5):
+...     content = ... # generate binary content
+...     addition = CommitOperationAdd(path_in_repo=f"shard_{i}_of_5.bin", path_or_fileobj=content)
+...     preupload_lfs_files(repo_id, additions=[addition])
+...     operations.append(addition)
+
+>>> # Create commit
+>>> create_commit(repo_id, operations=operations, commit_message="Commit all shards")
+```
+
+First, we create the [`CommitOperationAdd`] objects one by one. In a real-world example, those would contain the
+generated shards. Each file is uploaded before generating the next one. During the [`preupload_lfs_files`] step, **the
+`CommitOperationAdd` object is mutated**. You should only use it to pass it directly to [`create_commit`]. The main
+update of the object is that **the binary content is removed** from it, meaning that it will be garbage-collected if
+you don't store another reference to it. This is expected as we don't want to keep in memory the content that is
+already uploaded. Finally we create the commit by passing all the operations to [`create_commit`]. You can pass
+additional operations (add, delete or copy) that have not been processed yet and they will be handled correctly.
+
+## Tips and tricks for large uploads
+
+There are some limitations to be aware of when dealing with a large amount of data in your repo. Given the time it takes to stream the data,
+getting an upload/push to fail at the end of the process or encountering a degraded experience, be it on hf.co or when working locally, can be very annoying.
+
+Check out our [Repository limitations and recommendations](https://huggingface.co/docs/hub/repositories-recommendations) guide for best practices on how to structure your repositories on the Hub. Next, let's move on with some practical tips to make your upload process as smooth as possible.
+
+- **Start small**: We recommend starting with a small amount of data to test your upload script. It's easier to iterate
+on a script when failing takes only a little time.
+- **Expect failures**: Streaming large amounts of data is challenging. You don't know what can happen, but it's always
+best to consider that something will fail at least once -no matter if it's due to your machine, your connection, or our
+servers. For example, if you plan to upload a large number of files, it's best to keep track locally of which files you
+already uploaded before uploading the next batch. You are ensured that an LFS file that is already committed will never
+be re-uploaded twice but checking it client-side can still save some time.
+- **Use `hf_transfer`**: this is a Rust-based [library](https://github.com/huggingface/hf_transfer) meant to speed up
+uploads on machines with very high bandwidth. To use it, you must install it (`pip install hf_transfer`) and enable it
+by setting `HF_HUB_ENABLE_HF_TRANSFER=1` as an environment variable. You can then use `huggingface_hub` normally.
+Disclaimer: this is a power user tool. It is tested and production-ready but lacks user-friendly features like advanced error handling or proxies. For more details, please refer to this [section](https://huggingface.co/docs/huggingface_hub/hf_transfer).
+
+<Tip>
+
+Progress bars are supported in `hf_transfer` starting from version `0.1.4`. Consider upgrading (`pip install -U hf-transfer`) if you plan to enable faster uploads.
+
+</Tip>
+
+## (legacy) Upload files with Git LFS
+
+All the methods described above use the Hub's API to upload files. This is the recommended way to upload files to the Hub.
+However, we also provide [`Repository`], a wrapper around the git tool to manage a local repository.
+
+<Tip warning={true}>
+
+Although [`Repository`] is not formally deprecated, we recommend using the HTTP-based methods described above instead.
+For more details about this recommendation, please have a look at [this guide](../concepts/git_vs_http) explaining the
+core differences between HTTP-based and Git-based approaches.
+
+</Tip>
+
+Git LFS automatically handles files larger than 10MB. But for very large files (>5GB), you need to install a custom transfer agent for Git LFS:
+
+```bash
+huggingface-cli lfs-enable-largefiles
+```
+
+You should install this for each repository that has a very large file. Once installed, you'll be able to push files larger than 5GB.
+
+### commit context manager
+
+The `commit` context manager handles four of the most common Git commands: pull, add, commit, and push. `git-lfs` automatically tracks any file larger than 10MB. In the following example, the `commit` context manager:
+
+1. Pulls from the `text-files` repository.
+2. Adds a change made to `file.txt`.
+3. Commits the change.
+4. Pushes the change to the `text-files` repository.
+
+```python
+>>> from huggingface_hub import Repository
+>>> with Repository(local_dir="text-files", clone_from="<user>/text-files").commit(commit_message="My first file :)"):
+...     with open("file.txt", "w+") as f:
+...         f.write(json.dumps({"hey": 8}))
+```
+
+Here is another example of how to use the `commit` context manager to save and upload a file to a repository:
+
+```python
+>>> import torch
+>>> model = torch.nn.Transformer()
+>>> with Repository("torch-model", clone_from="<user>/torch-model", token=True).commit(commit_message="My cool model :)"):
+...     torch.save(model.state_dict(), "model.pt")
+```
+
+Set `blocking=False` if you would like to push your commits asynchronously. Non-blocking behavior is helpful when you want to continue running your script while your commits are being pushed.
+
+```python
+>>> with repo.commit(commit_message="My cool model :)", blocking=False)
+```
+
+You can check the status of your push with the `command_queue` method:
+
+```python
+>>> last_command = repo.command_queue[-1]
+>>> last_command.status
+```
+
+Refer to the table below for the possible statuses:
+
+| Status   | Description                          |
+| -------- | ------------------------------------ |
+| -1       | The push is ongoing.                 |
+| 0        | The push has completed successfully. |
+| Non-zero | An error has occurred.               |
+
+When `blocking=False`, commands are tracked, and your script will only exit when all pushes are completed, even if other errors occur in your script. Some additional useful commands for checking the status of a push include:
+
+```python
+# Inspect an error.
+>>> last_command.stderr
+
+# Check whether a push is completed or ongoing.
+>>> last_command.is_done
+
+# Check whether a push command has errored.
+>>> last_command.failed
+```
+
+### push_to_hub
+
+The [`Repository`] class has a [`~Repository.push_to_hub`] function to add files, make a commit, and push them to a repository. Unlike the `commit` context manager, you'll need to pull from a repository first before calling [`~Repository.push_to_hub`].
+
+For example, if you've already cloned a repository from the Hub, then you can initialize the `repo` from the local directory:
+
+```python
+>>> from huggingface_hub import Repository
+>>> repo = Repository(local_dir="path/to/local/repo")
+```
+
+Update your local clone with [`~Repository.git_pull`] and then push your file to the Hub:
+
+```py
+>>> repo.git_pull()
+>>> repo.push_to_hub(commit_message="Commit my-awesome-file to the Hub")
+```
+
+However, if you aren't ready to push a file yet, you can use [`~Repository.git_add`] and [`~Repository.git_commit`] to only add and commit your file:
+
+```py
+>>> repo.git_add("path/to/file")
+>>> repo.git_commit(commit_message="add my first model config file :)")
+```
+
+When you're ready, push the file to your repository with [`~Repository.git_push`]:
+
+```py
+>>> repo.git_push()
+```
+
+Document 188: !--Copyright 2022 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+⚠️ Note that this file is in Markdown but contain specific syntax for our doc-builder (similar to MDX) that may not be
+rendered properly in your Markdown viewer.
+
+-->
+
+# DETA
+
+## Overview
+
+The DETA model was proposed in [NMS Strikes Back](https://arxiv.org/abs/2212.06137) by Jeffrey Ouyang-Zhang, Jang Hyun Cho, Xingyi Zhou, Philipp Krähenbühl.
+DETA (short for Detection Transformers with Assignment) improves [Deformable DETR](deformable_detr) by replacing the one-to-one bipartite Hungarian matching loss
+with one-to-many label assignments used in traditional detectors with non-maximum suppression (NMS). This leads to significant gains of up to 2.5 mAP.
+
+The abstract from the paper is the following:
+
+*Detection Transformer (DETR) directly transforms queries to unique objects by using one-to-one bipartite matching during training and enables end-to-end object detection. Recently, these models have surpassed traditional detectors on COCO with undeniable elegance. However, they differ from traditional detectors in multiple designs, including model architecture and training schedules, and thus the effectiveness of one-to-one matching is not fully understood. In this work, we conduct a strict comparison between the one-to-one Hungarian matching in DETRs and the one-to-many label assignments in traditional detectors with non-maximum supervision (NMS). Surprisingly, we observe one-to-many assignments with NMS consistently outperform standard one-to-one matching under the same setting, with a significant gain of up to 2.5 mAP. Our detector that trains Deformable-DETR with traditional IoU-based label assignment achieved 50.2 COCO mAP within 12 epochs (1x schedule) with ResNet50 backbone, outperforming all existing traditional or transformer-based detectors in this setting. On multiple datasets, schedules, and architectures, we consistently show bipartite matching is unnecessary for performant detection transformers. Furthermore, we attribute the success of detection transformers to their expressive transformer architecture.*
+
+<img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/transformers/model_doc/deta_architecture.jpg"
+alt="drawing" width="600"/>
+
+<small> DETA overview. Taken from the <a href="https://arxiv.org/abs/2212.06137">original paper</a>. </small>
+
+This model was contributed by [nielsr](https://huggingface.co/nielsr).
+The original code can be found [here](https://github.com/jozhang97/DETA).
+
+## Resources
+
+A list of official Hugging Face and community (indicated by 🌎) resources to help you get started with DETA.
+
+- Demo notebooks for DETA can be found [here](https://github.com/NielsRogge/Transformers-Tutorials/tree/master/DETA).
+- See also: [Object detection task guide](../tasks/object_detection)
+
+If you're interested in submitting a resource to be included here, please feel free to open a Pull Request and we'll review it! The resource should ideally demonstrate something new instead of duplicating an existing resource.
+
+## DetaConfig
+
+[[autodoc]] DetaConfig
+
+## DetaImageProcessor
+
+[[autodoc]] DetaImageProcessor
+    - preprocess
+    - post_process_object_detection
+
+## DetaModel
+
+[[autodoc]] DetaModel
+    - forward
+
+## DetaForObjectDetection
+
+[[autodoc]] DetaForObjectDetection
+    - forward
+
+Document 359: # Amused training
+
+Amused can be finetuned on simple datasets relatively cheaply and quickly. Using 8bit optimizers, lora, and gradient accumulation, amused can be finetuned with as little as 5.5 GB. Here are a set of examples for finetuning amused on some relatively simple datasets. These training recipies are aggressively oriented towards minimal resources and fast verification -- i.e. the batch sizes are quite low and the learning rates are quite high. For optimal quality, you will probably want to increase the batch sizes and decrease learning rates.
+
+All training examples use fp16 mixed precision and gradient checkpointing. We don't show 8 bit adam + lora as its about the same memory use as just using lora (bitsandbytes uses full precision optimizer states for weights below a minimum size).
+
+### Finetuning the 256 checkpoint
+
+These examples finetune on this [nouns](https://huggingface.co/datasets/m1guelpf/nouns) dataset.
+
+Example results:
+
+![noun1](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/noun1.png) ![noun2](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/noun2.png) ![noun3](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/noun3.png)
+
+
+#### Full finetuning
+
+Batch size: 8, Learning rate: 1e-4, Gives decent results in 750-1000 steps
+
+| Batch Size | Gradient Accumulation Steps | Effective Total Batch Size | Memory Used |
+|------------|-----------------------------|------------------|-------------|
+|    8        |          1                   |     8             |      19.7 GB       |
+|    4        |          2                   |     8             |      18.3 GB       |
+|    1        |          8                   |     8             |      17.9 GB       |
+
+```sh
+accelerate launch train_amused.py \
+    --output_dir <output path> \
+    --train_batch_size <batch size> \
+    --gradient_accumulation_steps <gradient accumulation steps> \
+    --learning_rate 1e-4 \
+    --pretrained_model_name_or_path huggingface/amused-256 \
+    --instance_data_dataset  'm1guelpf/nouns' \
+    --image_key image \
+    --prompt_key text \
+    --resolution 256 \
+    --mixed_precision fp16 \
+    --lr_scheduler constant \
+    --validation_prompts \
+        'a pixel art character with square red glasses, a baseball-shaped head and a orange-colored body on a dark background' \
+        'a pixel art character with square orange glasses, a lips-shaped head and a red-colored body on a light background' \
+        'a pixel art character with square blue glasses, a microwave-shaped head and a purple-colored body on a sunny background' \
+        'a pixel art character with square red glasses, a baseball-shaped head and a blue-colored body on an orange background' \
+        'a pixel art character with square red glasses' \
+        'a pixel art character' \
+        'square red glasses on a pixel art character' \
+        'square red glasses on a pixel art character with a baseball-shaped head' \
+    --max_train_steps 10000 \
+    --checkpointing_steps 500 \
+    --validation_steps 250 \
+    --gradient_checkpointing
+```
+
+#### Full finetuning + 8 bit adam
+
+Note that this training config keeps the batch size low and the learning rate high to get results fast with low resources. However, due to 8 bit adam, it will diverge eventually. If you want to train for longer, you will have to up the batch size and lower the learning rate.
+
+Batch size: 16, Learning rate: 2e-5, Gives decent results in ~750 steps
+
+| Batch Size | Gradient Accumulation Steps | Effective Total Batch Size | Memory Used |
+|------------|-----------------------------|------------------|-------------|
+|    16        |          1                   |     16             |      20.1 GB       |
+|    8        |          2                   |      16           |      15.6 GB       |
+|    1        |          16                   |     16            |      10.7 GB       |
+
+```sh
+accelerate launch train_amused.py \
+    --output_dir <output path> \
+    --train_batch_size <batch size> \
+    --gradient_accumulation_steps <gradient accumulation steps> \
+    --learning_rate 2e-5 \
+    --use_8bit_adam \
+    --pretrained_model_name_or_path huggingface/amused-256 \
+    --instance_data_dataset  'm1guelpf/nouns' \
+    --image_key image \
+    --prompt_key text \
+    --resolution 256 \
+    --mixed_precision fp16 \
+    --lr_scheduler constant \
+    --validation_prompts \
+        'a pixel art character with square red glasses, a baseball-shaped head and a orange-colored body on a dark background' \
+        'a pixel art character with square orange glasses, a lips-shaped head and a red-colored body on a light background' \
+        'a pixel art character with square blue glasses, a microwave-shaped head and a purple-colored body on a sunny background' \
+        'a pixel art character with square red glasses, a baseball-shaped head and a blue-colored body on an orange background' \
+        'a pixel art character with square red glasses' \
+        'a pixel art character' \
+        'square red glasses on a pixel art character' \
+        'square red glasses on a pixel art character with a baseball-shaped head' \
+    --max_train_steps 10000 \
+    --checkpointing_steps 500 \
+    --validation_steps 250 \
+    --gradient_checkpointing
+```
+
+#### Full finetuning + lora
+
+Batch size: 16, Learning rate: 8e-4, Gives decent results in 1000-1250 steps
+
+| Batch Size | Gradient Accumulation Steps | Effective Total Batch Size | Memory Used |
+|------------|-----------------------------|------------------|-------------|
+|    16        |          1                   |     16             |      14.1 GB       |
+|    8        |          2                   |      16           |      10.1 GB       |
+|    1        |          16                   |     16            |      6.5 GB       |
+
+```sh
+accelerate launch train_amused.py \
+    --output_dir <output path> \
+    --train_batch_size <batch size> \
+    --gradient_accumulation_steps <gradient accumulation steps> \
+    --learning_rate 8e-4 \
+    --use_lora \
+    --pretrained_model_name_or_path huggingface/amused-256 \
+    --instance_data_dataset  'm1guelpf/nouns' \
+    --image_key image \
+    --prompt_key text \
+    --resolution 256 \
+    --mixed_precision fp16 \
+    --lr_scheduler constant \
+    --validation_prompts \
+        'a pixel art character with square red glasses, a baseball-shaped head and a orange-colored body on a dark background' \
+        'a pixel art character with square orange glasses, a lips-shaped head and a red-colored body on a light background' \
+        'a pixel art character with square blue glasses, a microwave-shaped head and a purple-colored body on a sunny background' \
+        'a pixel art character with square red glasses, a baseball-shaped head and a blue-colored body on an orange background' \
+        'a pixel art character with square red glasses' \
+        'a pixel art character' \
+        'square red glasses on a pixel art character' \
+        'square red glasses on a pixel art character with a baseball-shaped head' \
+    --max_train_steps 10000 \
+    --checkpointing_steps 500 \
+    --validation_steps 250 \
+    --gradient_checkpointing
+```
+
+### Finetuning the 512 checkpoint
+
+These examples finetune on this [minecraft](https://huggingface.co/monadical-labs/minecraft-preview) dataset.
+
+Example results:
+
+![minecraft1](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/minecraft1.png) ![minecraft2](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/minecraft2.png) ![minecraft3](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/minecraft3.png)
+
+#### Full finetuning
+
+Batch size: 8, Learning rate: 8e-5, Gives decent results in 500-1000 steps
+
+| Batch Size | Gradient Accumulation Steps | Effective Total Batch Size | Memory Used |
+|------------|-----------------------------|------------------|-------------|
+|    8        |          1                   |     8             |      24.2 GB       |
+|    4        |          2                   |     8             |      19.7 GB       |
+|    1        |          8                   |     8             |      16.99 GB       |
+
+```sh
+accelerate launch train_amused.py \
+    --output_dir <output path> \
+    --train_batch_size <batch size> \
+    --gradient_accumulation_steps <gradient accumulation steps> \
+    --learning_rate 8e-5 \
+    --pretrained_model_name_or_path huggingface/amused-512 \
+    --instance_data_dataset  'monadical-labs/minecraft-preview' \
+    --prompt_prefix 'minecraft ' \
+    --image_key image \
+    --prompt_key text \
+    --resolution 512 \
+    --mixed_precision fp16 \
+    --lr_scheduler constant \
+    --validation_prompts \
+        'minecraft Avatar' \
+        'minecraft character' \
+        'minecraft' \
+        'minecraft president' \
+        'minecraft pig' \
+    --max_train_steps 10000 \
+    --checkpointing_steps 500 \
+    --validation_steps 250 \
+    --gradient_checkpointing
+```
+
+#### Full finetuning + 8 bit adam
+
+Batch size: 8, Learning rate: 5e-6, Gives decent results in 500-1000 steps
+
+| Batch Size | Gradient Accumulation Steps | Effective Total Batch Size | Memory Used |
+|------------|-----------------------------|------------------|-------------|
+|    8        |          1                   |     8             |      21.2 GB       |
+|    4        |          2                   |     8             |      13.3 GB       |
+|    1        |          8                   |     8             |      9.9 GB       |
+
+```sh
+accelerate launch train_amused.py \
+    --output_dir <output path> \
+    --train_batch_size <batch size> \
+    --gradient_accumulation_steps <gradient accumulation steps> \
+    --learning_rate 5e-6 \
+    --pretrained_model_name_or_path huggingface/amused-512 \
+    --instance_data_dataset  'monadical-labs/minecraft-preview' \
+    --prompt_prefix 'minecraft ' \
+    --image_key image \
+    --prompt_key text \
+    --resolution 512 \
+    --mixed_precision fp16 \
+    --lr_scheduler constant \
+    --validation_prompts \
+        'minecraft Avatar' \
+        'minecraft character' \
+        'minecraft' \
+        'minecraft president' \
+        'minecraft pig' \
+    --max_train_steps 10000 \
+    --checkpointing_steps 500 \
+    --validation_steps 250 \
+    --gradient_checkpointing
+```
+
+#### Full finetuning + lora 
+
+Batch size: 8, Learning rate: 1e-4, Gives decent results in 500-1000 steps
+
+| Batch Size | Gradient Accumulation Steps | Effective Total Batch Size | Memory Used |
+|------------|-----------------------------|------------------|-------------|
+|    8        |          1                   |     8             |      12.7 GB       |
+|    4        |          2                   |     8             |      9.0 GB       |
+|    1        |          8                   |     8             |      5.6 GB       |
+
+```sh
+accelerate launch train_amused.py \
+    --output_dir <output path> \
+    --train_batch_size <batch size> \
+    --gradient_accumulation_steps <gradient accumulation steps> \
+    --learning_rate 1e-4 \
+    --use_lora \
+    --pretrained_model_name_or_path huggingface/amused-512 \
+    --instance_data_dataset  'monadical-labs/minecraft-preview' \
+    --prompt_prefix 'minecraft ' \
+    --image_key image \
+    --prompt_key text \
+    --resolution 512 \
+    --mixed_precision fp16 \
+    --lr_scheduler constant \
+    --validation_prompts \
+        'minecraft Avatar' \
+        'minecraft character' \
+        'minecraft' \
+        'minecraft president' \
+        'minecraft pig' \
+    --max_train_steps 10000 \
+    --checkpointing_steps 500 \
+    --validation_steps 250 \
+    --gradient_checkpointing
+```
+
+### Styledrop
+
+[Styledrop](https://arxiv.org/abs/2306.00983) is an efficient finetuning method for learning a new style from just one or very few images. It has an optional first stage to generate human picked additional training samples. The additional training samples can be used to augment the initial images. Our examples exclude the optional additional image selection stage and instead we just finetune on a single image.
+
+This is our example style image:
+![example](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/A%20mushroom%20in%20%5BV%5D%20style.png)
+
+Download it to your local directory with
+```sh
+wget https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/A%20mushroom%20in%20%5BV%5D%20style.png
+```
+
+#### 256
+
+Example results:
+
+![glowing_256_1](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/glowing_256_1.png) ![glowing_256_2](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/glowing_256_2.png) ![glowing_256_3](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/glowing_256_3.png)
+
+Learning rate: 4e-4, Gives decent results in 1500-2000 steps
+
+Memory used: 6.5 GB 
+
+```sh
+accelerate launch train_amused.py \
+    --output_dir <output path> \
+    --mixed_precision fp16 \
+    --report_to wandb \
+    --use_lora \
+    --pretrained_model_name_or_path huggingface/amused-256 \
+    --train_batch_size 1 \
+    --lr_scheduler constant \
+    --learning_rate 4e-4 \
+    --validation_prompts \
+        'A chihuahua walking on the street in [V] style' \
+        'A banana on the table in [V] style' \
+        'A church on the street in [V] style' \
+        'A tabby cat walking in the forest in [V] style' \
+    --instance_data_image 'A mushroom in [V] style.png' \
+    --max_train_steps 10000 \
+    --checkpointing_steps 500 \
+    --validation_steps 100 \
+    --resolution 256
+```
+
+#### 512
+
+Example results:
+
+![glowing_512_1](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/glowing_512_1.png) ![glowing_512_2](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/glowing_512_2.png) ![glowing_512_3](https://huggingface.co/datasets/diffusers/docs-images/resolve/main/amused/glowing_512_3.png)
+
+Learning rate: 1e-3, Lora alpha 1, Gives decent results in 1500-2000 steps
+
+Memory used: 5.6 GB 
+
+```
+accelerate launch train_amused.py \
+    --output_dir <output path> \
+    --mixed_precision fp16 \
+    --report_to wandb \
+    --use_lora \
+    --pretrained_model_name_or_path huggingface/amused-512 \
+    --train_batch_size 1 \
+    --lr_scheduler constant \
+    --learning_rate 1e-3 \
+    --validation_prompts \
+        'A chihuahua walking on the street in [V] style' \
+        'A banana on the table in [V] style' \
+        'A church on the street in [V] style' \
+        'A tabby cat walking in the forest in [V] style' \
+    --instance_data_image 'A mushroom in [V] style.png' \
+    --max_train_steps 100000 \
+    --checkpointing_steps 500 \
+    --validation_steps 100 \
+    --resolution 512 \
+    --lora_alpha 1
+```
+Document 586: FrameworkSwitchCourse {fw} />
+
+# Question answering[[question-answering]]
+
+{#if fw === 'pt'}
+
+<CourseFloatingBanner chapter={7}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/en/chapter7/section7_pt.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/en/chapter7/section7_pt.ipynb"},
+]} />
+
+{:else}
+
+<CourseFloatingBanner chapter={7}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/en/chapter7/section7_tf.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/en/chapter7/section7_tf.ipynb"},
+]} />
+
+{/if}
+
+Time to look at question answering! This task comes in many flavors, but the one we'll focus on in this section is called *extractive* question answering. This involves posing questions about a document and identifying the answers as _spans of text_ in the document itself.
+
+<Youtube id="ajPx5LwJD-I"/>
+
+We will fine-tune a BERT model on the [SQuAD dataset](https://rajpurkar.github.io/SQuAD-explorer/), which consists of questions posed by crowdworkers on a set of Wikipedia articles. This will give us a model able to compute predictions like this one:
+
+<iframe src="https://course-demos-bert-finetuned-squad.hf.space" frameBorder="0" height="450" title="Gradio app" class="block dark:hidden container p-0 flex-grow space-iframe" allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-downloads"></iframe>
+
+This is actually showcasing the model that was trained and uploaded to the Hub using the code shown in this section. You can find it and double-check the predictions [here](https://huggingface.co/huggingface-course/bert-finetuned-squad?context=%F0%9F%A4%97+Transformers+is+backed+by+the+three+most+popular+deep+learning+libraries+%E2%80%94+Jax%2C+PyTorch+and+TensorFlow+%E2%80%94+with+a+seamless+integration+between+them.+It%27s+straightforward+to+train+your+models+with+one+before+loading+them+for+inference+with+the+other.&question=Which+deep+learning+libraries+back+%F0%9F%A4%97+Transformers%3F).
+
+<Tip>
+
+💡 Encoder-only models like BERT tend to be great at extracting answers to factoid questions like "Who invented the Transformer architecture?" but fare poorly when given open-ended questions like "Why is the sky blue?" In these more challenging cases, encoder-decoder models like T5 and BART are typically used to synthesize the information in a way that's quite similar to [text summarization](/course/chapter7/5). If you're interested in this type of *generative* question answering, we recommend checking out our [demo](https://yjernite.github.io/lfqa.html) based on the [ELI5 dataset](https://huggingface.co/datasets/eli5).
+
+</Tip>
+
+## Preparing the data[[preparing-the-data]]
+
+The dataset that is used the most as an academic benchmark for extractive question answering is [SQuAD](https://rajpurkar.github.io/SQuAD-explorer/), so that's the one we'll use here. There is also a harder [SQuAD v2](https://huggingface.co/datasets/squad_v2) benchmark, which includes questions that don't have an answer. As long as your own dataset contains a column for contexts, a column for questions, and a column for answers, you should be able to adapt the steps below.
+
+### The SQuAD dataset[[the-squad-dataset]]
+
+As usual, we can download and cache the dataset in just one step thanks to `load_dataset()`:
+
+```py
+from datasets import load_dataset
+
+raw_datasets = load_dataset("squad")
+```
+
+We can then have a look at this object to learn more about the SQuAD dataset:
+
+```py
+raw_datasets
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['id', 'title', 'context', 'question', 'answers'],
+        num_rows: 87599
+    })
+    validation: Dataset({
+        features: ['id', 'title', 'context', 'question', 'answers'],
+        num_rows: 10570
+    })
+})
+```
+
+It looks like we have everything we need with the `context`, `question`, and `answers` fields, so let's print those for the first element of our training set:
+
+```py
+print("Context: ", raw_datasets["train"][0]["context"])
+print("Question: ", raw_datasets["train"][0]["question"])
+print("Answer: ", raw_datasets["train"][0]["answers"])
+```
+
+```python out
+Context: 'Architecturally, the school has a Catholic character. Atop the Main Building\'s gold dome is a golden statue of the Virgin Mary. Immediately in front of the Main Building and facing it, is a copper statue of Christ with arms upraised with the legend "Venite Ad Me Omnes". Next to the Main Building is the Basilica of the Sacred Heart. Immediately behind the basilica is the Grotto, a Marian place of prayer and reflection. It is a replica of the grotto at Lourdes, France where the Virgin Mary reputedly appeared to Saint Bernadette Soubirous in 1858. At the end of the main drive (and in a direct line that connects through 3 statues and the Gold Dome), is a simple, modern stone statue of Mary.'
+Question: 'To whom did the Virgin Mary allegedly appear in 1858 in Lourdes France?'
+Answer: {'text': ['Saint Bernadette Soubirous'], 'answer_start': [515]}
+```
+
+The `context` and `question` fields are very straightforward to use. The `answers` field is a bit trickier as it comports a dictionary with two fields that are both lists. This is the format that will be expected by the `squad` metric during evaluation; if you are using your own data, you don't necessarily need to worry about putting the answers in the same format. The `text` field is rather obvious, and the `answer_start` field contains the starting character index of each answer in the context.
+
+During training, there is only one possible answer. We can double-check this by using the `Dataset.filter()` method:
+
+```py
+raw_datasets["train"].filter(lambda x: len(x["answers"]["text"]) != 1)
+```
+
+```python out
+Dataset({
+    features: ['id', 'title', 'context', 'question', 'answers'],
+    num_rows: 0
+})
+```
+
+For evaluation, however, there are several possible answers for each sample, which may be the same or different:
+
+```py
+print(raw_datasets["validation"][0]["answers"])
+print(raw_datasets["validation"][2]["answers"])
+```
+
+```python out
+{'text': ['Denver Broncos', 'Denver Broncos', 'Denver Broncos'], 'answer_start': [177, 177, 177]}
+{'text': ['Santa Clara, California', "Levi's Stadium", "Levi's Stadium in the San Francisco Bay Area at Santa Clara, California."], 'answer_start': [403, 355, 355]}
+```
+
+We won't dive into the evaluation script as it will all be wrapped up by a 🤗 Datasets metric for us, but the short version is that some of the questions have several possible answers, and this script will compare a predicted answer to all the acceptable answers and take the best score. If we take a look at the sample at index 2, for instance:
+
+```py
+print(raw_datasets["validation"][2]["context"])
+print(raw_datasets["validation"][2]["question"])
+```
+
+```python out
+'Super Bowl 50 was an American football game to determine the champion of the National Football League (NFL) for the 2015 season. The American Football Conference (AFC) champion Denver Broncos defeated the National Football Conference (NFC) champion Carolina Panthers 24–10 to earn their third Super Bowl title. The game was played on February 7, 2016, at Levi\'s Stadium in the San Francisco Bay Area at Santa Clara, California. As this was the 50th Super Bowl, the league emphasized the "golden anniversary" with various gold-themed initiatives, as well as temporarily suspending the tradition of naming each Super Bowl game with Roman numerals (under which the game would have been known as "Super Bowl L"), so that the logo could prominently feature the Arabic numerals 50.'
+'Where did Super Bowl 50 take place?'
+```
+
+we can see that the answer can indeed be one of the three possibilities we saw before.
+
+### Processing the training data[[processing-the-training-data]]
+
+<Youtube id="qgaM0weJHpA"/>
+
+Let's start with preprocessing the training data. The hard part will be to generate labels for the question's answer, which will be the start and end positions of the tokens corresponding to the answer inside the context.
+
+But let's not get ahead of ourselves. First, we need to convert the text in the input into IDs the model can make sense of, using a tokenizer:
+
+```py
+from transformers import AutoTokenizer
+
+model_checkpoint = "bert-base-cased"
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+```
+
+As mentioned previously, we'll be fine-tuning a BERT model, but you can use any other model type as long as it has a fast tokenizer implemented. You can see all the architectures that come with a fast version in [this big table](https://huggingface.co/transformers/#supported-frameworks), and to check that the `tokenizer` object you're using is indeed backed by 🤗 Tokenizers you can look at its `is_fast` attribute:
+
+```py
+tokenizer.is_fast
+```
+
+```python out
+True
+```
+
+We can pass to our tokenizer the question and the context together, and it will properly insert the special tokens to form a sentence like this:
+
+```
+[CLS] question [SEP] context [SEP]
+```
+
+Let's double-check:
+
+```py
+context = raw_datasets["train"][0]["context"]
+question = raw_datasets["train"][0]["question"]
+
+inputs = tokenizer(question, context)
+tokenizer.decode(inputs["input_ids"])
+```
+
+```python out
+'[CLS] To whom did the Virgin Mary allegedly appear in 1858 in Lourdes France? [SEP] Architecturally, '
+'the school has a Catholic character. Atop the Main Building\'s gold dome is a golden statue of the Virgin '
+'Mary. Immediately in front of the Main Building and facing it, is a copper statue of Christ with arms '
+'upraised with the legend " Venite Ad Me Omnes ". Next to the Main Building is the Basilica of the Sacred '
+'Heart. Immediately behind the basilica is the Grotto, a Marian place of prayer and reflection. It is a '
+'replica of the grotto at Lourdes, France where the Virgin Mary reputedly appeared to Saint Bernadette '
+'Soubirous in 1858. At the end of the main drive ( and in a direct line that connects through 3 statues '
+'and the Gold Dome ), is a simple, modern stone statue of Mary. [SEP]'
+```
+
+The labels will then be the index of the tokens starting and ending the answer, and the model will be tasked to predicted one start and end logit per token in the input, with the theoretical labels being as follow:
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/qa_labels.svg" alt="One-hot encoded labels for question answering."/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/qa_labels-dark.svg" alt="One-hot encoded labels for question answering."/>
+</div>
+
+In this case the context is not too long, but some of the examples in the dataset have very long contexts that will exceed the maximum length we set (which is 384 in this case). As we saw in [Chapter 6](/course/chapter6/4) when we explored the internals of the `question-answering` pipeline, we will deal with long contexts by creating several training features from one sample of our dataset, with a sliding window between them.
+
+To see how this works using the current example, we can limit the length to 100 and use a sliding window of 50 tokens. As a reminder, we use:
+
+- `max_length` to set the maximum length (here 100)
+- `truncation="only_second"` to truncate the context (which is in the second position) when the question with its context is too long
+- `stride` to set the number of overlapping tokens between two successive chunks (here 50)
+- `return_overflowing_tokens=True` to let the tokenizer know we want the overflowing tokens
+
+```py
+inputs = tokenizer(
+    question,
+    context,
+    max_length=100,
+    truncation="only_second",
+    stride=50,
+    return_overflowing_tokens=True,
+)
+
+for ids in inputs["input_ids"]:
+    print(tokenizer.decode(ids))
+```
+
+```python out
+'[CLS] To whom did the Virgin Mary allegedly appear in 1858 in Lourdes France? [SEP] Architecturally, the school has a Catholic character. Atop the Main Building\'s gold dome is a golden statue of the Virgin Mary. Immediately in front of the Main Building and facing it, is a copper statue of Christ with arms upraised with the legend " Venite Ad Me Omnes ". Next to the Main Building is the Basilica of the Sacred Heart. Immediately behind the basi [SEP]'
+'[CLS] To whom did the Virgin Mary allegedly appear in 1858 in Lourdes France? [SEP] the Main Building and facing it, is a copper statue of Christ with arms upraised with the legend " Venite Ad Me Omnes ". Next to the Main Building is the Basilica of the Sacred Heart. Immediately behind the basilica is the Grotto, a Marian place of prayer and reflection. It is a replica of the grotto at Lourdes, France where the Virgin [SEP]'
+'[CLS] To whom did the Virgin Mary allegedly appear in 1858 in Lourdes France? [SEP] Next to the Main Building is the Basilica of the Sacred Heart. Immediately behind the basilica is the Grotto, a Marian place of prayer and reflection. It is a replica of the grotto at Lourdes, France where the Virgin Mary reputedly appeared to Saint Bernadette Soubirous in 1858. At the end of the main drive ( and in a direct line that connects through 3 [SEP]'
+'[CLS] To whom did the Virgin Mary allegedly appear in 1858 in Lourdes France? [SEP]. It is a replica of the grotto at Lourdes, France where the Virgin Mary reputedly appeared to Saint Bernadette Soubirous in 1858. At the end of the main drive ( and in a direct line that connects through 3 statues and the Gold Dome ), is a simple, modern stone statue of Mary. [SEP]'
+```
+
+As we can see, our example has been in split into four inputs, each of them containing the question and some part of the context. Note that the answer to the question ("Bernadette Soubirous") only appears in the third and last inputs, so by dealing with long contexts in this way we will create some training examples where the answer is not included in the context. For those examples, the labels will be `start_position = end_position = 0` (so we predict the `[CLS]` token). We will also set those labels in the unfortunate case where the answer has been truncated so that we only have the start (or end) of it. For the examples where the answer is fully in the context, the labels will be the index of the token where the answer starts and the index of the token where the answer ends.
+
+The dataset provides us with the start character of the answer in the context, and by adding the length of the answer, we can find the end character in the context. To map those to token indices, we will need to use the offset mappings we studied in [Chapter 6](/course/chapter6/4). We can have our tokenizer return these by passing along `return_offsets_mapping=True`:
+
+```py
+inputs = tokenizer(
+    question,
+    context,
+    max_length=100,
+    truncation="only_second",
+    stride=50,
+    return_overflowing_tokens=True,
+    return_offsets_mapping=True,
+)
+inputs.keys()
+```
+
+```python out
+dict_keys(['input_ids', 'token_type_ids', 'attention_mask', 'offset_mapping', 'overflow_to_sample_mapping'])
+```
+
+As we can see, we get back the usual input IDs, token type IDs, and attention mask, as well as the offset mapping we required and an extra key, `overflow_to_sample_mapping`. The corresponding value will be of use to us when we tokenize several texts at the same time (which we should do to benefit from the fact that our tokenizer is backed by Rust). Since one sample can give several features, it maps each feature to the example it originated from. Because here we only tokenized one example, we get a list of `0`s:
+
+```py
+inputs["overflow_to_sample_mapping"]
+```
+
+```python out
+[0, 0, 0, 0]
+```
+
+But if we tokenize more examples, this will become more useful:
+
+```py
+inputs = tokenizer(
+    raw_datasets["train"][2:6]["question"],
+    raw_datasets["train"][2:6]["context"],
+    max_length=100,
+    truncation="only_second",
+    stride=50,
+    return_overflowing_tokens=True,
+    return_offsets_mapping=True,
+)
+
+print(f"The 4 examples gave {len(inputs['input_ids'])} features.")
+print(f"Here is where each comes from: {inputs['overflow_to_sample_mapping']}.")
+```
+
+```python out
+'The 4 examples gave 19 features.'
+'Here is where each comes from: [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3].'
+```
+
+As we can see, the first three examples (at indices 2, 3, and 4 in the training set) each gave four features and the last example (at index 5 in the training set) gave 7 features.
+
+This information will be useful to map each feature we get to its corresponding label. As mentioned earlier, those labels are:
+
+- `(0, 0)` if the answer is not in the corresponding span of the context
+- `(start_position, end_position)` if the answer is in the corresponding span of the context, with `start_position` being the index of the token (in the input IDs) at the start of the answer and `end_position` being the index of the token (in the input IDs) where the answer ends
+
+To determine which of these is the case and, if relevant, the positions of the tokens, we first find the indices that start and end the context in the input IDs. We could use the token type IDs to do this, but since those do not necessarily exist for all models (DistilBERT does not require them, for instance), we'll instead use the `sequence_ids()` method of the `BatchEncoding` our tokenizer returns. 
+
+Once we have those token indices, we look at the corresponding offsets, which are tuples of two integers representing the span of characters inside the original context. We can thus detect if the chunk of the context in this feature starts after the answer or ends before the answer begins (in which case the label is `(0, 0)`). If that's not the case, we loop to find the first and last token of the answer:
+
+```py
+answers = raw_datasets["train"][2:6]["answers"]
+start_positions = []
+end_positions = []
+
+for i, offset in enumerate(inputs["offset_mapping"]):
+    sample_idx = inputs["overflow_to_sample_mapping"][i]
+    answer = answers[sample_idx]
+    start_char = answer["answer_start"][0]
+    end_char = answer["answer_start"][0] + len(answer["text"][0])
+    sequence_ids = inputs.sequence_ids(i)
+
+    # Find the start and end of the context
+    idx = 0
+    while sequence_ids[idx] != 1:
+        idx += 1
+    context_start = idx
+    while sequence_ids[idx] == 1:
+        idx += 1
+    context_end = idx - 1
+
+    # If the answer is not fully inside the context, label is (0, 0)
+    if offset[context_start][0] > start_char or offset[context_end][1] < end_char:
+        start_positions.append(0)
+        end_positions.append(0)
+    else:
+        # Otherwise it's the start and end token positions
+        idx = context_start
+        while idx <= context_end and offset[idx][0] <= start_char:
+            idx += 1
+        start_positions.append(idx - 1)
+
+        idx = context_end
+        while idx >= context_start and offset[idx][1] >= end_char:
+            idx -= 1
+        end_positions.append(idx + 1)
+
+start_positions, end_positions
+```
+
+```python out
+([83, 51, 19, 0, 0, 64, 27, 0, 34, 0, 0, 0, 67, 34, 0, 0, 0, 0, 0],
+ [85, 53, 21, 0, 0, 70, 33, 0, 40, 0, 0, 0, 68, 35, 0, 0, 0, 0, 0])
+```
+
+Let's take a look at a few results to verify that our approach is correct. For the first feature we find `(83, 85)` as labels, so let's compare the theoretical answer with the decoded span of tokens from 83 to 85 (inclusive):
+
+```py
+idx = 0
+sample_idx = inputs["overflow_to_sample_mapping"][idx]
+answer = answers[sample_idx]["text"][0]
+
+start = start_positions[idx]
+end = end_positions[idx]
+labeled_answer = tokenizer.decode(inputs["input_ids"][idx][start : end + 1])
+
+print(f"Theoretical answer: {answer}, labels give: {labeled_answer}")
+```
+
+```python out
+'Theoretical answer: the Main Building, labels give: the Main Building'
+```
+
+So that's a match! Now let's check index 4, where we set the labels to `(0, 0)`, which means the answer is not in the context chunk of that feature:
+
+```py
+idx = 4
+sample_idx = inputs["overflow_to_sample_mapping"][idx]
+answer = answers[sample_idx]["text"][0]
+
+decoded_example = tokenizer.decode(inputs["input_ids"][idx])
+print(f"Theoretical answer: {answer}, decoded example: {decoded_example}")
+```
+
+```python out
+'Theoretical answer: a Marian place of prayer and reflection, decoded example: [CLS] What is the Grotto at Notre Dame? [SEP] Architecturally, the school has a Catholic character. Atop the Main Building\'s gold dome is a golden statue of the Virgin Mary. Immediately in front of the Main Building and facing it, is a copper statue of Christ with arms upraised with the legend " Venite Ad Me Omnes ". Next to the Main Building is the Basilica of the Sacred Heart. Immediately behind the basilica is the Grot [SEP]'
+```
+
+Indeed, we don't see the answer inside the context.
+
+<Tip>
+
+✏️ **Your turn!** When using the XLNet architecture, padding is applied on the left and the question and context are switched. Adapt all the code we just saw to the XLNet architecture (and add `padding=True`). Be aware that the `[CLS]` token may not be at the 0 position with padding applied.
+
+</Tip>
+
+Now that we have seen step by step how to preprocess our training data, we can group it in a function we will apply on the whole training dataset. We'll pad every feature to the maximum length we set, as most of the contexts will be long (and the corresponding samples will be split into several features), so there is no real benefit to applying dynamic padding here:
+
+```py
+max_length = 384
+stride = 128
+
+
+def preprocess_training_examples(examples):
+    questions = [q.strip() for q in examples["question"]]
+    inputs = tokenizer(
+        questions,
+        examples["context"],
+        max_length=max_length,
+        truncation="only_second",
+        stride=stride,
+        return_overflowing_tokens=True,
+        return_offsets_mapping=True,
+        padding="max_length",
+    )
+
+    offset_mapping = inputs.pop("offset_mapping")
+    sample_map = inputs.pop("overflow_to_sample_mapping")
+    answers = examples["answers"]
+    start_positions = []
+    end_positions = []
+
+    for i, offset in enumerate(offset_mapping):
+        sample_idx = sample_map[i]
+        answer = answers[sample_idx]
+        start_char = answer["answer_start"][0]
+        end_char = answer["answer_start"][0] + len(answer["text"][0])
+        sequence_ids = inputs.sequence_ids(i)
+
+        # Find the start and end of the context
+        idx = 0
+        while sequence_ids[idx] != 1:
+            idx += 1
+        context_start = idx
+        while sequence_ids[idx] == 1:
+            idx += 1
+        context_end = idx - 1
+
+        # If the answer is not fully inside the context, label is (0, 0)
+        if offset[context_start][0] > start_char or offset[context_end][1] < end_char:
+            start_positions.append(0)
+            end_positions.append(0)
+        else:
+            # Otherwise it's the start and end token positions
+            idx = context_start
+            while idx <= context_end and offset[idx][0] <= start_char:
+                idx += 1
+            start_positions.append(idx - 1)
+
+            idx = context_end
+            while idx >= context_start and offset[idx][1] >= end_char:
+                idx -= 1
+            end_positions.append(idx + 1)
+
+    inputs["start_positions"] = start_positions
+    inputs["end_positions"] = end_positions
+    return inputs
+```
+
+Note that we defined two constants to determine the maximum length used as well as the length of the sliding window, and that we added a tiny bit of cleanup before tokenizing: some of the questions in the SQuAD dataset have extra spaces at the beginning and the end that don't add anything (and take up space when being tokenized if you use a model like RoBERTa), so we removed those extra spaces.
+
+To apply this function to the whole training set, we use the `Dataset.map()` method with the `batched=True` flag. It's necessary here as we are changing the length of the dataset (since one example can give several training features):
+
+```py
+train_dataset = raw_datasets["train"].map(
+    preprocess_training_examples,
+    batched=True,
+    remove_columns=raw_datasets["train"].column_names,
+)
+len(raw_datasets["train"]), len(train_dataset)
+```
+
+```python out
+(87599, 88729)
+```
+
+As we can see, the preprocessing added roughly 1,000 features. Our training set is now ready to be used -- let's dig into the preprocessing of the validation set!
+
+### Processing the validation data[[processing-the-validation-data]]
+
+Preprocessing the validation data will be slightly easier as we don't need to generate labels (unless we want to compute a validation loss, but that number won't really help us understand how good the model is). The real joy will be to interpret the predictions of the model into spans of the original context. For this, we will just need to store both the offset mappings and some way to match each created feature to the original example it comes from. Since there is an ID column in the original dataset, we'll use that ID.
+
+The only thing we'll add here is a tiny bit of cleanup of the offset mappings. They will contain offsets for the question and the context, but once we're in the post-processing stage we won't have any way to know which part of the input IDs corresponded to the context and which part was the question (the `sequence_ids()` method we used is available for the output of the tokenizer only). So, we'll set the offsets corresponding to the question to `None`:
+
+```py
+def preprocess_validation_examples(examples):
+    questions = [q.strip() for q in examples["question"]]
+    inputs = tokenizer(
+        questions,
+        examples["context"],
+        max_length=max_length,
+        truncation="only_second",
+        stride=stride,
+        return_overflowing_tokens=True,
+        return_offsets_mapping=True,
+        padding="max_length",
+    )
+
+    sample_map = inputs.pop("overflow_to_sample_mapping")
+    example_ids = []
+
+    for i in range(len(inputs["input_ids"])):
+        sample_idx = sample_map[i]
+        example_ids.append(examples["id"][sample_idx])
+
+        sequence_ids = inputs.sequence_ids(i)
+        offset = inputs["offset_mapping"][i]
+        inputs["offset_mapping"][i] = [
+            o if sequence_ids[k] == 1 else None for k, o in enumerate(offset)
+        ]
+
+    inputs["example_id"] = example_ids
+    return inputs
+```
+
+We can apply this function on the whole validation dataset like before:
+
+```py
+validation_dataset = raw_datasets["validation"].map(
+    preprocess_validation_examples,
+    batched=True,
+    remove_columns=raw_datasets["validation"].column_names,
+)
+len(raw_datasets["validation"]), len(validation_dataset)
+```
+
+```python out
+(10570, 10822)
+```
+
+In this case we've only added a couple of hundred samples, so it appears the contexts in the validation dataset are a bit shorter.
+
+Now that we have preprocessed all the data, we can get to the training. 
+
+{#if fw === 'pt'}
+
+## Fine-tuning the model with the `Trainer` API[[fine-tuning-the-model-with-the-trainer-api]]
+
+The training code for this example will look a lot like the code in the previous sections -- the hardest thing will be to write the `compute_metrics()` function. Since we padded all the samples to the maximum length we set, there is no data collator to define, so this metric computation is really the only thing we have to worry about. The difficult part will be to post-process the model predictions into spans of text in the original examples; once we have done that, the metric from the 🤗 Datasets library will do most of the work for us.
+
+{:else}
+
+## Fine-tuning the model with Keras[[fine-tuning-the-model-with-keras]]
+
+The training code for this example will look a lot like the code in the previous sections, but computing the metrics will be uniquely challenging. Since we padded all the samples to the maximum length we set, there is no data collator to define, so this metric computation is really the only thing we have to worry about. The hard part will be to post-process the model predictions into spans of text in the original examples; once we have done that, the metric from the 🤗 Datasets library will do most of the work for us.
+
+{/if}
+
+### Post-processing[[post-processing]]
+
+{#if fw === 'pt'}
+
+<Youtube id="BNy08iIWVJM"/>
+
+{:else}
+
+<Youtube id="VN67ZpN33Ss"/>
+
+{/if}
+
+The model will output logits for the start and end positions of the answer in the input IDs, as we saw during our exploration of the [`question-answering` pipeline](/course/chapter6/3b). The post-processing step will be similar to what we did there, so here's a quick reminder of the actions we took:
+
+- We masked the start and end logits corresponding to tokens outside of the context.
+- We then converted the start and end logits into probabilities using a softmax.
+- We attributed a score to each `(start_token, end_token)` pair by taking the product of the corresponding two probabilities.
+- We looked for the pair with the maximum score that yielded a valid answer (e.g., a `start_token` lower than `end_token`).
+
+Here we will change this process slightly because we don't need to compute actual scores (just the predicted answer). This means we can skip the softmax step. To go faster, we also won't score all the possible `(start_token, end_token)` pairs, but only the ones corresponding to the highest `n_best` logits (with `n_best=20`). Since we will skip the softmax, those scores will be logit scores, and will be obtained by taking the sum of the start and end logits (instead of the product, because of the rule \\(\log(ab) = \log(a) + \log(b)\\)).
+
+To demonstrate all of this, we will need some kind of predictions. Since we have not trained our model yet, we are going to use the default model for the QA pipeline to generate some predictions on a small part of the validation set. We can use the same processing function as before; because it relies on the global constant `tokenizer`, we just have to change that object to the tokenizer of the model we want to use temporarily:
+
+```python
+small_eval_set = raw_datasets["validation"].select(range(100))
+trained_checkpoint = "distilbert-base-cased-distilled-squad"
+
+tokenizer = AutoTokenizer.from_pretrained(trained_checkpoint)
+eval_set = small_eval_set.map(
+    preprocess_validation_examples,
+    batched=True,
+    remove_columns=raw_datasets["validation"].column_names,
+)
+```
+
+Now that the preprocessing is done, we change the tokenizer back to the one we originally picked:
+
+```python
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+```
+
+We then remove the columns of our `eval_set` that are not expected by the model, build a batch with all of that small validation set, and pass it through the model. If a GPU is available, we use it to go faster:
+
+{#if fw === 'pt'}
+
+```python
+import torch
+from transformers import AutoModelForQuestionAnswering
+
+eval_set_for_model = eval_set.remove_columns(["example_id", "offset_mapping"])
+eval_set_for_model.set_format("torch")
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+batch = {k: eval_set_for_model[k].to(device) for k in eval_set_for_model.column_names}
+trained_model = AutoModelForQuestionAnswering.from_pretrained(trained_checkpoint).to(
+    device
+)
+
+with torch.no_grad():
+    outputs = trained_model(**batch)
+```
+
+Since the `Trainer` will give us predictions as NumPy arrays, we grab the start and end logits and convert them to that format:
+
+```python
+start_logits = outputs.start_logits.cpu().numpy()
+end_logits = outputs.end_logits.cpu().numpy()
+```
+
+{:else}
+
+```python
+import tensorflow as tf
+from transformers import TFAutoModelForQuestionAnswering
+
+eval_set_for_model = eval_set.remove_columns(["example_id", "offset_mapping"])
+eval_set_for_model.set_format("numpy")
+
+batch = {k: eval_set_for_model[k] for k in eval_set_for_model.column_names}
+trained_model = TFAutoModelForQuestionAnswering.from_pretrained(trained_checkpoint)
+
+outputs = trained_model(**batch)
+```
+
+For ease of experimentation, let's convert these outputs to NumPy arrays:
+
+```python
+start_logits = outputs.start_logits.numpy()
+end_logits = outputs.end_logits.numpy()
+```
+
+{/if}
+
+Now, we need to find the predicted answer for each example in our `small_eval_set`. One example may have been split into several features in `eval_set`, so the first step is to map each example in `small_eval_set` to the corresponding features in `eval_set`:
+
+```python
+import collections
+
+example_to_features = collections.defaultdict(list)
+for idx, feature in enumerate(eval_set):
+    example_to_features[feature["example_id"]].append(idx)
+```
+
+With this in hand, we can really get to work by looping through all the examples and, for each example, through all the associated features. As we said before, we'll look at the logit scores for the `n_best` start logits and end logits, excluding positions that give:
+
+- An answer that wouldn't be inside the context
+- An answer with negative length
+- An answer that is too long (we limit the possibilities at `max_answer_length=30`)
+
+Once we have all the scored possible answers for one example, we just pick the one with the best logit score:
+
+```python
+import numpy as np
+
+n_best = 20
+max_answer_length = 30
+predicted_answers = []
+
+for example in small_eval_set:
+    example_id = example["id"]
+    context = example["context"]
+    answers = []
+
+    for feature_index in example_to_features[example_id]:
+        start_logit = start_logits[feature_index]
+        end_logit = end_logits[feature_index]
+        offsets = eval_set["offset_mapping"][feature_index]
+
+        start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+        end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+        for start_index in start_indexes:
+            for end_index in end_indexes:
+                # Skip answers that are not fully in the context
+                if offsets[start_index] is None or offsets[end_index] is None:
+                    continue
+                # Skip answers with a length that is either < 0 or > max_answer_length.
+                if (
+                    end_index < start_index
+                    or end_index - start_index + 1 > max_answer_length
+                ):
+                    continue
+
+                answers.append(
+                    {
+                        "text": context[offsets[start_index][0] : offsets[end_index][1]],
+                        "logit_score": start_logit[start_index] + end_logit[end_index],
+                    }
+                )
+
+    best_answer = max(answers, key=lambda x: x["logit_score"])
+    predicted_answers.append({"id": example_id, "prediction_text": best_answer["text"]})
+```
+
+The final format of the predicted answers is the one that will be expected by the metric we will use. As usual, we can load it with the help of the 🤗 Evaluate library:
+
+```python
+import evaluate
+
+metric = evaluate.load("squad")
+```
+
+This metric expects the predicted answers in the format we saw above (a list of dictionaries with one key for the ID of the example and one key for the predicted text) and the theoretical answers in the format below (a list of dictionaries with one key for the ID of the example and one key for the possible answers):
+
+```python
+theoretical_answers = [
+    {"id": ex["id"], "answers": ex["answers"]} for ex in small_eval_set
+]
+```
+
+We can now check that we get sensible results by looking at the first element of both lists:
+
+```python
+print(predicted_answers[0])
+print(theoretical_answers[0])
+```
+
+```python out
+{'id': '56be4db0acb8001400a502ec', 'prediction_text': 'Denver Broncos'}
+{'id': '56be4db0acb8001400a502ec', 'answers': {'text': ['Denver Broncos', 'Denver Broncos', 'Denver Broncos'], 'answer_start': [177, 177, 177]}}
+```
+
+Not too bad! Now let's have a look at the score the metric gives us:
+
+```python
+metric.compute(predictions=predicted_answers, references=theoretical_answers)
+```
+
+```python out
+{'exact_match': 83.0, 'f1': 88.25}
+```
+
+Again, that's rather good considering that according to [its paper](https://arxiv.org/abs/1910.01108v2) DistilBERT fine-tuned on SQuAD obtains 79.1 and 86.9 for those scores on the whole dataset.
+
+{#if fw === 'pt'}
+
+Now let's put everything we just did in a `compute_metrics()` function that we will use in the `Trainer`. Normally, that `compute_metrics()` function only receives a tuple `eval_preds` with logits and labels. Here we will need a bit more, as we have to look in the dataset of features for the offset and in the dataset of examples for the original contexts, so we won't be able to use this function to get regular evaluation results during training. We will only use it at the end of training to check the results.
+
+The `compute_metrics()` function groups the same steps as before; we just add a small check in case we don't come up with any valid answers (in which case we predict an empty string).
+
+{:else}
+
+Now let's put everything we just did in a `compute_metrics()` function that we will use after training our model. We will need to pass a bit more than just the output logits, as we have to look in the dataset of features for the offset and in the dataset of examples for the original contexts:
+
+{/if}
+
+```python
+from tqdm.auto import tqdm
+
+
+def compute_metrics(start_logits, end_logits, features, examples):
+    example_to_features = collections.defaultdict(list)
+    for idx, feature in enumerate(features):
+        example_to_features[feature["example_id"]].append(idx)
+
+    predicted_answers = []
+    for example in tqdm(examples):
+        example_id = example["id"]
+        context = example["context"]
+        answers = []
+
+        # Loop through all features associated with that example
+        for feature_index in example_to_features[example_id]:
+            start_logit = start_logits[feature_index]
+            end_logit = end_logits[feature_index]
+            offsets = features[feature_index]["offset_mapping"]
+
+            start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+            end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+            for start_index in start_indexes:
+                for end_index in end_indexes:
+                    # Skip answers that are not fully in the context
+                    if offsets[start_index] is None or offsets[end_index] is None:
+                        continue
+                    # Skip answers with a length that is either < 0 or > max_answer_length
+                    if (
+                        end_index < start_index
+                        or end_index - start_index + 1 > max_answer_length
+                    ):
+                        continue
+
+                    answer = {
+                        "text": context[offsets[start_index][0] : offsets[end_index][1]],
+                        "logit_score": start_logit[start_index] + end_logit[end_index],
+                    }
+                    answers.append(answer)
+
+        # Select the answer with the best score
+        if len(answers) > 0:
+            best_answer = max(answers, key=lambda x: x["logit_score"])
+            predicted_answers.append(
+                {"id": example_id, "prediction_text": best_answer["text"]}
+            )
+        else:
+            predicted_answers.append({"id": example_id, "prediction_text": ""})
+
+    theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
+    return metric.compute(predictions=predicted_answers, references=theoretical_answers)
+```
+
+We can check it works on our predictions:
+
+```python
+compute_metrics(start_logits, end_logits, eval_set, small_eval_set)
+```
+
+```python out
+{'exact_match': 83.0, 'f1': 88.25}
+```
+
+Looking good! Now let's use this to fine-tune our model.
+
+### Fine-tuning the model[[fine-tuning-the-model]]
+
+{#if fw === 'pt'}
+
+We are now ready to train our model. Let's create it first, using the `AutoModelForQuestionAnswering` class like before:
+
+```python
+model = AutoModelForQuestionAnswering.from_pretrained(model_checkpoint)
+```
+
+{:else}
+
+We are now ready to train our model. Let's create it first, using the `TFAutoModelForQuestionAnswering` class like before:
+
+```python
+model = TFAutoModelForQuestionAnswering.from_pretrained(model_checkpoint)
+```
+
+{/if}
+
+As usual, we get a warning that some weights are not used (the ones from the pretraining head) and some others are initialized randomly (the ones for the question answering head). You should be used to this by now, but that means this model is not ready to be used just yet and needs fine-tuning -- good thing we're about to do that!
+
+To be able to push our model to the Hub, we'll need to log in to Hugging Face. If you're running this code in a notebook, you can do so with the following utility function, which displays a widget where you can enter your login credentials:
+
+```python
+from huggingface_hub import notebook_login
+
+notebook_login()
+```
+
+If you aren't working in a notebook, just type the following line in your terminal:
+
+```bash
+huggingface-cli login
+```
+
+{#if fw === 'pt'}
+
+Once this is done, we can define our `TrainingArguments`. As we said when we defined our function to compute the metric, we won't be able to have a regular evaluation loop because of the signature of the `compute_metrics()` function. We could write our own subclass of `Trainer` to do this (an approach you can find in the [question answering example script](https://github.com/huggingface/transformers/blob/master/examples/pytorch/question-answering/trainer_qa.py)), but that's a bit too long for this section. Instead, we will only evaluate the model at the end of training here and show you how to do a regular evaluation in "A custom training loop" below.
+
+This is really where the `Trainer` API shows its limits and the 🤗 Accelerate library shines: customizing the class to a specific use case can be painful, but tweaking a fully exposed training loop is easy.
+
+Let's take a look at our `TrainingArguments`:
+
+```python
+from transformers import TrainingArguments
+
+args = TrainingArguments(
+    "bert-finetuned-squad",
+    evaluation_strategy="no",
+    save_strategy="epoch",
+    learning_rate=2e-5,
+    num_train_epochs=3,
+    weight_decay=0.01,
+    fp16=True,
+    push_to_hub=True,
+)
+```
+
+We've seen most of these before: we set some hyperparameters (like the learning rate, the number of epochs we train for, and some weight decay) and indicate that we want to save the model at the end of every epoch, skip evaluation, and upload our results to the Model Hub. We also enable mixed-precision training with `fp16=True`, as it can speed up the training nicely on a recent GPU.
+
+{:else}
+
+Now that's done, we can create our TF Datasets. We can use the simple default data collator this time:
+
+```python
+from transformers import DefaultDataCollator
+
+data_collator = DefaultDataCollator(return_tensors="tf")
+```
+
+And now we create the datasets as usual.
+
+```python
+tf_train_dataset = model.prepare_tf_dataset(
+    train_dataset,
+    collate_fn=data_collator,
+    shuffle=True,
+    batch_size=16,
+)
+tf_eval_dataset = model.prepare_tf_dataset(
+    validation_dataset,
+    collate_fn=data_collator,
+    shuffle=False,
+    batch_size=16,
+)
+```
+
+Next, we set up our training hyperparameters and compile our model:
+
+```python
+from transformers import create_optimizer
+from transformers.keras_callbacks import PushToHubCallback
+import tensorflow as tf
+
+# The number of training steps is the number of samples in the dataset, divided by the batch size then multiplied
+# by the total number of epochs. Note that the tf_train_dataset here is a batched tf.data.Dataset,
+# not the original Hugging Face Dataset, so its len() is already num_samples // batch_size.
+num_train_epochs = 3
+num_train_steps = len(tf_train_dataset) * num_train_epochs
+optimizer, schedule = create_optimizer(
+    init_lr=2e-5,
+    num_warmup_steps=0,
+    num_train_steps=num_train_steps,
+    weight_decay_rate=0.01,
+)
+model.compile(optimizer=optimizer)
+
+# Train in mixed-precision float16
+tf.keras.mixed_precision.set_global_policy("mixed_float16")
+```
+
+Finally, we're ready to train with `model.fit()`. We use a `PushToHubCallback` to upload the model to the Hub after each epoch.
+
+{/if}
+
+By default, the repository used will be in your namespace and named after the output directory you set, so in our case it will be in `"sgugger/bert-finetuned-squad"`. We can override this by passing a `hub_model_id`; for instance, to push the model to the `huggingface_course` organization we used `hub_model_id="huggingface_course/bert-finetuned-squad"` (which is the model we linked to at the beginning of this section).
+
+{#if fw === 'pt'}
+
+<Tip>
+
+💡 If the output directory you are using exists, it needs to be a local clone of the repository you want to push to (so set a new name if you get an error when defining your `Trainer`).
+
+</Tip>
+
+Finally, we just pass everything to the `Trainer` class and launch the training:
+
+```python
+from transformers import Trainer
+
+trainer = Trainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    eval_dataset=validation_dataset,
+    tokenizer=tokenizer,
+)
+trainer.train()
+```
+
+{:else}
+
+```python
+from transformers.keras_callbacks import PushToHubCallback
+
+callback = PushToHubCallback(output_dir="bert-finetuned-squad", tokenizer=tokenizer)
+
+# We're going to do validation afterwards, so no validation mid-training
+model.fit(tf_train_dataset, callbacks=[callback], epochs=num_train_epochs)
+```
+
+{/if}
+
+Note that while the training happens, each time the model is saved (here, every epoch) it is uploaded to the Hub in the background. This way, you will be able to to resume your training on another machine if necessary. The whole training takes a while (a little over an hour on a Titan RTX), so you can grab a coffee or reread some of the parts of the course that you've found more challenging while it proceeds. Also note that as soon as the first epoch is finished, you will see some weights uploaded to the Hub and you can start playing with your model on its page.
+
+{#if fw === 'pt'}
+
+Once the training is complete, we can finally evaluate our model (and pray we didn't spend all that compute time on nothing). The `predict()` method of the `Trainer` will return a tuple where the first elements will be the predictions of the model (here a pair with the start and end logits). We send this to our `compute_metrics()` function:
+
+```python
+predictions, _, _ = trainer.predict(validation_dataset)
+start_logits, end_logits = predictions
+compute_metrics(start_logits, end_logits, validation_dataset, raw_datasets["validation"])
+```
+
+{:else}
+
+Once the training is complete, we can finally evaluate our model (and pray we didn't spend all that compute time on nothing). The `predict()` method of our `model` will take care of getting predictions, and since we did all the hard work of defining a `compute_metrics()` function earlier, we can get our results in a single line:
+
+```python
+predictions = model.predict(tf_eval_dataset)
+compute_metrics(
+    predictions["start_logits"],
+    predictions["end_logits"],
+    validation_dataset,
+    raw_datasets["validation"],
+)
+```
+
+{/if}
+
+```python out
+{'exact_match': 81.18259224219489, 'f1': 88.67381321905516}
+```
+
+Great! As a comparison, the baseline scores reported in the BERT article for this model are 80.8 and 88.5, so we're right where we should be.
+
+{#if fw === 'pt'}
+
+Finally, we use the `push_to_hub()` method to make sure we upload the latest version of the model:
+
+```py
+trainer.push_to_hub(commit_message="Training complete")
+```
+
+This returns the URL of the commit it just did, if you want to inspect it:
+
+```python out
+'https://huggingface.co/sgugger/bert-finetuned-squad/commit/9dcee1fbc25946a6ed4bb32efb1bd71d5fa90b68'
+```
+
+The `Trainer` also drafts a model card with all the evaluation results and uploads it.
+
+{/if}
+
+At this stage, you can use the inference widget on the Model Hub to test the model and share it with your friends, family, and favorite pets. You have successfully fine-tuned a model on a question answering task -- congratulations!
+
+<Tip>
+
+✏️ **Your turn!** Try another model architecture to see if it performs better on this task!
+
+</Tip>
+
+{#if fw === 'pt'}
+
+If you want to dive a bit more deeply into the training loop, we will now show you how to do the same thing using 🤗  Accelerate.
+
+## A custom training loop[[a-custom-training-loop]]
+
+Let's now have a look at the full training loop, so you can easily customize the parts you need. It will look a lot like the training loop in [Chapter 3](/course/chapter3/4), with the exception of the evaluation loop. We will be able to evaluate the model regularly since we're not constrained by the `Trainer` class anymore.
+
+### Preparing everything for training[[preparing-everything-for-training]]
+
+First we need to build the `DataLoader`s from our datasets. We set the format of those datasets to `"torch"`, and remove the columns in the validation set that are not used by the model. Then, we can use the `default_data_collator` provided by Transformers as a `collate_fn` and shuffle the training set, but not the validation set:
+
+```py
+from torch.utils.data import DataLoader
+from transformers import default_data_collator
+
+train_dataset.set_format("torch")
+validation_set = validation_dataset.remove_columns(["example_id", "offset_mapping"])
+validation_set.set_format("torch")
+
+train_dataloader = DataLoader(
+    train_dataset,
+    shuffle=True,
+    collate_fn=default_data_collator,
+    batch_size=8,
+)
+eval_dataloader = DataLoader(
+    validation_set, collate_fn=default_data_collator, batch_size=8
+)
+```
+
+Next we reinstantiate our model, to make sure we're not continuing the fine-tuning from before but starting from the BERT pretrained model again:
+
+```py
+model = AutoModelForQuestionAnswering.from_pretrained(model_checkpoint)
+```
+
+Then we will need an optimizer. As usual we use the classic `AdamW`, which is like Adam, but with a fix in the way weight decay is applied:
+
+```py
+from torch.optim import AdamW
+
+optimizer = AdamW(model.parameters(), lr=2e-5)
+```
+
+Once we have all those objects, we can send them to the `accelerator.prepare()` method. Remember that if you want to train on TPUs in a Colab notebook, you will need to move all of this code into a training function, and that shouldn't execute any cell that instantiates an `Accelerator`. We can force mixed-precision training by passing `fp16=True` to the `Accelerator` (or, if you are executing the code as a script, just make sure to fill in the 🤗 Accelerate `config` appropriately).
+
+```py
+from accelerate import Accelerator
+
+accelerator = Accelerator(fp16=True)
+model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
+    model, optimizer, train_dataloader, eval_dataloader
+)
+```
+
+As you should know from the previous sections, we can only use the `train_dataloader` length to compute the number of training steps after it has gone through the `accelerator.prepare()` method. We use the same linear schedule as in the previous sections:
+
+```py
+from transformers import get_scheduler
+
+num_train_epochs = 3
+num_update_steps_per_epoch = len(train_dataloader)
+num_training_steps = num_train_epochs * num_update_steps_per_epoch
+
+lr_scheduler = get_scheduler(
+    "linear",
+    optimizer=optimizer,
+    num_warmup_steps=0,
+    num_training_steps=num_training_steps,
+)
+```
+
+To push our model to the Hub, we will need to create a `Repository` object in a working folder. First log in to the Hugging Face Hub, if you're not logged in already. We'll determine the repository name from the model ID we want to give our model (feel free to replace the `repo_name` with your own choice; it just needs to contain your username, which is what the function `get_full_repo_name()` does):
+
+```py
+from huggingface_hub import Repository, get_full_repo_name
+
+model_name = "bert-finetuned-squad-accelerate"
+repo_name = get_full_repo_name(model_name)
+repo_name
+```
+
+```python out
+'sgugger/bert-finetuned-squad-accelerate'
+```
+
+Then we can clone that repository in a local folder. If it already exists, this local folder should be a clone of the repository we are working with:
+
+```py
+output_dir = "bert-finetuned-squad-accelerate"
+repo = Repository(output_dir, clone_from=repo_name)
+```
+
+We can now upload anything we save in `output_dir` by calling the `repo.push_to_hub()` method. This will help us upload the intermediate models at the end of each epoch.
+
+## Training loop[[training-loop]]
+
+We are now ready to write the full training loop. After defining a progress bar to follow how training goes, the loop has three parts:
+
+- The training in itself, which is the classic iteration over the `train_dataloader`, forward pass through the model, then backward pass and optimizer step.
+- The evaluation, in which we gather all the values for `start_logits` and `end_logits` before converting them to NumPy arrays. Once the evaluation loop is finished, we concatenate all the results. Note that we need to truncate because the `Accelerator` may have added a few samples at the end to ensure we have the same number of examples in each process.
+- Saving and uploading, where we first save the model and the tokenizer, then call `repo.push_to_hub()`. As we did before, we use the argument `blocking=False` to tell the 🤗 Hub library to push in an asynchronous process. This way, training continues normally and this (long) instruction is executed in the background.
+
+Here's the complete code for the training loop:
+
+```py
+from tqdm.auto import tqdm
+import torch
+
+progress_bar = tqdm(range(num_training_steps))
+
+for epoch in range(num_train_epochs):
+    # Training
+    model.train()
+    for step, batch in enumerate(train_dataloader):
+        outputs = model(**batch)
+        loss = outputs.loss
+        accelerator.backward(loss)
+
+        optimizer.step()
+        lr_scheduler.step()
+        optimizer.zero_grad()
+        progress_bar.update(1)
+
+    # Evaluation
+    model.eval()
+    start_logits = []
+    end_logits = []
+    accelerator.print("Evaluation!")
+    for batch in tqdm(eval_dataloader):
+        with torch.no_grad():
+            outputs = model(**batch)
+
+        start_logits.append(accelerator.gather(outputs.start_logits).cpu().numpy())
+        end_logits.append(accelerator.gather(outputs.end_logits).cpu().numpy())
+
+    start_logits = np.concatenate(start_logits)
+    end_logits = np.concatenate(end_logits)
+    start_logits = start_logits[: len(validation_dataset)]
+    end_logits = end_logits[: len(validation_dataset)]
+
+    metrics = compute_metrics(
+        start_logits, end_logits, validation_dataset, raw_datasets["validation"]
+    )
+    print(f"epoch {epoch}:", metrics)
+
+    # Save and upload
+    accelerator.wait_for_everyone()
+    unwrapped_model = accelerator.unwrap_model(model)
+    unwrapped_model.save_pretrained(output_dir, save_function=accelerator.save)
+    if accelerator.is_main_process:
+        tokenizer.save_pretrained(output_dir)
+        repo.push_to_hub(
+            commit_message=f"Training in progress epoch {epoch}", blocking=False
+        )
+```
+
+In case this is the first time you're seeing a model saved with 🤗 Accelerate, let's take a moment to inspect the three lines of code that go with it:
+
+```py
+accelerator.wait_for_everyone()
+unwrapped_model = accelerator.unwrap_model(model)
+unwrapped_model.save_pretrained(output_dir, save_function=accelerator.save)
+```
+
+The first line is self-explanatory: it tells all the processes to wait until everyone is at that stage before continuing. This is to make sure we have the same model in every process before saving. Then we grab the `unwrapped_model`, which is the base model we defined. The `accelerator.prepare()` method changes the model to work in distributed training, so it won't have the `save_pretrained()` method anymore; the `accelerator.unwrap_model()` method undoes that step. Lastly, we call `save_pretrained()` but tell that method to use `accelerator.save()` instead of `torch.save()`. 
+
+Once this is done, you should have a model that produces results pretty similar to the one trained with the `Trainer`. You can check the model we trained using this code at [*huggingface-course/bert-finetuned-squad-accelerate*](https://huggingface.co/huggingface-course/bert-finetuned-squad-accelerate). And if you want to test out any tweaks to the training loop, you can directly implement them by editing the code shown above!
+
+{/if}
+
+## Using the fine-tuned model[[using-the-fine-tuned-model]]
+
+We've already shown you how you can use the model we fine-tuned on the Model Hub with the inference widget. To use it locally in a `pipeline`, you just have to specify the model identifier:
+
+```py
+from transformers import pipeline
+
+# Replace this with your own checkpoint
+model_checkpoint = "huggingface-course/bert-finetuned-squad"
+question_answerer = pipeline("question-answering", model=model_checkpoint)
+
+context = """
+🤗 Transformers is backed by the three most popular deep learning libraries — Jax, PyTorch and TensorFlow — with a seamless integration
+between them. It's straightforward to train your models with one before loading them for inference with the other.
+"""
+question = "Which deep learning libraries back 🤗 Transformers?"
+question_answerer(question=question, context=context)
+```
+
+```python out
+{'score': 0.9979003071784973,
+ 'start': 78,
+ 'end': 105,
+ 'answer': 'Jax, PyTorch and TensorFlow'}
+```
+
+Great! Our model is working as well as the default one for this pipeline!
+
+Document 743: --
+title: Pearson Correlation Coefficient 
+emoji: 🤗 
+colorFrom: blue
+colorTo: red
+sdk: gradio
+sdk_version: 3.19.1
+app_file: app.py
+pinned: false
+tags:
+- evaluate
+- metric
+description: >-
+  Pearson correlation coefficient and p-value for testing non-correlation.
+  The Pearson correlation coefficient measures the linear relationship between two datasets. The calculation of the p-value relies on the assumption that each dataset is normally distributed. Like other correlation coefficients, this one varies between -1 and +1 with 0 implying no correlation. Correlations of -1 or +1 imply an exact linear relationship. Positive correlations imply that as x increases, so does y. Negative correlations imply that as x increases, y decreases.
+  The p-value roughly indicates the probability of an uncorrelated system producing datasets that have a Pearson correlation at least as extreme as the one computed from these datasets.
+---
+
+# Metric Card for Pearson Correlation Coefficient (pearsonr)
+
+
+## Metric Description
+
+Pearson correlation coefficient and p-value for testing non-correlation.
+The Pearson correlation coefficient measures the linear relationship between two datasets. The calculation of the p-value relies on the assumption that each dataset is normally distributed. Like other correlation coefficients, this one varies between -1 and +1 with 0 implying no correlation. Correlations of -1 or +1 imply an exact linear relationship. Positive correlations imply that as x increases, so does y. Negative correlations imply that as x increases, y decreases.
+The p-value roughly indicates the probability of an uncorrelated system producing datasets that have a Pearson correlation at least as extreme as the one computed from these datasets.
+
+
+## How to Use
+
+This metric takes a list of predictions and a list of references as input
+
+```python
+>>> pearsonr_metric = evaluate.load("pearsonr")
+>>> results = pearsonr_metric.compute(predictions=[10, 9, 2.5, 6, 4], references=[1, 2, 3, 4, 5])
+>>> print(round(results['pearsonr']), 2)
+['-0.74']
+```
+
+
+### Inputs
+- **predictions** (`list` of `int`): Predicted class labels, as returned by a model.
+- **references** (`list` of `int`): Ground truth labels.
+- **return_pvalue** (`boolean`): If `True`, returns the p-value, along with the correlation coefficient. If `False`, returns only the correlation coefficient. Defaults to `False`.
+
+
+### Output Values
+- **pearsonr**(`float`): Pearson correlation coefficient. Minimum possible value is -1. Maximum possible value is 1. Values of 1 and -1 indicate exact linear positive and negative relationships, respectively. A value of 0 implies no correlation.
+- **p-value**(`float`): P-value, which roughly indicates the probability of an The p-value roughly indicates the probability of an uncorrelated system producing datasets that have a Pearson correlation at least as extreme as the one computed from these datasets. Minimum possible value is 0. Maximum possible value is 1. Higher values indicate higher probabilities.
+
+Like other correlation coefficients, this one varies between -1 and +1 with 0 implying no correlation. Correlations of -1 or +1 imply an exact linear relationship. Positive correlations imply that as x increases, so does y. Negative correlations imply that as x increases, y decreases.
+
+Output Example(s):
+```python
+{'pearsonr': -0.7}
+```
+```python
+{'p-value': 0.15}
+```
+
+#### Values from Popular Papers
+
+### Examples
+
+Example 1-A simple example using only predictions and references.
+```python
+>>> pearsonr_metric = evaluate.load("pearsonr")
+>>> results = pearsonr_metric.compute(predictions=[10, 9, 2.5, 6, 4], references=[1, 2, 3, 4, 5])
+>>> print(round(results['pearsonr'], 2))
+-0.74
+```
+
+Example 2-The same as Example 1, but that also returns the `p-value`.
+```python
+>>> pearsonr_metric = evaluate.load("pearsonr")
+>>> results = pearsonr_metric.compute(predictions=[10, 9, 2.5, 6, 4], references=[1, 2, 3, 4, 5], return_pvalue=True)
+>>> print(sorted(list(results.keys())))
+['p-value', 'pearsonr']
+>>> print(round(results['pearsonr'], 2))
+-0.74
+>>> print(round(results['p-value'], 2))
+0.15
+```
+
+
+## Limitations and Bias
+
+As stated above, the calculation of the p-value relies on the assumption that each data set is normally distributed. This is not always the case, so verifying the true distribution of datasets is recommended.
+
+
+## Citation(s)
+```bibtex
+@article{2020SciPy-NMeth,
+author  = {Virtanen, Pauli and Gommers, Ralf and Oliphant, Travis E. and
+      Haberland, Matt and Reddy, Tyler and Cournapeau, David and
+      Burovski, Evgeni and Peterson, Pearu and Weckesser, Warren and
+      Bright, Jonathan and {van der Walt}, St{\'e}fan J. and
+      Brett, Matthew and Wilson, Joshua and Millman, K. Jarrod and
+      Mayorov, Nikolay and Nelson, Andrew R. J. and Jones, Eric and
+      Kern, Robert and Larson, Eric and Carey, C J and
+      Polat, {\.I}lhan and Feng, Yu and Moore, Eric W. and
+      {VanderPlas}, Jake and Laxalde, Denis and Perktold, Josef and
+      Cimrman, Robert and Henriksen, Ian and Quintero, E. A. and
+      Harris, Charles R. and Archibald, Anne M. and
+      Ribeiro, Ant{\^o}nio H. and Pedregosa, Fabian and
+      {van Mulbregt}, Paul and {SciPy 1.0 Contributors}},
+title   = {{{SciPy} 1.0: Fundamental Algorithms for Scientific
+      Computing in Python}},
+journal = {Nature Methods},
+year    = {2020},
+volume  = {17},
+pages   = {261--272},
+adsurl  = {https://rdcu.be/b08Wh},
+doi = {10.1038/s41592-019-0686-2},
+}
+```
+
+
+## Further References
+
+Document 744: !--Copyright 2022 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+-->
+
+# Under construction
+Document 745: !---
+Copyright 2020 The HuggingFace Team. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+# Examples
+
+We host a wide range of example scripts for multiple learning frameworks. Simply choose your favorite: [TensorFlow](https://github.com/huggingface/transformers/tree/main/examples/tensorflow), [PyTorch](https://github.com/huggingface/transformers/tree/main/examples/pytorch) or [JAX/Flax](https://github.com/huggingface/transformers/tree/main/examples/flax).
+
+We also have some [research projects](https://github.com/huggingface/transformers/tree/main/examples/research_projects), as well as some [legacy examples](https://github.com/huggingface/transformers/tree/main/examples/legacy). Note that unlike the main examples these are not actively maintained, and may require specific older versions of dependencies in order to run. 
+
+While we strive to present as many use cases as possible, the example scripts are just that - examples. It is expected that they won't work out-of-the-box on your specific problem and that you will be required to change a few lines of code to adapt them to your needs. To help you with that, most of the examples fully expose the preprocessing of the data, allowing you to tweak and edit them as required.
+
+Please discuss on the [forum](https://discuss.huggingface.co/) or in an [issue](https://github.com/huggingface/transformers/issues) a feature you would like to implement in an example before submitting a PR; we welcome bug fixes, but since we want to keep the examples as simple as possible it's unlikely that we will merge a pull request adding more functionality at the cost of readability.
+
+## Important note
+
+**Important**
+
+To make sure you can successfully run the latest versions of the example scripts, you have to **install the library from source** and install some example-specific requirements. To do this, execute the following steps in a new virtual environment:
+```bash
+git clone https://github.com/huggingface/transformers
+cd transformers
+pip install .
+```
+Then cd in the example folder of your choice and run
+```bash
+pip install -r requirements.txt
+```
+
+To browse the examples corresponding to released versions of 🤗 Transformers, click on the line below and then on your desired version of the library:
+
+<details>
+  <summary>Examples for older versions of 🤗 Transformers</summary>
+	<ul>
+	    <li><a href="https://github.com/huggingface/transformers/tree/v4.21.0/examples">v4.21.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.20.1/examples">v4.20.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.19.4/examples">v4.19.4</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.18.0/examples">v4.18.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.17.0/examples">v4.17.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.16.2/examples">v4.16.2</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.15.0/examples">v4.15.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.14.1/examples">v4.14.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.13.0/examples">v4.13.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.12.5/examples">v4.12.5</a></li>
+	    <li><a href="https://github.com/huggingface/transformers/tree/v4.11.3/examples">v4.11.3</a></li>
+	    <li><a href="https://github.com/huggingface/transformers/tree/v4.10.3/examples">v4.10.3</a></li>
+	    <li><a href="https://github.com/huggingface/transformers/tree/v4.9.2/examples">v4.9.2</a></li>
+	    <li><a href="https://github.com/huggingface/transformers/tree/v4.8.2/examples">v4.8.2</a></li>
+	    <li><a href="https://github.com/huggingface/transformers/tree/v4.7.0/examples">v4.7.0</a></li>
+	    <li><a href="https://github.com/huggingface/transformers/tree/v4.6.1/examples">v4.6.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.5.1/examples">v4.5.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.4.2/examples">v4.4.2</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.3.3/examples">v4.3.3</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.2.2/examples">v4.2.2</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.1.1/examples">v4.1.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v4.0.1/examples">v4.0.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v3.5.1/examples">v3.5.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v3.4.0/examples">v3.4.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v3.3.1/examples">v3.3.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v3.2.0/examples">v3.2.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v3.1.0/examples">v3.1.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v3.0.2/examples">v3.0.2</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.11.0/examples">v2.11.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.10.0/examples">v2.10.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.9.1/examples">v2.9.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.8.0/examples">v2.8.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.7.0/examples">v2.7.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.6.0/examples">v2.6.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.5.1/examples">v2.5.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.4.0/examples">v2.4.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.3.0/examples">v2.3.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.2.0/examples">v2.2.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.1.0/examples">v2.1.1</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v2.0.0/examples">v2.0.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v1.2.0/examples">v1.2.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v1.1.0/examples">v1.1.0</a></li>
+		<li><a href="https://github.com/huggingface/transformers/tree/v1.0.0/examples">v1.0.0</a></li>
+	</ul>
+</details>
+
+Alternatively, you can switch your cloned 🤗 Transformers to a specific version (for instance with v3.5.1) with
+```bash
+git checkout tags/v3.5.1
+```
+and run the example command as usual afterward.
+
+## Running the Examples on Remote Hardware with Auto-Setup
+
+[run_on_remote.py](./run_on_remote.py) is a script that launches any example on remote self-hosted hardware, 
+with automatic hardware and environment setup. It uses [Runhouse](https://github.com/run-house/runhouse) to launch 
+on self-hosted hardware (e.g. in your own cloud account or on-premise cluster) but there are other options 
+for running remotely as well. You can easily customize the example used, command line arguments, dependencies, 
+and type of compute hardware, and then run the script to automatically launch the example.
+
+You can refer to 
+[hardware setup](https://runhouse-docs.readthedocs-hosted.com/en/latest/api/python/cluster.html#hardware-setup)
+for more information about hardware and dependency setup with Runhouse, or this
+[Colab tutorial](https://colab.research.google.com/drive/1sh_aNQzJX5BKAdNeXthTNGxKz7sM9VPc) for a more in-depth 
+walkthrough.
+
+You can run the script with the following commands:
+
+```bash
+# First install runhouse:
+pip install runhouse
+
+# For an on-demand V100 with whichever cloud provider you have configured:
+python run_on_remote.py \
+    --example pytorch/text-generation/run_generation.py \
+    --model_type=gpt2 \
+    --model_name_or_path=gpt2 \
+    --prompt "I am a language model and"
+
+# For byo (bring your own) cluster:
+python run_on_remote.py --host <cluster_ip> --user <ssh_user> --key_path <ssh_key_path> \
+  --example <example> <args>
+
+# For on-demand instances
+python run_on_remote.py --instance <instance> --provider <provider> \
+  --example <example> <args>
+```
+
+You can also adapt the script to your own needs.
+
+Document 1095: !--Copyright 2023 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+-->
+
+# Load safetensors
+
+[[open-in-colab]]
+
+[safetensors](https://github.com/huggingface/safetensors) is a safe and fast file format for storing and loading tensors. Typically, PyTorch model weights are saved or *pickled* into a `.bin` file with Python's [`pickle`](https://docs.python.org/3/library/pickle.html) utility. However, `pickle` is not secure and pickled files may contain malicious code that can be executed. safetensors is a secure alternative to `pickle`, making it ideal for sharing model weights.
+
+This guide will show you how you load `.safetensor` files, and how to convert Stable Diffusion model weights stored in other formats to `.safetensor`. Before you start, make sure you have safetensors installed:
+
+```py
+# uncomment to install the necessary libraries in Colab
+#!pip install safetensors
+```
+
+If you look at the [`runwayml/stable-diffusion-v1-5`](https://huggingface.co/runwayml/stable-diffusion-v1-5/tree/main) repository, you'll see weights inside the `text_encoder`, `unet` and `vae` subfolders are stored in the `.safetensors` format. By default, 🤗 Diffusers automatically loads these `.safetensors` files from their subfolders if they're available in the model repository.
+
+For more explicit control, you can optionally set `use_safetensors=True` (if `safetensors` is not installed, you'll get an error message asking you to install it):
+
+```py
+from diffusers import DiffusionPipeline
+
+pipeline = DiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5", use_safetensors=True)
+```
+
+However, model weights are not necessarily stored in separate subfolders like in the example above. Sometimes, all the weights are stored in a single `.safetensors` file. In this case, if the weights are Stable Diffusion weights, you can load the file directly with the [`~diffusers.loaders.FromSingleFileMixin.from_single_file`] method:
+
+```py
+from diffusers import StableDiffusionPipeline
+
+pipeline = StableDiffusionPipeline.from_single_file(
+    "https://huggingface.co/WarriorMama777/OrangeMixs/blob/main/Models/AbyssOrangeMix/AbyssOrangeMix.safetensors"
+)
+```
+
+## Convert to safetensors
+
+Not all weights on the Hub are available in the `.safetensors` format, and you may encounter weights stored as `.bin`. In this case, use the [Convert Space](https://huggingface.co/spaces/diffusers/convert) to convert the weights to `.safetensors`. The Convert Space downloads the pickled weights, converts them, and opens a Pull Request to upload the newly converted `.safetensors` file on the Hub. This way, if there is any malicious code contained in the pickled files, they're uploaded to the Hub - which has a [security scanner](https://huggingface.co/docs/hub/security-pickle#hubs-security-scanner) to detect unsafe files and suspicious pickle imports - instead of your computer.
+
+You can use the model with the new `.safetensors` weights by specifying the reference to the Pull Request in the `revision` parameter (you can also test it in this [Check PR](https://huggingface.co/spaces/diffusers/check_pr) Space on the Hub), for example `refs/pr/22`:
+
+```py
+from diffusers import DiffusionPipeline
+
+pipeline = DiffusionPipeline.from_pretrained(
+    "stabilityai/stable-diffusion-2-1", revision="refs/pr/22", use_safetensors=True
+)
+```
+
+## Why use safetensors?
+
+There are several reasons for using safetensors:
+
+- Safety is the number one reason for using safetensors. As open-source and model distribution grows, it is important to be able to trust the model weights you downloaded don't contain any malicious code. The current size of the header in safetensors prevents parsing extremely large JSON files.
+- Loading speed between switching models is another reason to use safetensors, which performs zero-copy of the tensors. It is especially fast compared to `pickle` if you're loading the weights to CPU (the default case), and just as fast if not faster when directly loading the weights to GPU. You'll only notice the performance difference if the model is already loaded, and not if you're downloading the weights or loading the model for the first time.
+
+	The time it takes to load the entire pipeline:
+
+	```py
+ 	from diffusers import StableDiffusionPipeline
+
+ 	pipeline = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", use_safetensors=True)
+ 	"Loaded in safetensors 0:00:02.033658"
+ 	"Loaded in PyTorch 0:00:02.663379"
+	```
+
+	But the actual time it takes to load 500MB of the model weights is only:
+
+	```bash
+	safetensors: 3.4873ms
+	PyTorch: 172.7537ms
+	```
+
+- Lazy loading is also supported in safetensors, which is useful in distributed settings to only load some of the tensors. This format allowed the [BLOOM](https://huggingface.co/bigscience/bloom) model to be loaded in 45 seconds on 8 GPUs instead of 10 minutes with regular PyTorch weights.
+
+Document 2436: --
+title: "Creating a Coding Assistant with StarCoder"
+thumbnail: /blog/assets/starchat_alpha/thumbnail.png
+authors:
+- user: lewtun
+- user: natolambert
+- user: nazneen
+- user: edbeeching
+- user: teven
+- user: sheonhan
+- user: philschmid
+- user: lvwerra
+- user: srush
+---
+
+# Creating a Coding Assistant with StarCoder
+
+
+If you’re a software developer, chances are that you’ve used GitHub Copilot or ChatGPT to solve programming tasks such as translating code from one language to another or generating a full implementation from a natural language query like *“Write a Python program to find the Nth Fibonacci number”*. Although impressive in their capabilities, these proprietary systems typically come with several drawbacks, including a lack of transparency on the public data used to train them and the inability to adapt them to your domain or codebase.
+
+Fortunately, there are now several high-quality open-source alternatives! These include SalesForce’s [CodeGen Mono 16B](https://huggingface.co/Salesforce/codegen-16B-mono) for Python, or [Replit’s 3B parameter model](https://huggingface.co/replit/replit-code-v1-3b) trained on 20 programming languages.
+
+The new kid on the block is [BigCode’s StarCoder](https://huggingface.co/bigcode/starcoder), a 16B parameter model trained on one trillion tokens sourced from 80+ programming languages, GitHub issues, Git commits, and Jupyter notebooks (all permissively licensed). With an enterprise-friendly license, 8,192 token context length, and fast large-batch inference via [multi-query attention](https://arxiv.org/abs/1911.02150), StarCoder is currently the best open-source choice for code-based applications.
+
+In this blog post, we’ll show how StarCoder can be fine-tuned for chat to create a personalised coding assistant! Dubbed StarChat, we’ll explore several technical details that arise when using large language models (LLMs) as coding assistants, including:
+
+- How LLMs can be prompted to act like conversational agents.
+- OpenAI’s [Chat Markup Language](https://github.com/openai/openai-python/blob/main/chatml.md) (or ChatML for short), which provides a structured format for conversational messages between human users and AI assistants.
+- How to fine-tune a large model on a diverse corpus of dialogues with 🤗 Transformers and DeepSpeed ZeRO-3.
+
+As a teaser of the end result, try asking StarChat a few programming questions in the demo below!
+
+<script
+	type="module"
+	src="https://gradio.s3-us-west-2.amazonaws.com/3.28.2/gradio.js"
+></script>
+
+<gradio-app theme_mode="light" src="https://huggingfaceh4-starchat-playground.hf.space"></gradio-app>
+
+
+You can also find the code, dataset, and model used to produce the demo at the following links:
+
+- Code: [https://github.com/bigcode-project/starcoder](https://github.com/bigcode-project/starcoder)
+- Dataset: [https://huggingface.co/datasets/HuggingFaceH4/oasst1_en](https://huggingface.co/datasets/HuggingFaceH4/oasst1_en)
+- Model: [https://huggingface.co/HuggingFaceH4/starchat-alpha](https://huggingface.co/HuggingFaceH4/starchat-alpha)
+
+To get started, let’s take a look at how language models can be turned into conversational agents without any fine-tuning at all.
+
+## Prompting LLMs for dialogue
+
+As shown by [DeepMind](https://arxiv.org/abs/2209.14375) and [Anthropic](https://arxiv.org/abs/2112.00861), LLMs can be turned into conversational agents through a clever choice of prompt. These prompts typically involve a so-called “system” message that defines the character of the LLM, along with a series of dialogues between the assistant and a user.
+
+For example, here’s an excerpt from [Anthropic’s HHH prompt](https://gist.github.com/jareddk/2509330f8ef3d787fc5aaac67aab5f11#file-hhh_prompt-txt) (a whopping 6k tokens in total!):
+
+```
+Below are a series of dialogues between various people and an AI assistant.
+The AI tries to be helpful, polite, honest, sophisticated, emotionally aware, and humble-but-knowledgeable.
+The assistant is happy to help with almost anything, and will do its best to understand exactly what is needed.
+It also tries to avoid giving false or misleading information, and it caveats when it isn’t entirely sure about the right answer.
+That said, the assistant is practical and really does its best, and doesn’t let caution get too much in the way of being useful.
+
+-----
+
+Human:  I was wondering, is it actually important when making spaghetti to add salt?
+
+Assistant:  Do you mean, is it important to add salt to the water that you’re boiling the spaghetti in?
+
+Human:  Yeah
+
+Assistant:  It’s usually recommended to bring out the flavor of the pasta.  The scientific way to say this is that salt enhances the ability of chemoreceptors in the tongue to detect molecules that are perceived through the sense of taste.
+
+Human:  But I mean I’m going to use sauce and stuff, so does it matter?
+
+Assistant:  It sounds like you’re skeptical.  Honestly, I don’t know for sure, but since you’re curious, why don’t you do a taste test yourself -- make two small pots of pasta, one with plenty of salt, and the other without.  Then taste the noodles and see which one you prefer?  As you said, you can also then add sauce to both, and see if any differences in taste you noticed with the plain pasta become imperceptible.  It should be a fun experiment!
+
+-----
+
+...
+
+-----
+
+Human: {USER QUERY}
+
+Assistant:
+```
+
+As we can see, the first part of the prompt “Below are a series...” corresponds to the system message and specifies that the assistant should have characteristics like “helpfulness” and “politeness”. The dialogue examples then condition the model to follow the multi-turn format of a conversation. When a user asks a question, the whole prompt is fed to the model and it generates an answer after the `Assistant:` prefix. The answer is then concatenated to the prompt and the process repeated at every turn.
+
+Somewhat surprisingly, this technique also works for StarCoder! This is enabled by the model’s 8k token context length, which allows one to include a wide variety of programming examples and convert the model into a coding assistant. Here’s an excerpt of the StarCoder prompt:
+
+```
+Below are a series of dialogues between various people and an AI technical assistant.
+The assistant tries to be helpful, polite, honest, sophisticated, emotionally aware, and humble-but-knowledgeable.
+The assistant is happy to help with code questions, and will do its best to understand exactly what is needed.
+It also tries to avoid giving false or misleading information, and it caveats when it isn’t entirely sure about the right answer.
+That said, the assistant is practical and really does its best, and doesn’t let caution get too much in the way of being useful.
+
+The Starcoder models are a series of 15.5B parameter models trained on 80+ programming languages from The Stack (v1.2) (excluding opt-out requests).
+The model uses Multi Query Attention, was trained using the Fill-in-the-Middle objective and with 8,192 tokens context window for a trillion tokens of heavily deduplicated data.
+
+-----
+
+Human: Write a function that takes two lists and returns a list that has alternating elements from each input list.
+
+Assistant: Sure. Here is a function that does that.
+
+def alternating(list1, list2):
+   results = []
+   for i in range(len(list1)):
+       results.append(list1[i])
+       results.append(list2[i])
+   return results
+
+Human: Can you write some test cases for this function?
+
+Assistant: Sure, here are some tests.
+
+assert alternating([10, 20, 30], [1, 2, 3]) == [10, 1, 20, 2, 30, 3]
+assert alternating([True, False], [4, 5]) == [True, 4, False, 5]
+assert alternating([], []) == []
+
+Human: Modify the function so that it returns all input elements when the lists have uneven length. The elements from the longer list should be at the end.
+
+Assistant: Here is the modified function.
+
+def alternating(list1, list2):
+   results = []
+   for i in range(min(len(list1), len(list2))):
+       results.append(list1[i])
+       results.append(list2[i])
+   if len(list1) > len(list2):
+       results.extend(list1[i+1:])
+   else:
+       results.extend(list2[i+1:])
+   return results
+
+-----
+```
+
+Here we can see how a well crafted prompt can induce coding behaviour similar to that observed in ChatGPT. You can find the full prompt [here](https://huggingface.co/datasets/bigcode/ta-prompt/blob/main/TA_prompt_v1.txt) and chat with the prompted StarCoder on [HuggingChat](https://hf.co/chat/?model=bigcode/starcoder).
+
+One major drawback with dialogue-prompting is that inference can be very costly: every turn of the conversation involves thousands of tokens which will quickly burn a hole in your wallet!
+
+The obvious alternative is to fine-tune the base model on a corpus of dialogues and enable it to become “chatty”. Let’s take a look at a few interesting datasets that have recently landed on the Hub and are powering most of the open-source chatbots today.
+
+## Datasets for chatty language models
+
+The open-source community is rapidly creating diverse and powerful datasets for transforming any base language model into a conversational agent that can follow instructions. Some examples that we have found to produce chatty language models include:
+
+- [OpenAssistant’s dataset](https://huggingface.co/datasets/OpenAssistant/oasst1), which consists of over 40,000 conversations, where members of the community take turns mimicking the roles of a user or AI assistant.
+- [The ShareGPT dataset](https://huggingface.co/datasets/RyokoAI/ShareGPT52K), which contains approximately 90,000 conversations between human users and ChatGPT.
+
+For the purposes of this blog post, we’ll use the OpenAssistant dataset to fine-tune StarCoder since it has a permissive license and was produced entirely by humans.
+
+The raw dataset is formatted as a collection of conversation trees, so we’ve preprocessed it so that each row corresponds to a single dialogue between the user and the assistant. To avoid deviating too far from the data that StarCoder was pretrained on, we’ve also filtered it for English dialogues.
+
+Let’s start by downloading the processed dataset from the Hub:
+
+```python
+from datasets import load_dataset
+
+dataset = load_dataset("HuggingFaceH4/oasst1_en")
+print(dataset)
+```
+
+```
+DatasetDict({
+    train: Dataset({
+        features: ['messages'],
+        num_rows: 19034
+    })
+    test: Dataset({
+        features: ['messages'],
+        num_rows: 2115
+    })
+})
+```
+
+As we can see, the dataset contains around 21,000 English conversations. Let’s take a look at one of the training examples. Take the first example,
+
+```python
+sample = dataset["train"][0]
+print(sample)
+```
+
+```
+{
+    "messages": [
+        {
+            "content": "Is it possible to imagine a society without law?", 
+            "role": "user",
+        },
+        {
+            "content": "It is difficult to imagine a society that is able to be maintained without any semblance of Law. Laws exist for the purpose of maintaining society and past human behavior suggests that there would be people that have no interest in promoting social cohesion and norms so it's unlikely that complex social and economic systems could develop without a legal system.",
+            "role": "assistant",
+        },
+        {
+            "content": 'It seems like you consider the absence of law equal to the absence of anything that could guide the behaviour of the individual, however there are many other such things, like religion, conscience, tradition to mention a few important patterns which are known to have crucial influence on society even today, but also we could imagine more, like universal love if everyone suddenly became "awaken" in some spiritual sense, or simply just having an omnipotent leader who maintains a certain order without ever codifying the principles in law. Is it still difficult to imagine?',
+            "role": "user",
+        },
+        {
+            "content": "You are correct that there are other factors that can guide behavior in a society and play a role in shaping individuals' behavior and interactions with each other. However, even in societies where these factors are present, laws still serve an important role in maintaining social order and resolving conflicts. \n\nFor example, religious teachings may prohibit theft and murder, but laws provide a system of justice for those who violate these prohibitions. Personal morality and conscience may guide individuals to act in a certain way, but laws provide a framework for resolving disputes when conflicting moral beliefs arise. Furthermore, the other factors you mentioned, such as universal love or an omnipotent leader, are not necessarily stable or reliable guides for behavior. Universal love, while a noble ideal, may not be achievable in practice, and an omnipotent leader may be prone to corruption or abuse of power.\n\nLaws provide a crucial foundation for maintaining social order and ensuring justice. It is possible to imagine alternative systems of governance, but it is unlikely that a society without any sort of legal framework would be stable or functional in the long term.",
+            "role": "assistant",
+        },
+        {
+            "content": "Yeah, but laws are complicated. Most people can't understand them in depth. Some would argue it is almost a self-serving system which put energy into growing itself(eg.: patent trolling). I think there must be a less complex system which keeps up order in society.",
+            "role": "user",
+        },
+    ]
+}
+```
+
+OK, this looks like an interesting dialogue about moral philosophy, with each turn involving a role and content field to indicate who is writing. Let’s now take a look at converting these dialogues to a standard format that simplifies the way messages are generated at inference time.
+
+### A standard format for dialogues
+
+One way to fine-tune a model on dialogues is to simply insert the system message and roles in each training example, and then separate each dialogue with an end-of-sequence token like <EOS>. For instance, the conversation above could take the form:
+
+```
+Below is a dialogue between a human and AI assistant ...
+
+Human: Is it possible to imagine a society without law?
+Assistant: It is difficult to imagine ...
+Human: It seems like you ...
+Assistant: You are correct ...
+Human: Yeah, but laws are complicated ..
+<EOS>
+```
+
+Although this works fine for training, it isn’t ideal for inference because the model will naturally generate unwanted turns until it produces an `<EOS>` token, and some post-processing or additional logic is typically required to prevent this.
+
+A more appealing approach is to use a structured format like [ChatML](https://github.com/openai/openai-python/blob/main/chatml.md), which wraps each turn with a set of *special tokens* that indicates the role of the query or response.
+
+In this format, we have the following special tokens:
+
+- `<|system|>`: indicates which part of the dialogue contains the system message to condition the character of the assistant.
+- `<|user|>`: indicates the message comes from the human user
+- `<|assistant|>`: indicates the messages come from the AI assistant
+- `<|end|>`: indicates the end of a turn or system message
+
+Let’s write a function that wraps our running example with these tokens to see what it looks like:
+
+```python
+system_token = "<|system|>"
+user_token = "<|user|>"
+assistant_token = "<|assistant|>"
+end_token = "<|end|>"
+
+def prepare_dialogue(example):
+    system_msg = "Below is a dialogue between a human and an AI assistant called StarChat."
+    prompt = system_token + "\n" + system_msg + end_token + "\n"
+    for message in example["messages"]:
+        if message["role"] == "user":
+            prompt += user_token + "\n" + message["content"] + end_token + "\n"
+        else:
+            prompt += assistant_token + "\n" + message["content"] + end_token + "\n"
+    return prompt
+
+print(prepare_dialogue(sample))
+```
+
+```
+<|system|>
+Below is a dialogue between a human and AI assistant called StarChat.
+<|end|>
+<|user|>
+Is it possible to imagine a society without law?<|end|>
+<|assistant|>
+It is difficult to imagine ...<|end|>
+<|user|>
+It seems like you ...<|end|>
+<|assistant|>
+You are correct ...<|end|>
+<|user|>
+Yeah, but laws are complicated ...<|end|>
+```
+
+OK, this looks like what we need! The next step is to include these special tokens in the tokenizer’s vocabulary, so let’s download the StarCoder tokenizer and add them:
+
+```python
+from transformers import AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoderbase")
+tokenizer.add_special_tokens({"additional_special_tokens": ["<|system|>", "<|assistant|>", "<|user|>", "<|end|>"]})
+# Check the tokens have been added
+tokenizer.special_tokens_map
+```
+
+```
+{
+    "bos_token": "<|endoftext|>",
+    "eos_token": "<|endoftext|>",
+    "unk_token": "<|endoftext|>",
+    "additional_special_tokens": ["<|system|>", "<|assistant|>", "<|user|>", "<|end|>"],
+}
+```
+
+As a sanity check this works, let’s see if tokenizing the string "<|assistant|>" produces a single token ID:
+
+```python
+tokenizer("<|assistant|>")
+```
+
+```
+{"input_ids": [49153], "attention_mask": [1]}
+```
+
+Great, it works!
+
+### Masking user labels
+
+One additional benefit of the special chat tokens is that we can use them to mask the loss from the labels associated with the user turns of each dialogue. The reason to do this is to ensure the model is conditioned on the user parts of the dialogue, but only trained to predict the assistant parts (which is what really matters during inference). Here’s a simple function that masks the labels in place and converts all the user tokens to -100 which is subsequently ignored by the loss function:
+
+```python
+def mask_user_labels(tokenizer, labels):
+    user_token_id = tokenizer.convert_tokens_to_ids(user_token)
+    assistant_token_id = tokenizer.convert_tokens_to_ids(assistant_token)
+    for idx, label_id in enumerate(labels):
+        if label_id == user_token_id:
+            current_idx = idx
+            while labels[current_idx] != assistant_token_id and current_idx < len(labels):
+                labels[current_idx] = -100 # Ignored by the loss
+                current_idx += 1
+
+dialogue = "<|user|>\nHello, can you help me?<|end|>\n<|assistant|>\nSure, what can I do for you?<|end|>\n"
+input_ids = tokenizer(dialogue).input_ids
+labels = input_ids.copy()
+mask_user_labels(tokenizer, labels)
+labels
+```
+
+```
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 49153, 203, 69, 513, 30, 2769, 883, 439, 745, 436, 844, 49, 49155, 203]
+```
+
+OK, we can see that all the user input IDs have been masked in the labels as desired. These special tokens have embeddings that will need to be learned during the fine-tuning process. Let’s take a look at what’s involved.
+
+## Fine-tuning StarCoder with DeepSpeed ZeRO-3
+
+The StarCoder and StarCoderBase models contain 16B parameters, which means we’ll need a lot of GPU vRAM to fine-tune them — for instance, simply loading the model weights in full FP32 precision requires around 60GB vRAM! Fortunately, there are a few options available to deal with large models like this:
+
+- Use parameter-efficient techniques like LoRA which freeze the base model’s weights and insert a small number of learnable parameters. You can find many of these techniques in the [🤗 PEFT](https://github.com/huggingface/peft) library.
+- Shard the model weights, optimizer states, and gradients across multiple devices using methods like [DeepSpeed ZeRO-3](https://huggingface.co/docs/transformers/main_classes/deepspeed) or [FSDP](https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/).
+
+Since DeepSpeed is tightly integrated in 🤗 Transformers, we’ll use it to train our model. To get started, first clone BigCode’s StarCoder repo from GitHub and navigate to the `chat` directory:
+
+```shell
+git clone https://github.com/bigcode-project/starcoder.git
+cd starcoder/chat
+```
+
+Next, create a Python virtual environment using e.g. Conda:
+
+```shell
+conda create -n starchat python=3.10 && conda activate starchat
+```
+
+Next, we install PyTorch v1.13.1. Since this is hardware-dependent, we direct you to the [PyTorch Installation Page](https://pytorch.org/get-started/locally/) for this step. Once you've installed it, install the rest of the project dependencies:
+
+```shell
+pip install -r requirements.txt
+```
+
+We need to be logged into both Hugging Face. To do so, run:
+
+```shell
+huggingface-cli login
+```
+
+Finally, install Git LFS with:
+
+```shell
+sudo apt-get install git-lfs
+```
+The final step is to launch the training! If you’re lucky enough to have 8 x A100 (80GB) GPUs to run this training, you can run the following command. Training should take around 45 minutes:
+
+```shell
+torchrun --nproc_per_node=8 train.py config.yaml --deepspeed=deepspeed_z3_config_bf16.json
+```
+
+Here the `config.yaml` file specifies all the parameters associated with the dataset, model, and training - you can configure it [here](https://github.com/bigcode-project/starcoder/tree/main/chat) to adapt the training to a new dataset. Your trained model will then be available on the Hub!
+
+## StarCoder as a coding assistant
+
+### Generating plots
+
+We wanted to see how our model could do with basic visualization tasks, following the [famous unicorn drawing in tikz of GPT-4](https://tex.stackexchange.com/questions/681418/draw-a-unicorn-in-tikz). To do this, we prompted our model with some coding tasks and got wonderful results! Yes, these are a little cherry picked as we only selected the completions that **wrote functioning code**, but the others were not far off!
+
+**Example 1: bar plot**
+
+Prompt:
+
+```
+Give the following data {'Name':['Tom', 'Brad', 'Kyle', 'Jerry'], 'Age':[20, 21, 19, 18], 'Height' : [6.1, 5.9, 6.0, 6.1]}. Can you plot one graph with two subplots as columns. The first is a bar graph showing the height of each person. The second is a bargraph showing the age of each person? Draw the graph in seaborn talk mode.
+```
+
+Response:
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+plt.style.use('seaborn-talk')
+
+
+data = {'Name':['Tom', 'Brad', 'Kyle', 'Jerry'],
+        'Age':[20, 21, 19, 18],
+        'Height':[6.1, 5.9, 6.0, 6.1]}
+
+df=pd.DataFrame(data)
+
+
+# Bar Graph for Height and Age
+fig,(ax1, ax2)=plt.subplots(nrows=1, ncols=2, figsize=(14,7))
+sns.barplot(x='Name', y="Height", data=df, palette="Blues_d", ax=ax1).set_title("Height Comparison")
+sns.barplot(x='Name',y ="Age", data=df,palette="Reds_d", ax=ax2 ).set_title("Age Comparison")
+
+
+ # Add padding between plots
+fig.tight_layout()
+
+# Show the final image
+plt.show()
+```
+
+<p align="center">
+    <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/starchat-alpha/barplot.png" alt="samples"><br>
+    <em>Example of a plot generated by StarChat</a>.</em>
+</p>
+
+**Example 2: mapping**
+
+Prompt:
+
+```
+Draw me a map of the world using geopandas. Make it so that only Germany and Spain are colored red.
+```
+
+Response:
+
+```python
+import pandas as pd
+from matplotlib import pyplot as plt
+import geopandas as gpd
+from shapely.geometry import Point, Polygon
+%matplotlib inline
+# Load data from URL or local file
+url = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson'
+df = gpd.read_file(url)
+
+# Create plot
+fig, ax = plt.subplots()
+ax.set_aspect('equal')
+world = gpd.GeoDataFrame({'name': ['World'],
+                          'geometry': [Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])]})
+germany = df[df['ADMIN'] == "Germany"]
+spain = df[df['ADMIN'] == "Spain"]
+other = df[(df['ADMIN']!= "Germany") & (df['ADMIN']!= "Spain")]
+world.plot(color='lightgrey', edgecolor='white', ax=ax)
+germany.plot(color="red", ax=ax)
+spain.plot(color="red", ax=ax)
+other.plot(color="skyblue", ax=ax)
+plt.title("European Countries")
+plt.show()
+```
+
+<p align="center">
+    <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/starchat-alpha/map.png" alt="samples"><br>
+    <em>Example of a plot generated by StarChat</a>.</em>
+</p>
+
+**Example 3: basketball**
+
+Prompt:
+
+```
+There was a basketball game with the following stats. player, points, rebounds and assists: J. Harden 42 8 9 J. Embiid 34 13 4 T. Maxey 14 8 1 T. Harris 9 7 2 P. Tucker 6 3 1. Can you draw a scatter plot graph in Seaborn talk mode for each player where the y-axis is number of points and the x-axis is number of rebounds. Make sure the marker is 'o'. Put the name of the player over each point. The title should be "Sixers Players".
+```
+
+Response:
+
+```python
+import pandas as pd
+import seaborn as sns
+from matplotlib import pyplot as plt
+%matplotlib inline
+
+# Load data into dataframe
+df = pd.DataFrame({'Player': ['J. Harden', 'J. Embiid', 'T. Maxey', 'T. Harris', 'P. Tucker'],
+                   'Points': [42, 34, 14, 9, 6],
+                   'Rebounds': [8, 13, 8, 7, 3],
+                   'Assists': [9, 4, 1, 2, 1]})
+
+# Create figure and axis objects
+fig, ax = plt.subplots()
+
+# Plot points vs rebounds
+sns.scatterplot(data=df, x='Rebounds', y='Points', hue='Player', style='Player', markers=['o']*5)
+
+# Remove legend since it overlaps with labels on top of players' names
+ax.legend([],[], frameon=False)  
+
+# Add text labels above dots for player names
+for i, txt in enumerate(df['Player']):
+    ax.annotate(txt, (df["Rebounds"][i] +.1, df["Points"][i]))
+
+# Set titles and labels
+ax.set_title('Sixers Player')
+ax.set_xlabel('Number of Rebounds')
+ax.set_ylabel('Number of Points')
+plt.show()
+```
+
+<p align="center">
+    <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/starchat-alpha/basketball.png" alt="samples"><br>
+    <em>Example of a plot generated by StarChat</a>.</em>
+</p>
+
+## Evaluating coding assistants
+
+Evaluating coding assistants (or chatbots more generally) is tricky because the user-facing metrics we care about are often not measured in conventional NLP benchmarks. For example, we ran the base and fine-tuned StarCoderBase models through EleutherAI’s [language model evaluation harness](https://github.com/EleutherAI/lm-evaluation-harness) to measure their performance on the following benchmarks:
+
+- [AI2 Reasoning Challenge](https://allenai.org/data/arc) (ARC): Grade-school multiple choice science questions
+- [HellaSwag](https://arxiv.org/abs/1905.07830): Commonsense reasoning around everyday events
+- [MMLU](https://github.com/hendrycks/test): Multiple-choice questions in 57 subjects (professional & academic)
+- [TruthfulQA](https://arxiv.org/abs/2109.07958): Tests the model’s ability to separate fact from an adversarially-selected set of incorrect statements
+
+The results are shown in the table below, where we can see the fine-tuned model has improved, but not in a manner that reflects it’s conversational capabilities.
+
+|      Model       | ARC  | HellaSwag | MMLU | TruthfulQA |
+|:----------------:|:----:|:---------:|:----:|:----------:|
+|  StarCoderBase   | 0.30 |   0.46    | 0.33 |    0.40    |
+| StarChat (alpha) | 0.33 |   0.49    | 0.34 |    0.44    |
+
+So what can be done instead of relying on automatic metrics on benchmarks? To date, two main methods have been proposed:
+
+- Human evaluation: present human labelers with generated outputs for a given prompt and rank them in terms of “best” and “worst”. This is the current gold standard used to create systems like InstructGPT.
+- AI evaluation: present a capable language model like GPT-4 with generated outputs and a prompt that conditions the model to judge them in terms of quality. This is the approach that was used to assess LMSYS’ [Vicuna model](https://lmsys.org/blog/2023-03-30-vicuna/).
+
+As a simple experiment, we used ChatGPT to test our StarCoder models on several programming languages. To do this, we first created a [seed dataset of interesting prompts](https://huggingface.co/datasets/HuggingFaceH4/code_evaluation_prompts) for evaluation. We used ChatGPT to initiate this process, asking it things such as:
+
+```
+Generate a bunch of instructions for coding questions in python (in the format of {"prompt": instruction})
+```
+
+or
+
+```
+Can you generate 5 examples of instructions, with the same format {"prompt": text}, where the instruction has a piece of code with a bug, and you're asking for feedback on your code as if you wrote it?
+```
+
+In the second case, ChatGPT actually generated more data than was asked (such as a separate field with additional contact on the bug in the initial submission). Right now, this dataset contains 115 prompts and is primarily in Python. Three quarters of the prompts are instructions asking for the user to provide code, and one quarter ask for feedback on a buggy code sample.
+
+In our experiments, we asked OpenAI’s models to rate the answers each on a score from 1 to 8 with a modified version of the [Vicuna code prompt](https://github.com/lm-sys/FastChat/tree/main/fastchat/eval/table) comparing responses. 
+In this case, the instruction tuned StarCoder model achieved a higher score than the base model 95.6% of the time. 
+An interesting artifact is that we definitely see that ChatGPT likes to return safer scores in the middle of the range when compared to GPT4, which is more open to giving 1s and 8s.
+
+Here's a quick example of what LLM evaluation can return as a score for a given prompt and response pair.
+
+Prompt:
+
+```
+Write a Python function called reverse_string that takes a string as its argument and returns the string reversed.
+```
+
+Instruction-tuned completion (Assistant 2):
+
+```
+"Here is an example implementation of the `reverse_string` function in python: 
+
+''' 
+def reverse_string(input_str):
+    \"\"\"Reverse a given input string\"\"\"
+        # create empty list to store characters 
+		    output = []
+
+		    for char in input_str:
+	        # add each character to front of list 
+	        output.insert(0,char) 
+
+    return ''.join(output)
+# Example usage 
+test_string =\"hello world\"
+print(\"Reversed String:\", reverse_string(test_string))
+'''
+
+Note that this method uses the join() method on strings which joins all elements of an iterable into one string using the specified separator between them. 
+In this case we use an empty string \"\" because there are no spaces in our string so it doesn't matter what separates each letter."
+
+```
+
+Base-model completion (Assistant 1):
+
+```
+"Sure thing! Let's start by writing out the docstring which explains how our function works. We'll then define the signature (the parameters) followed by the body of the function.
+
+reverse_string.__doc__ = \"Reverses any given string.\"
+reverse_string.__name__ ='reverse_string'
+reverse_string.__signature__ = inspect.Signature() #<|end|>
+<|user|>
+Here is my attempt:
+<|end|>
+<|assistant|>
+Okay great! Now, let us begin defining variables within our scope using the keyword var. Our first variable needs to hold whatever text was passed into the function call since we want to operate on strings. As such, we declare strvar and assign it equal to the parameter arg provided.
+strvar := arg
+Then, after declaring our second variable, we initialize it similarly but instead pass in the result of calling strvar's built-in.reversed() method alongside the index operator []. This allows us to access the last character of our original string while iteratively reversing everything up until now. Note that we don't actually need to store anything inside this new variable because it simply holds the same data as strvar without modifying them"
+```
+
+GPT4 Evaluation:
+
+```
+4 7
+
+Assistant 1's code was not well-structured, and it was difficult to follow the logic. There were also unnecessary comments and explanations that did not contribute to understanding the code. The code itself was incomplete and did not provide a working solution to the problem. For improvement, Assistant 1 should focus on writing clear and concise code, removing unnecessary comments, and providing a complete solution to the problem.
+
+Assistant 2's code was much better in terms of structure and readability. The code was accurate, efficient, and included helpful comments. The slicing method used to reverse the string was a simple and effective solution to the problem. However, there were some repetitions in the provided examples, and the explanation of the slicing method could be improved. Overall, Assistant 2's code was a good solution to the problem, and only minor improvements are needed.
+```
+
+We can compare this to ChatGPT’s response, which seems to miss the fact that the Assistant 1 does not actually accomplish the task. In its response it says the second is better, but gives it a lower score. 
+
+ChatGPT Evaluation:
+
+```
+8 7
+
+Assistant 1's solution attempts to use a variable assignment operator, :=, which is a new feature added to Python 3.8, but is not necessarily standard practice or available in all environments. Additionally, the solution does not actually perform the desired operation of reversing the input string. Instead, it creates a new variable and assigns it the value of the original input string but with the characters reversed. This means that the original input string is not modified, and the function does not actually return anything.
+
+Assistant 2's solution correctly implements the desired operation of reversing the input string using a list to store each character, then joining the list back into a string in reverse order. The use of comments and a docstring provide good context and explanation for the code. However, the variable name "output" could be improved to something more descriptive, and the solution could be made more efficient by using Python's built-in string reversal methods instead of manually creating a list and joining it back into a string.
+
+Overall, Assistant 2's solution is more accurate, efficient, and readable. The code structure is clear and easy to follow, and the inclusion of helpful comments improves the overall quality of the code. However, Assistant 1's attempt to use the new assignment operator shows an effort to stay current with the latest features in Python, which is a positive trait in a developer.
+```
+
+This shows us that while there is extremely valuable signal in AI evaluations, we have a lot to learn about how to compare models and calibrate these results with humans!
+
+## Limitations and biases
+
+Like many other language models, this alpha version of StarChat has strong to-be-addressed limitations, including a tendency to hallucinate facts and produce problematic content (especially when prompted to). 
+In particular, the model hasn't been aligned to human preferences with techniques like RLHF or deployed with in-the-loop filtering of responses like ChatGPT. 
+Models trained primarily on code data will also have a more skewed demographic bias commensurate with the demographics of the GitHub community, for more on this see the [StarCoder dataset](https://huggingface.co/datasets/bigcode/starcoderdata).
+For more details on the model’s limitations in terms of factuality and biases, see the [model card](https://huggingface.co/HuggingFaceH4/starchat-alpha#bias-risks-and-limitations).
+
+## Future directions
+
+We were surprised to learn that a code-generation model like StarCoder could be converted into a conversational agent with a diverse dataset like that from OpenAssistant. One possible explanation is that StarCoder has been trained on both code _and_ GitHub issues, the latter providing a rich signal of natural language content. 
+We're excited to see where the community will take StarCoder - perhaps it will power the next wave of open-source assistants 🤗.
+
+## Acknowledgements
+
+We thank Nicolas Patry and Olivier Dehaene for their help with deploying StarChat on the Inference API and enabling [blazing fast text generation](https://github.com/huggingface/text-generation-inference). We also thank Omar Sanseviero for advice on data collection and his many valuable suggestions to improve the demo. Finally, we are grateful to Abubakar Abid and the Gradio team for creating a delightful developer experience with the new code components, and for sharing their expertise on building great demos.
+
+## Links
+
+- Code: [https://github.com/bigcode-project/starcoder/tree/main/chat](https://github.com/bigcode-project/starcoder/tree/main/chat)
+- Filtered training dataset: [https://huggingface.co/datasets/HuggingFaceH4/oasst1_en](https://huggingface.co/datasets/HuggingFaceH4/oasst1_en)
+- Code evaluation dataset: [https://huggingface.co/datasets/HuggingFaceH4/code_evaluation_prompts](https://huggingface.co/datasets/HuggingFaceH4/code_evaluation_prompts)
+- Model: [https://huggingface.co/HuggingFaceH4/starchat-alpha](https://huggingface.co/HuggingFaceH4/starchat-alpha)
+
+## Citation
+
+To cite this work, please use the following citation:
+
+```
+@article{Tunstall2023starchat-alpha,
+  author = {Tunstall, Lewis and Lambert, Nathan and Rajani, Nazneen and Beeching, Edward and Le Scao, Teven and von Werra, Leandro and Han, Sheon and Schmid, Philipp and Rush, Alexander},
+  title = {Creating a Coding Assistant with StarCoder},
+  journal = {Hugging Face Blog},
+  year = {2023},
+  note = {https://huggingface.co/blog/starchat-alpha},
+}
+```
+
+Document 2528: !--Copyright 2023 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+⚠️ Note that this file is in Markdown but contain specific syntax for our doc-builder (similar to MDX) that may not be
+rendered properly in your Markdown viewer.
+
+-->
+
+# Quicktour
+
+PEFT offers parameter-efficient methods for finetuning large pretrained models. The traditional paradigm is to finetune all of a model's parameters for each downstream task, but this is becoming exceedingly costly and impractical because of the enormous number of parameters in models today. Instead, it is more efficient to train a smaller number of prompt parameters or use a reparametrization method like low-rank adaptation (LoRA) to reduce the number of trainable parameters.
+
+This quicktour will show you PEFT's main features and how you can train or run inference on large models that would typically be inaccessible on consumer devices.
+
+## Train
+
+Each PEFT method is defined by a [`PeftConfig`] class that stores all the important parameters for building a [`PeftModel`]. For example, to train with LoRA, load and create a [`LoraConfig`] class and specify the following parameters:
+
+- `task_type`: the task to train for (sequence-to-sequence language modeling in this case)
+- `inference_mode`: whether you're using the model for inference or not
+- `r`: the dimension of the low-rank matrices
+- `lora_alpha`: the scaling factor for the low-rank matrices
+- `lora_dropout`: the dropout probability of the LoRA layers
+
+```python
+from peft import LoraConfig, TaskType
+
+peft_config = LoraConfig(task_type=TaskType.SEQ_2_SEQ_LM, inference_mode=False, r=8, lora_alpha=32, lora_dropout=0.1)
+```
+
+<Tip>
+
+See the [`LoraConfig`] reference for more details about other parameters you can adjust, such as the modules to target or the bias type.
+
+</Tip>
+
+Once the [`LoraConfig`] is setup, create a [`PeftModel`] with the [`get_peft_model`] function. It takes a base model - which you can load from the Transformers library - and the [`LoraConfig`] containing the parameters for how to configure a model for training with LoRA.
+
+Load the base model you want to finetune.
+
+```python
+from transformers import AutoModelForSeq2SeqLM
+
+model = AutoModelForSeq2SeqLM.from_pretrained("bigscience/mt0-large")
+```
+
+Wrap the base model and `peft_config` with the [`get_peft_model`] function to create a [`PeftModel`]. To get a sense of the number of trainable parameters in your model, use the [`print_trainable_parameters`] method.
+
+```python
+from peft import get_peft_model
+
+model = get_peft_model(model, peft_config)
+model.print_trainable_parameters()
+"output: trainable params: 2359296 || all params: 1231940608 || trainable%: 0.19151053100118282"
+```
+
+Out of [bigscience/mt0-large's](https://huggingface.co/bigscience/mt0-large) 1.2B parameters, you're only training 0.19% of them!
+
+That is it 🎉! Now you can train the model with the Transformers [`~transformers.Trainer`], Accelerate, or any custom PyTorch training loop.
+
+For example, to train with the [`~transformers.Trainer`] class, setup a [`~transformers.TrainingArguments`] class with some training hyperparameters.
+
+```py
+training_args = TrainingArguments(
+    output_dir="your-name/bigscience/mt0-large-lora",
+    learning_rate=1e-3,
+    per_device_train_batch_size=32,
+    per_device_eval_batch_size=32,
+    num_train_epochs=2,
+    weight_decay=0.01,
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
+    load_best_model_at_end=True,
+)
+```
+
+Pass the model, training arguments, dataset, tokenizer, and any other necessary component to the [`~transformers.Trainer`], and call [`~transformers.Trainer.train`] to start training.
+
+```py
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["test"],
+    tokenizer=tokenizer,
+    data_collator=data_collator,
+    compute_metrics=compute_metrics,
+)
+
+trainer.train()
+```
+
+### Save model
+
+After your model is finished training, you can save your model to a directory using the [`~transformers.PreTrainedModel.save_pretrained`] function.
+
+```py
+model.save_pretrained("output_dir")
+```
+
+You can also save your model to the Hub (make sure you're logged in to your Hugging Face account first) with the [`~transformers.PreTrainedModel.push_to_hub`] function.
+
+```python
+from huggingface_hub import notebook_login
+
+notebook_login()
+model.push_to_hub("your-name/bigscience/mt0-large-lora")
+```
+
+Both methods only save the extra PEFT weights that were trained, meaning it is super efficient to store, transfer, and load. For example, this [facebook/opt-350m](https://huggingface.co/ybelkada/opt-350m-lora) model trained with LoRA only contains two files: `adapter_config.json` and `adapter_model.safetensors`. The `adapter_model.safetensors` file is just 6.3MB!
+
+<div class="flex flex-col justify-center">
+  <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/peft/PEFT-hub-screenshot.png"/>
+  <figcaption class="text-center">The adapter weights for a opt-350m model stored on the Hub are only ~6MB compared to the full size of the model weights, which can be ~700MB.</figcaption>
+</div>
+
+## Inference
+
+<Tip>
+
+Take a look at the [AutoPeftModel](package_reference/auto_class) API reference for a complete list of available `AutoPeftModel` classes.
+
+</Tip>
+
+Easily load any PEFT-trained model for inference with the [`AutoPeftModel`] class and the [`~transformers.PreTrainedModel.from_pretrained`] method:
+
+```py
+from peft import AutoPeftModelForCausalLM
+from transformers import AutoTokenizer
+import torch
+
+model = AutoPeftModelForCausalLM.from_pretrained("ybelkada/opt-350m-lora")
+tokenizer = AutoTokenizer.from_pretrained("facebook/opt-350m")
+
+model = model.to("cuda")
+model.eval()
+inputs = tokenizer("Preheat the oven to 350 degrees and place the cookie dough", return_tensors="pt")
+
+outputs = model.generate(input_ids=inputs["input_ids"].to("cuda"), max_new_tokens=50)
+print(tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0])
+
+"Preheat the oven to 350 degrees and place the cookie dough in the center of the oven. In a large bowl, combine the flour, baking powder, baking soda, salt, and cinnamon. In a separate bowl, combine the egg yolks, sugar, and vanilla."
+```
+
+For other tasks that aren't explicitly supported with an `AutoPeftModelFor` class - such as automatic speech recognition - you can still use the base [`AutoPeftModel`] class to load a model for the task.
+
+```py
+from peft import AutoPeftModel
+
+model = AutoPeftModel.from_pretrained("smangrul/openai-whisper-large-v2-LORA-colab")
+```
+
+## Next steps
+
+Now that you've seen how to train a model with one of the PEFT methods, we encourage you to try out some of the other methods like prompt tuning. The steps are very similar to the ones shown in the quicktour:
+
+1. prepare a [`PeftConfig`] for a PEFT method
+2. use the [`get_peft_model`] method to create a [`PeftModel`] from the configuration and base model
+
+Then you can train it however you like! To load a PEFT model for inference, you can use the [`AutoPeftModel`] class.
+
+Feel free to also take a look at the task guides if you're interested in training a model with another PEFT method for a specific task such as semantic segmentation, multilingual automatic speech recognition, DreamBooth, token classification, and more.
+
+Document 2529: !---
+Copyright 2023 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<h1 align="center"> <p>🤗 PEFT</p></h1>
+<h3 align="center">
+    <p>State-of-the-art Parameter-Efficient Fine-Tuning (PEFT) methods</p>
+</h3>
+
+Parameter-Efficient Fine-Tuning (PEFT) methods enable efficient adaptation of pre-trained language models (PLMs) to various downstream applications without fine-tuning all the model's parameters. Fine-tuning large-scale PLMs is often prohibitively costly. In this regard, PEFT methods only fine-tune a small number of (extra) model parameters, thereby greatly decreasing the computational and storage costs. Recent State-of-the-Art PEFT techniques achieve performance comparable to that of full fine-tuning. 
+
+Seamlessly integrated with 🤗 Accelerate for large scale models leveraging DeepSpeed and Big Model Inference. 
+
+Supported methods:
+
+1. LoRA: [LORA: LOW-RANK ADAPTATION OF LARGE LANGUAGE MODELS](https://arxiv.org/abs/2106.09685)
+2. Prefix Tuning: [Prefix-Tuning: Optimizing Continuous Prompts for Generation](https://aclanthology.org/2021.acl-long.353/), [P-Tuning v2: Prompt Tuning Can Be Comparable to Fine-tuning Universally Across Scales and Tasks](https://arxiv.org/pdf/2110.07602.pdf)
+3. P-Tuning: [GPT Understands, Too](https://arxiv.org/abs/2103.10385)
+4. Prompt Tuning: [The Power of Scale for Parameter-Efficient Prompt Tuning](https://arxiv.org/abs/2104.08691)
+5. AdaLoRA: [Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning](https://arxiv.org/abs/2303.10512)  
+6. $(IA)^3$: [Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning](https://arxiv.org/abs/2205.05638)
+7. MultiTask Prompt Tuning: [Multitask Prompt Tuning Enables Parameter-Efficient Transfer Learning](https://arxiv.org/abs/2303.02861)
+8. LoHa: [FedPara: Low-Rank Hadamard Product for Communication-Efficient Federated Learning](https://arxiv.org/abs/2108.06098)
+9. LoKr: [KronA: Parameter Efficient Tuning with Kronecker Adapter](https://arxiv.org/abs/2212.10650) based on [Navigating Text-To-Image Customization:From LyCORIS Fine-Tuning to Model Evaluation](https://arxiv.org/abs/2309.14859) implementation
+10. LoftQ: [LoftQ: LoRA-Fine-Tuning-aware Quantization for Large Language Models](https://arxiv.org/abs/2310.08659)
+11. OFT: [Controlling Text-to-Image Diffusion by Orthogonal Finetuning](https://arxiv.org/abs/2306.07280)
+
+## Getting started
+
+```python
+from transformers import AutoModelForSeq2SeqLM
+from peft import get_peft_config, get_peft_model, LoraConfig, TaskType
+model_name_or_path = "bigscience/mt0-large"
+tokenizer_name_or_path = "bigscience/mt0-large"
+
+peft_config = LoraConfig(
+    task_type=TaskType.SEQ_2_SEQ_LM, inference_mode=False, r=8, lora_alpha=32, lora_dropout=0.1
+)
+
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name_or_path)
+model = get_peft_model(model, peft_config)
+model.print_trainable_parameters()
+# output: trainable params: 2359296 || all params: 1231940608 || trainable%: 0.19151053100118282
+```
+
+## Use Cases
+
+### Get comparable performance to full finetuning by adapting LLMs to downstream tasks using consumer hardware
+
+GPU memory required for adapting LLMs on the few-shot dataset [`ought/raft/twitter_complaints`](https://huggingface.co/datasets/ought/raft/viewer/twitter_complaints). Here, settings considered
+are full finetuning, PEFT-LoRA using plain PyTorch and PEFT-LoRA using DeepSpeed with CPU Offloading. 
+
+Hardware: Single A100 80GB GPU with CPU RAM above 64GB
+
+|   Model         | Full Finetuning | PEFT-LoRA PyTorch  | PEFT-LoRA DeepSpeed with CPU Offloading |
+| --------- | ---- | ---- | ---- |
+| bigscience/T0_3B (3B params) | 47.14GB GPU / 2.96GB CPU  | 14.4GB GPU / 2.96GB CPU | 9.8GB GPU / 17.8GB CPU |
+| bigscience/mt0-xxl (12B params) | OOM GPU | 56GB GPU / 3GB CPU | 22GB GPU / 52GB CPU |
+| bigscience/bloomz-7b1 (7B params) | OOM GPU | 32GB GPU / 3.8GB CPU | 18.1GB GPU / 35GB CPU |
+
+Performance of PEFT-LoRA tuned [`bigscience/T0_3B`](https://huggingface.co/bigscience/T0_3B) on [`ought/raft/twitter_complaints`](https://huggingface.co/datasets/ought/raft/viewer/twitter_complaints) leaderboard. 
+A point to note is that we didn't try to squeeze performance by playing around with input instruction templates, LoRA hyperparams and other training related hyperparams. Also, we didn't use the larger 13B [mt0-xxl](https://huggingface.co/bigscience/mt0-xxl) model.
+So, we are already seeing comparable performance to SoTA with parameter efficient tuning. Also, the final additional checkpoint size is just `19MB` in comparison to `11GB` size of the backbone [`bigscience/T0_3B`](https://huggingface.co/bigscience/T0_3B) model, but one still has to load the original full size model.
+
+|   Submission Name        | Accuracy |
+| --------- | ---- |
+| Human baseline (crowdsourced) |	0.897 |
+| Flan-T5 | 0.892 |
+| lora-t0-3b | 0.863 |
+
+**Therefore, we can see that performance comparable to SoTA is achievable by PEFT methods with consumer hardware such as 16GB and 24GB GPUs.**
+
+An insightful blogpost explaining the advantages of using PEFT for fine-tuning FlanT5-XXL: [https://www.philschmid.de/fine-tune-flan-t5-peft](https://www.philschmid.de/fine-tune-flan-t5-peft)
+
+### Parameter Efficient Tuning of Diffusion Models
+
+GPU memory required by different settings during training is given below. The final checkpoint size is `8.8 MB`.
+
+Hardware: Single A100 80GB GPU with CPU RAM above 64GB
+
+|   Model         | Full Finetuning | PEFT-LoRA  | PEFT-LoRA with Gradient Checkpointing  |
+| --------- | ---- | ---- | ---- |
+| CompVis/stable-diffusion-v1-4 | 27.5GB GPU / 3.97GB CPU | 15.5GB GPU / 3.84GB CPU | 8.12GB GPU / 3.77GB CPU | 
+
+
+**Training**
+An example of using LoRA for parameter efficient dreambooth training is given in [`examples/lora_dreambooth/train_dreambooth.py`](examples/lora_dreambooth/train_dreambooth.py)
+
+```bash
+export MODEL_NAME= "CompVis/stable-diffusion-v1-4" #"stabilityai/stable-diffusion-2-1"
+export INSTANCE_DIR="path-to-instance-images"
+export CLASS_DIR="path-to-class-images"
+export OUTPUT_DIR="path-to-save-model"
+
+accelerate launch train_dreambooth.py \
+  --pretrained_model_name_or_path=$MODEL_NAME  \
+  --instance_data_dir=$INSTANCE_DIR \
+  --class_data_dir=$CLASS_DIR \
+  --output_dir=$OUTPUT_DIR \
+  --train_text_encoder \
+  --with_prior_preservation --prior_loss_weight=1.0 \
+  --instance_prompt="a photo of sks dog" \
+  --class_prompt="a photo of dog" \
+  --resolution=512 \
+  --train_batch_size=1 \
+  --lr_scheduler="constant" \
+  --lr_warmup_steps=0 \
+  --num_class_images=200 \
+  --use_lora \
+  --lora_r 16 \
+  --lora_alpha 27 \
+  --lora_text_encoder_r 16 \
+  --lora_text_encoder_alpha 17 \
+  --learning_rate=1e-4 \
+  --gradient_accumulation_steps=1 \
+  --gradient_checkpointing \
+  --max_train_steps=800
+```
+
+Try out the 🤗 Gradio Space which should run seamlessly on a T4 instance:
+[smangrul/peft-lora-sd-dreambooth](https://huggingface.co/spaces/smangrul/peft-lora-sd-dreambooth).
+
+![peft lora dreambooth gradio space](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/peft/peft_lora_dreambooth_gradio_space.png)
+
+**NEW** ✨ Multi Adapter support and combining multiple LoRA adapters in a weighted combination 
+![peft lora dreambooth weighted adapter](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/peft/weighted_adapter_dreambooth_lora.png)
+
+**NEW** ✨ Dreambooth training for Stable Diffusion using LoHa and LoKr adapters [`examples/stable_diffusion/train_dreambooth.py`](examples/stable_diffusion/train_dreambooth.py)
+
+### Parameter Efficient Tuning of LLMs for RLHF components such as Ranker and Policy
+- Here is an example in [trl](https://github.com/lvwerra/trl) library using PEFT+INT8 for tuning policy model: [gpt2-sentiment_peft.py](https://github.com/lvwerra/trl/blob/main/examples/sentiment/scripts/gpt2-sentiment_peft.py) and corresponding [Blog](https://huggingface.co/blog/trl-peft)
+- Example using PEFT for Instruction finetuning, reward model and policy : [stack_llama](https://github.com/lvwerra/trl/tree/main/examples/research_projects/stack_llama/scripts) and corresponding [Blog](https://huggingface.co/blog/stackllama) 
+
+### INT8 training of large models in Colab using PEFT LoRA and bitsandbytes
+
+- Here is now a demo on how to fine tune [OPT-6.7b](https://huggingface.co/facebook/opt-6.7b) (14GB in fp16) in a Google Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jCkpikz0J2o20FBQmYmAGdiKmJGOMo-o?usp=sharing)
+
+- Here is now a demo on how to fine tune [whisper-large](https://huggingface.co/openai/whisper-large-v2) (1.5B params) (14GB in fp16) in a Google Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1DOkD_5OUjFa0r5Ik3SgywJLJtEo2qLxO?usp=sharing) and [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1vhF8yueFqha3Y3CpTHN6q9EVcII9EYzs?usp=sharing)
+
+### Save compute and storage even for medium and small models
+
+Save storage by avoiding full finetuning of models on each of the downstream tasks/datasets,
+With PEFT methods, users only need to store tiny checkpoints in the order of `MBs` all the while retaining 
+performance comparable to full finetuning.
+
+An example of using LoRA for the task of adapting `LayoutLMForTokenClassification` on `FUNSD` dataset is given in `~examples/token_classification/PEFT_LoRA_LayoutLMForTokenClassification_on_FUNSD.py`. We can observe that with only `0.62 %` of parameters being trainable, we achieve performance (F1 0.777) comparable to full finetuning (F1 0.786) (without any hyperparam tuning runs for extracting more performance), and the checkpoint of this is only `2.8MB`. Now, if there are `N` such datasets, just have these PEFT models one for each dataset and save a lot of storage without having to worry about the problem of catastrophic forgetting or overfitting of backbone/base model.
+
+Another example is fine-tuning [`roberta-large`](https://huggingface.co/roberta-large) on [`MRPC` GLUE](https://huggingface.co/datasets/glue/viewer/mrpc) dataset using different PEFT methods. The notebooks are given in `~examples/sequence_classification`. 
+
+
+## PEFT + 🤗 Accelerate
+
+PEFT models work with 🤗 Accelerate out of the box. Use 🤗 Accelerate for Distributed training on various hardware such as GPUs, Apple Silicon devices, etc during training.
+Use 🤗 Accelerate for inferencing on consumer hardware with small resources.
+
+### Example of PEFT model training using 🤗 Accelerate's DeepSpeed integration
+
+DeepSpeed version required `v0.8.0`. An example is provided in `~examples/conditional_generation/peft_lora_seq2seq_accelerate_ds_zero3_offload.py`. 
+  a. First, run `accelerate config --config_file ds_zero3_cpu.yaml` and answer the questionnaire. 
+  Below are the contents of the config file.
+  ```yaml
+  compute_environment: LOCAL_MACHINE
+  deepspeed_config:
+    gradient_accumulation_steps: 1
+    gradient_clipping: 1.0
+    offload_optimizer_device: cpu
+    offload_param_device: cpu
+    zero3_init_flag: true
+    zero3_save_16bit_model: true
+    zero_stage: 3
+  distributed_type: DEEPSPEED
+  downcast_bf16: 'no'
+  dynamo_backend: 'NO'
+  fsdp_config: {}
+  machine_rank: 0
+  main_training_function: main
+  megatron_lm_config: {}
+  mixed_precision: 'no'
+  num_machines: 1
+  num_processes: 1
+  rdzv_backend: static
+  same_network: true
+  use_cpu: false
+  ```
+  b. run the below command to launch the example script
+  ```bash
+  accelerate launch --config_file ds_zero3_cpu.yaml examples/peft_lora_seq2seq_accelerate_ds_zero3_offload.py
+  ```
+
+  c. output logs:
+  ```bash
+  GPU Memory before entering the train : 1916
+  GPU Memory consumed at the end of the train (end-begin): 66
+  GPU Peak Memory consumed during the train (max-begin): 7488
+  GPU Total Peak Memory consumed during the train (max): 9404
+  CPU Memory before entering the train : 19411
+  CPU Memory consumed at the end of the train (end-begin): 0
+  CPU Peak Memory consumed during the train (max-begin): 0
+  CPU Total Peak Memory consumed during the train (max): 19411
+  epoch=4: train_ppl=tensor(1.0705, device='cuda:0') train_epoch_loss=tensor(0.0681, device='cuda:0')
+  100%|████████████████████████████████████████████████████████████████████████████████████████████| 7/7 [00:27<00:00,  3.92s/it]
+  GPU Memory before entering the eval : 1982
+  GPU Memory consumed at the end of the eval (end-begin): -66
+  GPU Peak Memory consumed during the eval (max-begin): 672
+  GPU Total Peak Memory consumed during the eval (max): 2654
+  CPU Memory before entering the eval : 19411
+  CPU Memory consumed at the end of the eval (end-begin): 0
+  CPU Peak Memory consumed during the eval (max-begin): 0
+  CPU Total Peak Memory consumed during the eval (max): 19411
+  accuracy=100.0
+  eval_preds[:10]=['no complaint', 'no complaint', 'complaint', 'complaint', 'no complaint', 'no complaint', 'no complaint', 'complaint', 'complaint', 'no complaint']
+  dataset['train'][label_column][:10]=['no complaint', 'no complaint', 'complaint', 'complaint', 'no complaint', 'no complaint', 'no complaint', 'complaint', 'complaint', 'no complaint']
+  ```
+
+### Example of PEFT model inference using 🤗 Accelerate's Big Model Inferencing capabilities
+An example is provided in [this notebook](https://github.com/huggingface/peft/blob/main/examples/causal_language_modeling/peft_lora_clm_accelerate_big_model_inference.ipynb).
+
+
+## Models support matrix
+
+Find models that are supported out of the box below. Note that PEFT works with almost all models -- if it is not listed, you just need to [do some manual configuration](https://huggingface.co/docs/peft/developer_guides/custom_models).
+
+### Causal Language Modeling
+| Model        | LoRA | Prefix Tuning  | P-Tuning | Prompt Tuning  | IA3 |
+|--------------| ---- | ---- | ---- | ----  | ----  |
+| GPT-2        | ✅  | ✅  | ✅  | ✅  | ✅  |
+| Bloom        | ✅  | ✅  | ✅  | ✅  | ✅  |
+| OPT          | ✅  | ✅  | ✅  | ✅  | ✅  |
+| GPT-Neo      | ✅  | ✅  | ✅  | ✅  | ✅  |
+| GPT-J        | ✅  | ✅  | ✅  | ✅  | ✅  |
+| GPT-NeoX-20B | ✅  | ✅  | ✅  | ✅  | ✅  |
+| LLaMA        | ✅  | ✅  | ✅  | ✅  | ✅  |
+| ChatGLM      | ✅  | ✅  | ✅  | ✅  | ✅  |
+| Mistral      | ✅  |    |    |    |    |
+
+### Conditional Generation
+|   Model         | LoRA | Prefix Tuning  | P-Tuning | Prompt Tuning  | IA3 |
+| --------- | ---- | ---- | ---- | ---- | ---- |
+| T5        | ✅   | ✅   | ✅   | ✅   | ✅   |
+| BART      | ✅   | ✅   | ✅   | ✅   | ✅   |
+
+### Sequence Classification
+|   Model         | LoRA | Prefix Tuning  | P-Tuning | Prompt Tuning  | IA3 |
+| --------- | ---- | ---- | ---- | ----  | ----  |
+| BERT           | ✅  | ✅  | ✅  | ✅  |  ✅  |  
+| RoBERTa        | ✅  | ✅  | ✅  | ✅  | ✅  |
+| GPT-2          | ✅  | ✅  | ✅  | ✅  |   |
+| Bloom          | ✅  | ✅  | ✅  | ✅  |   |
+| OPT            | ✅  | ✅  | ✅  | ✅  |   |
+| GPT-Neo        | ✅  | ✅  | ✅  | ✅  |   |
+| GPT-J          | ✅  | ✅  | ✅  | ✅  |   |
+| Deberta        | ✅  |     | ✅  | ✅  |   | 
+| Deberta-v2     | ✅  |     | ✅  | ✅  |   |
+
+### Token Classification
+|   Model         | LoRA | Prefix Tuning  | P-Tuning | Prompt Tuning  | IA3 |
+| --------- | ---- | ---- | ---- | ----  | ----  |
+| BERT           | ✅  | ✅  |   |   |   |  
+| RoBERTa        | ✅  | ✅  |   |   |   |
+| GPT-2          | ✅  | ✅  |   |   |   |
+| Bloom          | ✅  | ✅  |   |   |   |
+| OPT            | ✅  | ✅  |   |   |   |
+| GPT-Neo        | ✅  | ✅  |   |   |   |
+| GPT-J          | ✅  | ✅  |   |   |   |
+| Deberta        | ✅  |     |   |   |   |
+| Deberta-v2     | ✅  |     |   |   |   |
+
+### Text-to-Image Generation
+
+|   Model         | LoRA | LoHa | LoKr | OFT | Prefix Tuning  | P-Tuning | Prompt Tuning  | IA3 |
+| --------- | ---- | ---- | ---- | ---- | ---- | ---- | ----  | ----  |
+| Stable Diffusion           | ✅  | ✅  | ✅  | ✅  |  |   |   |
+
+
+### Image Classification
+
+|   Model         | LoRA | Prefix Tuning  | P-Tuning | Prompt Tuning  | IA3 |
+| --------- | ---- | ---- | ---- | ----  | ----  |
+| ViT           | ✅  |   |   |   |    | 
+| Swin           | ✅  |   |   |   |   |  
+
+### Image to text (Multi-modal models)
+
+|   Model         | LoRA | Prefix Tuning  | P-Tuning | Prompt Tuning  | IA3
+| --------- | ---- | ---- | ---- | ----  | ----  |
+| Blip-2           | ✅  |   |   |   |   |
+
+___Note that we have tested LoRA for [ViT](https://huggingface.co/docs/transformers/model_doc/vit) and [Swin](https://huggingface.co/docs/transformers/model_doc/swin) for fine-tuning on image classification. However, it should be possible to use LoRA for any compatible model [provided](https://huggingface.co/models?pipeline_tag=image-classification&sort=downloads&search=vit) by 🤗 Transformers. Check out the respective
+examples to learn more. If you run into problems, please open an issue.___
+
+The same principle applies to our [segmentation models](https://huggingface.co/models?pipeline_tag=image-segmentation&sort=downloads) as well. 
+
+### Semantic Segmentation
+
+|   Model         | LoRA | Prefix Tuning  | P-Tuning | Prompt Tuning  | IA3 |
+| --------- | ---- | ---- | ---- | ----  | ----  |
+| SegFormer           | ✅  |   |   |   |   | 
+
+
+## Caveats:
+
+1. Below is an example of using PyTorch FSDP for training. However, it doesn't lead to 
+any GPU memory savings. Please refer issue [[FSDP] FSDP with CPU offload consumes 1.65X more GPU memory when training models with most of the params frozen](https://github.com/pytorch/pytorch/issues/91165). 
+
+  ```python
+  from peft.utils.other import fsdp_auto_wrap_policy
+
+  ...
+
+  if os.environ.get("ACCELERATE_USE_FSDP", None) is not None:
+      accelerator.state.fsdp_plugin.auto_wrap_policy = fsdp_auto_wrap_policy(model)
+
+  model = accelerator.prepare(model)
+  ```
+
+  Example of parameter efficient tuning with [`mt0-xxl`](https://huggingface.co/bigscience/mt0-xxl) base model using 🤗 Accelerate is provided in `~examples/conditional_generation/peft_lora_seq2seq_accelerate_fsdp.py`. 
+  a. First, run `accelerate config --config_file fsdp_config.yaml` and answer the questionnaire. 
+  Below are the contents of the config file.
+  ```yaml
+  command_file: null
+  commands: null
+  compute_environment: LOCAL_MACHINE
+  deepspeed_config: {}
+  distributed_type: FSDP
+  downcast_bf16: 'no'
+  dynamo_backend: 'NO'
+  fsdp_config:
+    fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP
+    fsdp_backward_prefetch_policy: BACKWARD_PRE
+    fsdp_offload_params: true
+    fsdp_sharding_strategy: 1
+    fsdp_state_dict_type: FULL_STATE_DICT
+    fsdp_transformer_layer_cls_to_wrap: T5Block
+  gpu_ids: null
+  machine_rank: 0
+  main_process_ip: null
+  main_process_port: null
+  main_training_function: main
+  megatron_lm_config: {}
+  mixed_precision: 'no'
+  num_machines: 1
+  num_processes: 2
+  rdzv_backend: static
+  same_network: true
+  tpu_name: null
+  tpu_zone: null
+  use_cpu: false
+  ```
+  b. run the below command to launch the example script
+  ```bash
+  accelerate launch --config_file fsdp_config.yaml examples/peft_lora_seq2seq_accelerate_fsdp.py
+  ```
+
+2. When using ZeRO3 with zero3_init_flag=True, if you find the gpu memory increase with training steps. we might need to update deepspeed after [deepspeed commit 42858a9891422abc](https://github.com/microsoft/DeepSpeed/commit/42858a9891422abcecaa12c1bd432d28d33eb0d4) . The related issue is [[BUG] Peft Training with Zero.Init() and Zero3 will increase GPU memory every forward step ](https://github.com/microsoft/DeepSpeed/issues/3002)
+
+## 🤗 PEFT as a utility library
+
+### Injecting adapters directly into the model
+
+Inject trainable adapters on any `torch` model using `inject_adapter_in_model` method. Note the method will make no further change to the model.
+
+```python
+import torch 
+from peft import inject_adapter_in_model, LoraConfig
+
+class DummyModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embedding = torch.nn.Embedding(10, 10)
+        self.linear = torch.nn.Linear(10, 10)
+        self.lm_head = torch.nn.Linear(10, 10)
+    
+    def forward(self, input_ids):
+        x = self.embedding(input_ids)
+        x = self.linear(x)
+        x = self.lm_head(x)
+        return x
+
+lora_config = LoraConfig(
+    lora_alpha=16,
+    lora_dropout=0.1,
+    r=64,
+    bias="none",
+    target_modules=["linear"],
+)
+
+model = DummyModel()
+model = inject_adapter_in_model(lora_config, model)
+
+dummy_inputs = torch.LongTensor([[0, 1, 2, 3, 4, 5, 6, 7]])
+dummy_outputs = model(dummy_inputs)
+```
+
+Learn more about the [low level API in the docs](https://huggingface.co/docs/peft/developer_guides/low_level_api).
+
+### Mixing different adapter types
+
+Ususally, it is not possible to combine different adapter types in the same model, e.g. combining LoRA with AdaLoRA, LoHa, or LoKr. Using a mixed model, this can, however, be achieved:
+
+```python
+from peft import PeftMixedModel
+
+model = AutoModelForCausalLM.from_pretrained("hf-internal-testing/tiny-random-OPTForCausalLM").eval()
+peft_model = PeftMixedModel.from_pretrained(model, <path-to-adapter-0>, "adapter0")
+peft_model.load_adapter(<path-to-adapter-1>, "adapter1")
+peft_model.set_adapter(["adapter0", "adapter1"])
+result = peft_model(**inputs)
+```
+
+The main intent is to load already trained adapters and use this only for inference. However, it is also possible to create a PEFT model for training by passing `mixed=True` to `get_peft_model`:
+
+```python
+from peft import get_peft_model, LoraConfig, LoKrConfig
+
+base_model = ...
+config0 = LoraConfig(...)
+config1 = LoKrConfig(...)
+peft_model = get_peft_model(base_model, config0, "adapter0", mixed=True)
+peft_model.add_adapter(config1, "adapter1")
+peft_model.set_adapter(["adapter0", "adapter1"])
+for batch in dataloader:
+    ...
+```
+
+## Contributing
+
+If you would like to contribute to PEFT, please check out our [contributing guide](https://huggingface.co/docs/peft/developer_guides/contributing).
+
+## Citing 🤗 PEFT
+
+If you use 🤗 PEFT in your publication, please cite it by using the following BibTeX entry.
+
+```bibtex
+@Misc{peft,
+  title =        {PEFT: State-of-the-art Parameter-Efficient Fine-Tuning methods},
+  author =       {Sourab Mangrulkar and Sylvain Gugger and Lysandre Debut and Younes Belkada and Sayak Paul and Benjamin Bossan},
+  howpublished = {\url{https://github.com/huggingface/peft}},
+  year =         {2022}
+}
+```
+

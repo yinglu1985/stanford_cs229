@@ -1,0 +1,2318 @@
+Chunk ID,Document ID,Page Content
+971,91.0,"--
+title: ""Generating Human-level Text with Contrastive Search in Transformers 🤗""
+thumbnail: /blog/assets/115_introducing_contrastive_search/thumbnail.png
+authors:
+- user: GMFTBY
+---
+
+# Generating Human-level Text with Contrastive Search in Transformers 🤗
+
+
+****
+
+<a target=""_blank"" href=""https://colab.research.google.com/github/huggingface/blog/blob/main/notebooks/115_introducing_contrastive_search.ipynb"">
+    <img src=""https://colab.research.google.com/assets/colab-badge.svg"" alt=""Open In Colab""/>
+</a>
+
+### 1. Introduction:"
+972,91.0,"### 1. Introduction:
+
+Natural language generation (i.e. text generation) is one of the core tasks in natural language processing (NLP). In this blog, we introduce the current state-of-the-art decoding method, ___Contrastive Search___, for neural text generation. Contrastive search is originally proposed in _""A Contrastive Framework for Neural Text Generation""_ <a href='#references'>[1]</a> ([[Paper]](https://arxiv.org/abs/2202.06417)[[Official Implementation]](https://github.com/yxuansu/SimCTG)) at NeurIPS 2022. Moreover, in this follow-up work,  _""Contrastive Search Is What You Need For Neural Text Generation""_ <a href='#references'>[2]</a> ([[Paper]](https://arxiv.org/abs/2210.14140) [[Official Implementation]](https://github.com/yxuansu/Contrastive_Search_Is_What_You_Need)), the authors further demonstrate that contrastive search can generate human-level text using **off-the-shelf** language models across **16** languages."
+973,91.0,"**[Remark]** For users who are not familiar with text generation, please refer more details to [this blog post](https://huggingface.co/blog/how-to-generate).
+
+****
+
+<span id='demo'/>
+
+### 2. Hugging Face 🤗 Demo of Contrastive Search:
+
+Contrastive Search is now available on 🤗 `transformers`, both on PyTorch and TensorFlow. You can interact with the examples shown in this blog post using your framework of choice in [this Colab notebook](https://colab.research.google.com/github/huggingface/blog/blob/main/notebooks/115_introducing_contrastive_search.ipynb), which is linked at the top. We have also built this awesome [demo](https://huggingface.co/spaces/joaogante/contrastive_search_generation) which directly compares contrastive search with other popular decoding methods (e.g. beam search, top-k sampling <a href='#references'>[3]</a>, and nucleus sampling <a href='#references'>[4]</a>).
+
+****
+
+<span id='installation'/>
+
+### 3. Environment Installation:"
+974,91.0,"****
+
+<span id='installation'/>
+
+### 3. Environment Installation:
+
+Before running the experiments in the following sections, please install the update-to-date version of `transformers` as
+```yaml
+pip install torch
+pip install ""transformers==4.24.0"""
+975,91.0,"```
+
+****
+
+<span id='problems_of_decoding_methods'/>
+
+### 4. Problems of Existing Decoding Methods:
+
+Decoding methods can be divided into two categories: (i) deterministic methods and (ii) stochastic methods. Let's discuss both!
+
+
+<span id='deterministic_methods'/>
+
+#### 4.1. Deterministic Methods:
+
+Deterministic methods, e.g. greedy search and beam search, generate text by selecting the text continuation with the highest likelihood measured by the language model. However, as widely discussed in previous studies <a href='#references'>[3]</a><a href='#references'>[4]</a>, deterministic methods often lead to the problem of _model degeneration_, i.e., the generated text is unnatural and contains undesirable repetitions.
+
+Below, let's see an example of generated text from greedy search using GPT-2 model.
+
+```python
+from transformers import AutoTokenizer, GPT2LMHeadModel"
+976,91.0,"```python
+from transformers import AutoTokenizer, GPT2LMHeadModel
+
+tokenizer = AutoTokenizer.from_pretrained('gpt2-large')
+input_ids = tokenizer('DeepMind Company is', return_tensors='pt').input_ids
+model = GPT2LMHeadModel.from_pretrained('gpt2-large')
+
+output = model.generate(input_ids, max_length=128)
+print(""Output:\n"" + 100 * '-')
+print(tokenizer.decode(output[0], skip_special_tokens=True))
+print("""" + 100 * '-')"
+977,91.0,"```
+
+<details open>
+<summary><b>Model Output:</b></summary>
+
+```
+Output:
+----------------------------------------------------------------------------------------------------
+DeepMind Company is a leading AI research company, with a focus on deep learning and deep
+learning-based systems.
+
+The company's research is focused on the development of deep learning-based systems that
+can learn from large amounts of data, and that can be used to solve real-world problems.
+
+DeepMind's research is also used by the UK government to develop new technologies for the
+UK's National Health Service.
+
+DeepMind's research is also used by the UK government to develop new technologies for the
+UK's National Health Service.
+
+DeepMind's research is also used by the UK government to develop new technologies
+----------------------------------------------------------------------------------------------------"
+978,91.0,"```
+</details>
+
+**[Remark]** From the result generated by greedy search, we can see obvious pattern of repetitions.
+
+<span id='stochastic_methods'/>
+
+#### 4.2. Stochastic Methods:
+
+To address the issues posed by deterministic methods, stochastic methods generate text by introducing randomness during the decoding process. Two widely-used stochastic methods are (i) top-k sampling <a href='#references'>[3]</a> and (ii) nucleus sampling (also called top-p sampling) <a href='#references'>[4]</a>.
+
+Below, we illustrate an example of generated text by nucleus sampling (p=0.95) using the GPT-2 model.
+
+```python
+import torch
+from transformers import AutoTokenizer, GPT2LMHeadModel
+
+tokenizer = AutoTokenizer.from_pretrained('gpt2-large')
+input_ids = tokenizer('DeepMind Company is', return_tensors='pt').input_ids
+model = GPT2LMHeadModel.from_pretrained('gpt2-large')"
+979,91.0,"torch.manual_seed(0.)
+output = model.generate(input_ids, do_sample=True, max_length=128, top_p=0.95, top_k=0)
+print(""Output:\n"" + 100 * '-')
+print(tokenizer.decode(output[0], skip_special_tokens=True))
+print("""" + 100 * '-')"
+980,91.0,"```
+
+<details open>
+<summary><b>Model Output:</b></summary>
+
+```
+Output:
+----------------------------------------------------------------------------------------------------
+DeepMind Company is a leading provider of AI-based research, development, and delivery of
+AI solutions for security, infrastructure, machine learning, communications, and so on.""
+
+'AI is not journalism'
+
+Worse still was the message its researchers hoped would reach the world's media — that it
+was not really research, but rather a get-rich-quick scheme to profit from living forces'
+ignorance.
+
+""The thing is, we know that people don't consciously assess the value of the others'
+information. They understand they will get the same on their own.""
+
+One example? Given the details of today
+----------------------------------------------------------------------------------------------------"
+981,91.0,"```
+</details>
+
+**[Remark]** While nucleus sampling can generate text free of repetitions, the semantic coherence of the generated text is not well-maintained. For instance, the generated phrase _'AI is not journalism'_ is incoherent with respect to the given prefix, i.e. _'DeepMind Company'_.
+
+We note that this semantic inconsistency problem can partially be remedied by lowering the temperature. However, reducing the temperature brings nucleus sampling closer to greedy search, which can be seen as a trade-off between greedy search and nucleus sampling. Generally, it is challenging to find a prompt and model-independent temperature that avoids both the pitfalls of greedy search and nucleus sampling.
+
+****
+
+<span id='contrastive_search'/>
+
+### 5. Contrastive Search:
+
+In this section, we introduce a new decoding method, ___Contrastive Search___, in details.
+
+<span id='contrastive_objective'/>
+
+#### 5.1. Decoding Objective:"
+982,91.0,"<span id='contrastive_objective'/>
+
+#### 5.1. Decoding Objective:
+
+Given the prefix text \\(x_{< t}\\), the selection of the output token \\(x_{t}\\) follows
+
+<center class=""half"">
+    <img src=""assets/115_introducing_contrastive_search/formulation.png"" width=""750""/>
+</center>"
+983,91.0,"where \\(V^{(k)}\\) is the set of top-k predictions from the language model's probability distribution \\(p_{\theta}(v|x_{< t})\\). The first term, i.e. _model confidence_, is the probability of the candidate \\(v\\) predicted by the language model. The second term, _degeneration penalty_, measures how discriminative of \\(v\\) with respect to the previous context \\( x_{< t}\\) and the function \\(s(\cdot, \cdot)\\) computes the cosine similarity between the token representations. More specifically, the degeneration penalty is defined as the maximum cosine similarity between the token representation of \\(v\\), i.e. \\(h_{v}\\), and that of all tokens in the context \\(x_{< t}\\). Here, the candidate representation \\(h_{v}\\) is computed by the language model given the concatenation of \\(x_{< t}\\) and \\(v\\). Intuitively, a larger degeneration penalty of \\(v\\) means it is more similar (in the representation space) to the context, therefore more likely leading to the problem of"
+984,91.0,"(in the representation space) to the context, therefore more likely leading to the problem of model degeneration. The hyperparameter \\(\alpha\\) regulates the importance of these two components. When \\(\alpha=0\\), contrastive search degenerates to the vanilla greedy search."
+985,91.0,"**[Remark]** When generating output, contrastive search jointly considers (i) the probability predicted by the language model to maintain the semantic coherence between the generated text and the prefix text; and (ii) the similarity with respect to the previous context to avoid model degeneration.
+
+
+<span id='contrastive_generation'/>
+
+#### 5.2. Generating Text with Contrastive Search:
+
+Below, we use the same prefix text (i.e. _""DeepMind Company is""_) as in Section <a href='#deterministic_methods'>4.1</a> and <a href='#stochastic_methods'>4.2</a>, and generate the text with contrastive search (k=4 and \\(\alpha=0.6\\)). To fully demonstrate the superior capability of contrastive search, we let the language model generate a **long** document with **512** tokens as
+
+```python
+from transformers import GPT2Tokenizer, GPT2LMHeadModel"
+986,91.0,"```python
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
+
+model_name = 'gpt2-large'
+tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+model = GPT2LMHeadModel.from_pretrained(model_name, pad_token_id=tokenizer.eos_token_id)
+model.eval()
+
+# prepare the prefix
+prefix_text = r'DeepMind Company is'
+input_ids = tokenizer(prefix_text, return_tensors='pt').input_ids
+
+# generate the result with contrastive search
+output = model.generate(input_ids, penalty_alpha=0.6, top_k=4, max_length=512)
+print(""Output:\n"" + 100 * '-')
+print(tokenizer.decode(output[0], skip_special_tokens=True))
+print("""" + 100 * '-')"
+987,91.0,"```
+
+The arguments are as follows:
+* `--top_k`: The hyperparameter \\(k\\) in contrastive search.
+* `--penalty_alpha`: The hyperparameter \\(\alpha\\) in contrastive search.
+
+<details open>
+<summary><b>Model Output:</b></summary>"
+988,91.0,"```
+Output:
+----------------------------------------------------------------------------------------------------
+DeepMind Company is a leader in artificial intelligence (AI). We have a long history of working
+with companies such as Google, Facebook, Amazon, and Microsoft to build products that improve
+people's lives, and today we are excited to announce that DeepMind's AlphaGo program has won the
+game of Go, becoming the first program to defeat a professional Go player.
+
+The victory is a testament to the power of deep learning, and to the incredible work of our
+research team, which has been at the forefront of AI research for the past five years. AlphaGo
+is one of the most advanced Go programs ever created, and its performance is an important step
+towards the goal of human-level AI."
+989,91.0,"""This is the culmination of a decade of hard work,"" said Andy Ng, co-founder and CTO of DeepMind.
+""We are thrilled to have achieved this milestone and look forward to continuing to develop AI that
+can be used in a wide range of applications and to help people live better lives.""
+
+DeepMind's work on Go began in 2010, when it began to train a neural network to play Go using
+millions of games played by top Go players around the world. Since then, the team has refined the
+algorithm, adding more and more layers of reinforcement learning to make it better at recognizing
+patterns and making decisions based on those patterns. In the past year and a half, the team has
+made significant progress in the game, winning a record-tying 13 games in a row to move into the
+top four of the world rankings."
+990,91.0,"""The game of Go is a complex game in which players have to be very careful not to overextend their
+territory, and this is something that we have been able to improve over and over again,"" said
+Dr. Demis Hassabis, co-founder and Chief Scientific Officer of DeepMind. ""We are very proud of our
+team's work, and we hope that it will inspire others to take the next step in their research and
+apply the same techniques to other problems."""
+991,91.0,"In addition to the win in Go, DeepMind has also developed an AI system that can learn to play a
+number of different games, including poker, Go, and chess. This AI system, called Tarsier, was
+developed in partnership with Carnegie Mellon University and the University of California,
+Berkeley, and is being used to teach computer vision and machine learning to identify objects in
+images and recognize speech in natural language. Tarsier has been trained to play the game of Go
+and other games on a
+----------------------------------------------------------------------------------------------------"
+992,91.0,"```
+</details>
+
+**[Remark]** We see that the generated text is of exceptionally high quality. The entire document is grammatically fluent as well as semantically coherent. Meanwhile, the generated text also well maintains its factually correctness. For instance, in the first paragraph, it elaborates _""AlphaGo""_ as the _""first program to defeat a professional Go player""_.
+
+
+<span id='contrastive_visual_demonstration'/>
+
+#### 5.3. Visual Demonstration of Contrastive Search:"
+993,91.0,"#### 5.3. Visual Demonstration of Contrastive Search:
+
+To better understand how contrastive search works, we provide a visual comparison between greedy search (<a href='#deterministic_methods'>Section 4.1</a>) and contrastive search. Specifically, we visualize the token similarity matrix of the generated text from greedy search and contrastive search, respectively. The similarity between two tokens is defined as the cosine similarity between their token representations (i.e. the hidden states of the last transformer layer). The results of greedy search (top) and contrastive search (bottom) are shown in the Figure below.
+
+<center class=""half"">
+    <img src=""assets/115_introducing_contrastive_search/greedy_search_visualization.png"" width=""400""/>
+    <img src=""assets/115_introducing_contrastive_search/contrastive_search_visualization.png"" width=""400""/>
+</center>"
+994,91.0,"**[Remark]** From the result of greedy search, we see high similarity scores in the off-diagonal entries which clearly indicates the generated repetitions by greedy search. On the contrary, in the result of contrastive search, the high similarity scores mostly appear in the diagonal entries which verifies that the degeneration problem is successfully addressed. This nice property of contrastive search is achieved by the introduction of degeneration penalty (see <a href='#contrastive_objective'>Section 5.1</a>) during the decoding process.
+
+
+****
+
+<span id='more_examples'/>
+
+### 6. More Generated Examples:
+
+In this section, we provide more generated examples to compare different decoding methods.
+
+<span id='gpt2_example_one'/>
+
+#### 6.1. Example One - GPT-2:
+
+In this part, we use GPT-2 to generate text with the prefix text from the original [OpenAI blog](https://openai.com/blog/better-language-models/) that announced the release of GPT-2."
+995,91.0,"> _In a shocking finding, scientist discovered a herd of unicorns living in a remote, previously unexplored valley, in the Andes Mountains. Even more surprising to the researchers was the fact that the unicorns spoke perfect English._
+
+
+<details open>
+<summary><b> Load the language model and prepare the prefix text:</b></summary>
+
+```python
+import torch
+from transformers import AutoTokenizer, GPT2LMHeadModel
+
+tokenizer = AutoTokenizer.from_pretrained('gpt2-large')
+model = GPT2LMHeadModel.from_pretrained('gpt2-large')
+
+prefix_text = r""In a shocking finding, scientist discovered a herd of unicorns living in a remote, previously unexplored valley, in the Andes Mountains. Even more surprising to the researchers was the fact that the unicorns spoke perfect English.""
+input_ids = tokenizer(prefix_text, return_tensors='pt').input_ids"
+996,91.0,"```
+</details>
+
+<span id='gpt2_greedy_example_one'/>
+
+##### 6.1.1. Generating Text with Greedy Search:
+
+<details>
+<summary><b>Code: [click to expand]</b></summary>
+
+```python
+output = model.generate(input_ids, max_length=512)
+print(""Output:\n"" + 100 * '-')
+print(tokenizer.decode(output[0], skip_special_tokens=True))
+print("""" + 100 * '-')
+```
+</details>
+
+<details>
+<summary><b>Model Output: [click to expand]</b></summary>"
+997,91.0,"```
+Output:
+----------------------------------------------------------------------------------------------------
+In a shocking finding, scientist discovered a herd of unicorns living in a remote, previously
+unexplored valley, in the Andes Mountains. Even more surprising to the researchers was the fact
+that the unicorns spoke perfect English.
+
+The researchers, led by Dr. David R. Williams of the University of California, Santa Cruz,
+discovered the unicorns in the Andes Mountains of Peru. The area is known for its unique geology
+and is home to a number of rare species of animals.
+
+The researchers found the unicorns in the Andes Mountains of Peru.
+
+""We were surprised to find that the unicorns were able to communicate with each other,"" Williams
+said. ""We were also surprised to find that they were able to communicate in English.""
+
+The researchers believe that the unicorns are descendants of the ancient Incas, who lived in the
+area around 2,000 years ago."
+998,91.0,"""The Incas were the first people to use the Andes Mountains as a refuge from the harsh climate of
+the Andes,"" Williams said. ""They were also the first people to use the Andes Mountains as a place
+to hunt and gather food.""
+
+The researchers believe that the unicorns are descendants of the ancient Incas, who lived in the
+area around 2,000 years ago.
+
+""The Incas were the first people to use the Andes Mountains as a refuge from the harsh climate of
+the Andes,"" Williams said. ""They were also the first people to use the Andes Mountains as a place
+to hunt and gather food.""
+
+The researchers believe that the unicorns are descendants of the ancient Incas, who lived in the
+area around 2,000 years ago.
+
+""The Incas were the first people to use the Andes Mountains as a refuge from the harsh climate of
+the Andes,"" Williams said. ""They were also the first people to use the Andes Mountains as a place
+to hunt and gather food."""
+999,91.0,"The researchers believe that the unicorns are descendants of the ancient Incas, who lived in the
+area around 2,000 years ago.
+
+""The Incas were the first people to use the Andes Mountains as a refuge from the harsh climate of
+the Andes,"" Williams said. ""They were also the first people to use the Andes Mountains as a place
+to hunt and gather food.""
+
+The researchers believe that the unicorns are descendants of the ancient Incas, who lived in the
+area around 2,000 years ago
+----------------------------------------------------------------------------------------------------"
+1000,91.0,"```
+</details>
+
+<span id='gpt2_nucleus_example_one'/>
+
+##### 6.1.2. Generating Text with Nucleus Sampling:
+
+<details>
+<summary><b>Code: [click to expand]</b></summary>
+
+```python
+torch.manual_seed(0.)
+output = model.generate(input_ids, do_sample=True, max_length=512, top_p=0.95, top_k=0)
+print(""Output:\n"" + 100 * '-')
+print(tokenizer.decode(output[0], skip_special_tokens=True))
+print("""" + 100 * '-')
+```
+</details>
+
+
+<details>
+<summary><b>Model Output: [click to expand]</b></summary>"
+1001,91.0,"```
+Output:
+----------------------------------------------------------------------------------------------------
+In a shocking finding, scientist discovered a herd of unicorns living in a remote, previously
+unexplored valley, in the Andes Mountains. Even more surprising to the researchers was the fact
+that the unicorns spoke perfect English. The study was published in the Journal of Zoology in
+March 2016.
+
+Polygynous mammals such as unicorns have remained largely unknown to science. Professor Gustavo
+Giacota, from the University of Oxford who led the study, said that they had been documented as
+far as Eastern Siberia in Russia, but had only been seen a handful of times in the Gobi Desert."
+1002,91.0,"Tiny animals with pale and shiny coats live in the presence of human beings and are hardly likely
+to be victims of any cruelty. However, there is some evidence of the condition occurring in both
+humans and animals in remote regions, which might have similarities to ""black moles"" that coexist
+on the skin.
+
+It is thought that Unicorns could be inside themselves, that they have different scents depending
+on their current environment, or just fall out and there are plenty of legends of how they have
+survived. Experts speculate that the moths and other animals could be remnants of the Yezidi Isis
+and Charon, which literally is both the word which means great bird, and the Greek word for sound.
+It is said that the Isis and Charon taught their young the use of voice in the form of calling out
+to others."
+1003,91.0,"The scientists think that it could be ancient folklore that has survived and is no longer attributed
+to a real entity
+----------------------------------------------------------------------------------------------------"
+1004,91.0,"```
+</details>
+
+
+<span id='gpt2_contrastive_example_one'/>
+
+##### 6.1.3. Generating Text with Contrastive Search:
+
+<details open>
+<summary><b>Code:</b></summary>
+
+```python
+output = model.generate(input_ids, max_length=512, penalty_alpha=0.6, top_k=4)
+print(""Output:\n"" + 100 * '-')
+print(tokenizer.decode(output[0], skip_special_tokens=True))
+print("""" + 100 * '-')
+```
+</details>
+
+<details open>
+<summary><b>Model Output:</b></summary>"
+1005,91.0,"```
+Output:
+----------------------------------------------------------------------------------------------------
+In a shocking finding, scientist discovered a herd of unicorns living in a remote, previously unexplored
+valley, in the Andes Mountains. Even more surprising to the researchers was the fact that the unicorns
+spoke perfect English.
+
+According to the BBC, a team of scientists led by Dr David MacKay, from the University of Bristol, spent
+two years searching for the unicorn herd, which they discovered during a survey of the area.
+
+""It's a very rare find,"" MacKay told the BBC. ""There are a few in the Himalayas, but this is the first
+time we've been able to find one in such a remote area.""
+
+The team was surprised to find a herd of unicorns living in a region that has been known to be a hotbed
+of poaching, with many of the animals poached for their horns, which are used in traditional Chinese
+medicine to treat everything from rheumatism to cancer."
+1006,91.0,"""We knew that the area was rich in rhino horn, but we had no idea how many there were, or what they were
+doing there,"" MacKay said. ""This is an area of high poaching pressure, and we wanted to find out what was
+going on.""
+
+In order to do so, the team used GPS collars to track the animals as they moved around the mountain and
+the surrounding area. The GPS data was then compared with information gathered from local villagers, who
+had a wealth of information about the animals' movements, including where they were eating, what they were
+doing at night, and how much time they spent in the mountains each day.
+
+After analyzing the data, the team determined that the herd consisted of at least three species of unicorns,
+including a male and two females. One of the females was the mother of the male, and the other two were her
+daughters. All three had the same horn color, which is believed to be a sign of purity in the animal kingdom."
+1007,91.0,"While the discovery is exciting, it's not the first time scientists have discovered an animal that speaks
+English. Last year, scientists discovered a species of porcupine that can be heard by humans, and has been
+dubbed ""Porcupine Man"" for his ability to converse with the human race.
+----------------------------------------------------------------------------------------------------"
+1008,91.0,"```
+</details>
+
+
+<span id='opt_example_two'/>
+
+#### 6.2. Example Two - OPT:
+
+In this part, we use the OPT model <a href='#references'>[5]</a> which is recently released by Meta to generate text by taking the first two sentences from the abstract of the prestigious ResNet paper <a href='#references'>[6]</a>.
+
+> Deeper neural networks are more difficult to train. We present a residual learning framework to ease the training of networks that are substantially deeper than those used previously.
+
+
+<details open>
+<summary><b> Load the language model and prepare the prefix text:</b></summary>
+
+```python
+import torch
+from transformers import AutoTokenizer, OPTForCausalLM
+model_name = r'facebook/opt-1.3b'
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = OPTForCausalLM.from_pretrained(model_name)"
+1009,91.0,"prefix_text = r""Deeper neural networks are more difficult to train. We present a residual learning framework to ease the training of networks that are substantially deeper than those used previously.""
+input_ids = tokenizer(prefix_text, return_tensors='pt').input_ids"
+1010,91.0,"```
+</details>
+
+
+
+<span id='opt_greedy_example_two'/>
+
+##### 6.2.1. Generating Text with Greedy Search:
+
+<details>
+<summary><b>Code: [click to expand]</b></summary>
+
+```python
+output = model.generate(input_ids, max_length=256)
+print(""Output:\n"" + 100 * '-')
+print(tokenizer.decode(output[0], skip_special_tokens=True))
+print("""" + 100 * '-')
+```
+</details>
+
+<details>
+<summary><b>Model Output: [click to expand]</b></summary>"
+1011,91.0,"```
+Output:
+----------------------------------------------------------------------------------------------------
+Deeper neural networks are more difficult to train. We present a residual learning framework to ease
+the training of networks that are substantially deeper than those used previously. We show that the
+residual learning framework can be used to train deep neural networks that are significantly more
+difficult to train than those used previously. We also show that the residual learning framework can
+be used to train deep neural networks that are significantly more difficult to train than those used
+previously."
+1012,91.0,"The paper presents a new residual learning framework for deep neural networks that is based on the
+concept of residuals. The residuals are the residuals of the network that are not used in the training
+process. The residuals are computed by taking the residuals of the network that are used in the training
+process and subtracting the residuals of the network that are not used in the training process. The
+residuals are then used to train the network. The residuals are computed by taking the residuals of
+the network that are used in the training process and subtracting the residuals of the network that
+are not used in the training process. The residuals are then used to train the network. The residuals
+are computed by taking the residuals of the network that are used in the training process and
+subtracting the residuals of the
+----------------------------------------------------------------------------------------------------"
+1013,91.0,"```
+</details>
+
+
+<span id='opt_greedy_example_two'/>
+
+##### 6.2.2. Generating Text with Nucleus Sampling:
+
+<details>
+<summary><b>Code: [click to expand]</b></summary>
+
+```python
+torch.manual_seed(0.)
+output = model.generate(input_ids, do_sample=True, max_length=256, top_p=0.95, top_k=0)
+print(""Output:\n"" + 100 * '-')
+print(tokenizer.decode(output[0], skip_special_tokens=True))
+print("""" + 100 * '-')
+```
+</details>
+
+
+<details>
+<summary><b>Model Output: [click to expand]</b></summary>"
+1014,91.0,"```
+</details>
+
+
+<details>
+<summary><b>Model Output: [click to expand]</b></summary>
+
+```
+Output:
+----------------------------------------------------------------------------------------------------
+Deeper neural networks are more difficult to train. We present a residual learning framework to ease the
+training of networks that are substantially deeper than those used previously. The theory focuses on
+several aspects of learning, including the dynamics of replicative and non-replicative aspects of learning.
+This framework emphasizes learning by entropy. New randomized algorithms enable training networks with
+residual learning, so that deep networks can be deployed as reliably and as efficiently as their more
+conventional counterparts.
+----------------------------------------------------------------------------------------------------"
+1015,91.0,"```
+</details>
+
+
+
+<span id='opt_contrastive_example_two'/>
+
+##### 6.2.3. Generating Text with Contrastive Search:
+
+<details open>
+<summary><b>Code:</b></summary>
+
+```python
+output = model.generate(input_ids, max_length=256, penalty_alpha=0.6, top_k=6)
+print(""Output:\n"" + 100 * '-')
+print(tokenizer.decode(output[0], skip_special_tokens=True))
+print("""" + 100 * '-')
+```
+</details>
+
+<details open>
+<summary><b>Model Output:</b></summary>"
+1016,91.0,"```
+Output:
+----------------------------------------------------------------------------------------------------
+Deeper neural networks are more difficult to train. We present a residual learning framework to ease
+the training of networks that are substantially deeper than those used previously.
+
+In this paper, we propose a model-based residual learning (MBRL) framework that is based on neural
+networks trained on data that is sparse in terms of dimensionality (e.g., 1, 2, 3, etc.). The network
+parameters are chosen such that there is a high probability of convergence, i.e., the number of
+iterations is large enough to minimize the variance of the residuals. This is achieved by training
+the network on a set of training data, in which the data is sparse in terms of dimensionality, and
+then discarding the nonparametric part of the data after training is complete."
+1017,91.0,"We show that MBRL outperforms other methods for deep reinforcement learning (RL) and deep convolutional
+neural networks (CNNs) by a factor of at least 2. In addition, we show that, compared to CNNs, MBRL
+performs better in two-dimensional (2D) and three-dimensional (3D) cases.
+----------------------------------------------------------------------------------------------------"
+1018,91.0,"```
+</details>
+
+****
+
+<span id='resources'/>
+
+### 7. Resources:
+
+For more details of contrastive search, please check our papers and code as
+* **A Contrastive Framework for Neural Text Generation**: (1) [Paper](https://arxiv.org/abs/2202.06417) and (2) [Official Implementation](https://github.com/yxuansu/SimCTG).
+* **Contrastive Search Is What You Need For Neural Text Generation**: (1) [Paper](https://arxiv.org/abs/2210.14140) and (2) [Official Implementation](https://github.com/yxuansu/Contrastive_Search_Is_What_You_Need).
+
+****
+
+<span id='citation'/>
+
+### 8. Citation:
+
+```bibtex
+@inproceedings{su2022a,
+   title={A Contrastive Framework for Neural Text Generation},
+   author={Yixuan Su and Tian Lan and Yan Wang and Dani Yogatama and Lingpeng Kong and Nigel Collier},
+   booktitle={Advances in Neural Information Processing Systems},
+   editor={Alice H. Oh and Alekh Agarwal and Danielle Belgrave and Kyunghyun Cho},
+   year={2022},
+   url={https://openreview.net/forum?id=V88BafmH9Pj}
+}"
+1019,91.0,"@article{su2022contrastiveiswhatyouneed,
+  title={Contrastive Search Is What You Need For Neural Text Generation},
+  author={Su, Yixuan and Collier, Nigel},
+  journal={arXiv preprint arXiv:2210.14140},
+  year={2022}
+}"
+1020,91.0,"```
+
+
+
+****
+
+<span id='references'/>
+
+## Reference:
+> [1] Su et al., 2022 [""A Contrastive Framework for Neural Text Generation""](https://arxiv.org/abs/2202.06417), NeurIPS 2022
+
+> [2] Su and Collier, 2022 [""Contrastive Search Is What You Need For Neural Text Generation""](https://arxiv.org/abs/2210.14140), Arxiv 2022
+
+> [3] Fan et al., 2018 [""Hierarchical Neural Story Generation""](https://arxiv.org/abs/1805.04833), ACL 2018
+
+> [4] Holtzman et al., 2020 [""The Curious Case of Neural Text Degeneration""](https://arxiv.org/abs/1904.09751), ICLR 2020
+
+> [5] Zhang et al., 2022 [""OPT: Open Pre-trained Transformer Language Models""](https://arxiv.org/abs/2205.01068), Arxiv 2022
+
+> [6] He et al., 2016 [""Deep Residual Learning for Image Recognition""](https://arxiv.org/abs/1512.03385), CVPR 2016
+
+****
+
+*- Written by Yixuan Su and Tian Lan*
+
+****
+
+
+
+<span id='acknowledgements'/>
+
+
+## Acknowledgements:"
+1021,91.0,"****
+
+
+
+<span id='acknowledgements'/>
+
+
+## Acknowledgements:
+
+We would like to thank Joao Gante ([@joaogante](https://huggingface.co/joaogante)), Patrick von Platen ([@patrickvonplaten](https://huggingface.co/patrickvonplaten)), and Sylvain Gugger ([@sgugger](https://github.com/sgugger)) for their help and guidance in adding contrastive search mentioned in this blog post into the `transformers` library."
+2481,148.0,"!--⚠️ Note that this file is in Markdown but contain specific syntax for our doc-builder (similar to MDX) that may not be
+rendered properly in your Markdown viewer.
+-->
+
+# Upload files to the Hub
+
+Sharing your files and work is an important aspect of the Hub. The `huggingface_hub` offers several options for uploading your files to the Hub. You can use these functions independently or integrate them into your library, making it more convenient for your users to interact with the Hub. This guide will show you how to push files:
+
+- without using Git.
+- that are very large with [Git LFS](https://git-lfs.github.com/).
+- with the `commit` context manager.
+- with the [`~Repository.push_to_hub`] function.
+
+Whenever you want to upload files to the Hub, you need to log in to your Hugging Face account. For more details about authentication, check out [this section](../quick-start#authentication).
+
+## Upload a file"
+2482,148.0,"## Upload a file
+
+Once you've created a repository with [`create_repo`], you can upload a file to your repository using [`upload_file`].
+
+Specify the path of the file to upload, where you want to upload the file to in the repository, and the name of the repository you want to add the file to. Depending on your repository type, you can optionally set the repository type as a `dataset`, `model`, or `space`.
+
+```py
+>>> from huggingface_hub import HfApi
+>>> api = HfApi()
+>>> api.upload_file(
+...     path_or_fileobj=""/path/to/local/folder/README.md"",
+...     path_in_repo=""README.md"",
+...     repo_id=""username/test-dataset"",
+...     repo_type=""dataset"",
+... )"
+2483,148.0,"```
+
+## Upload a folder
+
+Use the [`upload_folder`] function to upload a local folder to an existing repository. Specify the path of the local folder
+to upload, where you want to upload the folder to in the repository, and the name of the repository you want to add the
+folder to. Depending on your repository type, you can optionally set the repository type as a `dataset`, `model`, or `space`.
+
+```py
+>>> from huggingface_hub import HfApi
+>>> api = HfApi()
+
+# Upload all the content from the local folder to your remote Space.
+# By default, files are uploaded at the root of the repo
+>>> api.upload_folder(
+...     folder_path=""/path/to/local/space"",
+...     repo_id=""username/my-cool-space"",
+...     repo_type=""space"",
+... )"
+2484,148.0,"```
+
+By default, the `.gitignore` file will be taken into account to know which files should be committed or not. By default we check if a `.gitignore` file is present in a commit, and if not, we check if it exists on the Hub. Please be aware that only a `.gitignore` file present at the root of the directory with be used. We do not check for `.gitignore` files in subdirectories.
+
+If you don't want to use an hardcoded `.gitignore` file, you can use the `allow_patterns` and `ignore_patterns` arguments to filter which files to upload. These parameters accept either a single pattern or a list of patterns. Patterns are Standard Wildcards (globbing patterns) as documented [here](https://tldp.org/LDP/GNU-Linux-Tools-Summary/html/x11655.htm). If both `allow_patterns` and `ignore_patterns` are provided, both constraints apply.
+
+Beside the `.gitignore` file and allow/ignore patterns, any `.git/` folder present in any subdirectory will be ignored."
+2485,148.0,"```py
+>>> api.upload_folder(
+...     folder_path=""/path/to/local/folder"",
+...     path_in_repo=""my-dataset/train"", # Upload to a specific folder
+...     repo_id=""username/test-dataset"",
+...     repo_type=""dataset"",
+...     ignore_patterns=""**/logs/*.txt"", # Ignore all text logs
+... )"
+2486,148.0,"```
+
+You can also use the `delete_patterns` argument to specify files you want to delete from the repo in the same commit.
+This can prove useful if you want to clean a remote folder before pushing files in it and you don't know which files
+already exists.
+
+The example below uploads the local `./logs` folder to the remote `/experiment/logs/` folder. Only txt files are uploaded
+but before that, all previous logs on the repo on deleted. All of this in a single commit.
+```py
+>>> api.upload_folder(
+...     folder_path=""/path/to/local/folder/logs"",
+...     repo_id=""username/trained-model"",
+...     path_in_repo=""experiment/logs/"",
+...     allow_patterns=""*.txt"", # Upload all local text files
+...     delete_patterns=""*.txt"", # Delete all remote text files before
+... )"
+2487,148.0,"```
+
+## Upload from the CLI
+
+You can use the `huggingface-cli upload` command from the terminal to directly upload files to the Hub. Internally it uses the same [`upload_file`] and [`upload_folder`] helpers described above.
+
+You can either upload a single file or an entire folder:
+
+```bash
+# Usage:  huggingface-cli upload [repo_id] [local_path] [path_in_repo]
+>>> huggingface-cli upload Wauplin/my-cool-model ./models/model.safetensors model.safetensors
+https://huggingface.co/Wauplin/my-cool-model/blob/main/model.safetensors
+
+>>> huggingface-cli upload Wauplin/my-cool-model ./models .
+https://huggingface.co/Wauplin/my-cool-model/tree/main"
+2488,148.0,"```
+
+`local_path` and `path_in_repo` are optional and can be implicitly inferred. If `local_path` is not set, the tool will
+check if a local folder or file has the same name as the `repo_id`. If that's the case, its content will be uploaded.
+Otherwise, an exception is raised asking the user to explicitly set `local_path`. In any case, if `path_in_repo` is not
+set, files are uploaded at the root of the repo.
+
+For more details about the CLI upload command, please refer to the [CLI guide](./cli#huggingface-cli-upload).
+
+## Advanced features
+
+In most cases, you won't need more than [`upload_file`] and [`upload_folder`] to upload your files to the Hub.
+However, `huggingface_hub` has more advanced features to make things easier. Let's have a look at them!
+
+
+### Non-blocking uploads"
+2489,148.0,"### Non-blocking uploads
+
+In some cases, you want to push data without blocking your main thread. This is particularly useful to upload logs and
+artifacts while continuing a training. To do so, you can use the `run_as_future` argument in both [`upload_file`] and
+[`upload_folder`]. This will return a [`concurrent.futures.Future`](https://docs.python.org/3/library/concurrent.futures.html#future-objects)
+object that you can use to check the status of the upload.
+
+```py
+>>> from huggingface_hub import HfApi
+>>> api = HfApi()
+>>> future = api.upload_folder( # Upload in the background (non-blocking action)
+...     repo_id=""username/my-model"",
+...     folder_path=""checkpoints-001"",
+...     run_as_future=True,
+... )
+>>> future
+Future(...)
+>>> future.done()
+False
+>>> future.result() # Wait for the upload to complete (blocking action)
+..."
+2490,148.0,"```
+
+<Tip>
+
+Background jobs are queued when using `run_as_future=True`. This means that you are guaranteed that the jobs will be
+executed in the correct order.
+
+</Tip>
+
+Even though background jobs are mostly useful to upload data/create commits, you can queue any method you like using
+[`run_as_future`]. For instance, you can use it to create a repo and then upload data to it in the background. The
+built-in `run_as_future` argument in upload methods is just an alias around it.
+
+```py
+>>> from huggingface_hub import HfApi
+>>> api = HfApi()
+>>> api.run_as_future(api.create_repo, ""username/my-model"", exists_ok=True)
+Future(...)
+>>> api.upload_file(
+...     repo_id=""username/my-model"",
+...     path_in_repo=""file.txt"",
+...     path_or_fileobj=b""file content"",
+...     run_as_future=True,
+... )
+Future(...)"
+2491,148.0,"```
+
+### Upload a folder by chunks
+
+[`upload_folder`] makes it easy to upload an entire folder to the Hub. However, for large folders (thousands of files or
+hundreds of GB), it can still be challenging. If you have a folder with a lot of files, you might want to upload
+it in several commits. If you experience an error or a connection issue during the upload, you would not have to resume
+the process from the beginning."
+2492,148.0,"To upload a folder in multiple commits, just pass `multi_commits=True` as argument. Under the hood, `huggingface_hub`
+will list the files to upload/delete and split them in several commits. The ""strategy"" (i.e. how to split the commits)
+is based on the number and size of the files to upload. A PR is open on the Hub to push all the commits. Once the PR is
+ready, the commits are squashed into a single commit. If the process is interrupted before completing, you can rerun
+your script to resume the upload. The created PR will be automatically detected and the upload will resume from where
+it stopped. It is recommended to pass `multi_commits_verbose=True` to get a better understanding of the upload and its
+progress.
+
+The example below will upload the checkpoints folder to a dataset in multiple commits. A PR will be created on the Hub
+and merged automatically once the upload is complete. If you prefer the PR to stay open and review it manually, you can
+pass `create_pr=True`."
+2493,148.0,"```py
+>>> upload_folder(
+...     folder_path=""local/checkpoints"",
+...     repo_id=""username/my-dataset"",
+...     repo_type=""dataset"",
+...     multi_commits=True,
+...     multi_commits_verbose=True,
+... )"
+2494,148.0,"```
+
+If you want a better control on the upload strategy (i.e. the commits that are created), you can have a look at the
+low-level [`plan_multi_commits`] and [`create_commits_on_pr`] methods.
+
+<Tip warning={true}>
+
+`multi_commits` is still an experimental feature. Its API and behavior is subject to change in the future without prior
+notice.
+
+</Tip>
+
+### Scheduled uploads
+
+The Hugging Face Hub makes it easy to save and version data. However, there are some limitations when updating the same file thousands of times. For instance, you might want to save logs of a training process or user
+feedback on a deployed Space. In these cases, uploading the data as a dataset on the Hub makes sense, but it can be hard to do properly. The main reason is that you don't want to version every update of your data because it'll make the git repository unusable. The [`CommitScheduler`] class offers a solution to this problem."
+2495,148.0,"The idea is to run a background job that regularly pushes a local folder to the Hub. Let's assume you have a
+Gradio Space that takes as input some text and generates two translations of it. Then, the user can select their preferred translation. For each run, you want to save the input, output, and user preference to analyze the results. This is a
+perfect use case for [`CommitScheduler`]; you want to save data to the Hub (potentially millions of user feedback), but
+you don't _need_ to save in real-time each user's input. Instead, you can save the data locally in a JSON file and
+upload it every 10 minutes. For example:
+
+```py
+>>> import json
+>>> import uuid
+>>> from pathlib import Path
+>>> import gradio as gr
+>>> from huggingface_hub import CommitScheduler
+
+# Define the file where to save the data. Use UUID to make sure not to overwrite existing data from a previous run.
+>>> feedback_file = Path(""user_feedback/"") / f""data_{uuid.uuid4()}.json""
+>>> feedback_folder = feedback_file.parent"
+2496,148.0,"# Schedule regular uploads. Remote repo and local folder are created if they don't already exist.
+>>> scheduler = CommitScheduler(
+...     repo_id=""report-translation-feedback"",
+...     repo_type=""dataset"",
+...     folder_path=feedback_folder,
+...     path_in_repo=""data"",
+...     every=10,
+... )
+
+# Define the function that will be called when the user submits its feedback (to be called in Gradio)
+>>> def save_feedback(input_text:str, output_1: str, output_2:str, user_choice: int) -> None:
+...     """"""
+...     Append input/outputs and user feedback to a JSON Lines file using a thread lock to avoid concurrent writes from different users.
+...     """"""
+...     with scheduler.lock:
+...         with feedback_file.open(""a"") as f:
+...             f.write(json.dumps({""input"": input_text, ""output_1"": output_1, ""output_2"": output_2, ""user_choice"": user_choice}))
+...             f.write(""\n"")"
+2497,148.0,"# Start Gradio
+>>> with gr.Blocks() as demo:
+>>>     ... # define Gradio demo + use `save_feedback`
+>>> demo.launch()"
+2498,148.0,"```
+
+And that's it! User input/outputs and feedback will be available as a dataset on the Hub. By using a unique JSON file name, you are guaranteed you won't overwrite data from a previous run or data from another
+Spaces/replicas pushing concurrently to the same repository."
+2499,148.0,"For more details about the [`CommitScheduler`], here is what you need to know:
+- **append-only:**
+    It is assumed that you will only add content to the folder. You must only append data to existing files or create
+    new files. Deleting or overwriting a file might corrupt your repository.
+- **git history**:
+    The scheduler will commit the folder every `every` minutes. To avoid polluting the git repository too much, it is
+    recommended to set a minimal value of 5 minutes. Besides, the scheduler is designed to avoid empty commits. If no
+    new content is detected in the folder, the scheduled commit is dropped.
+- **errors:**
+    The scheduler run as background thread. It is started when you instantiate the class and never stops. In particular,
+    if an error occurs during the upload (example: connection issue), the scheduler will silently ignore it and retry
+    at the next scheduled commit.
+- **thread-safety:**"
+2500,148.0,"at the next scheduled commit.
+- **thread-safety:**
+    In most cases it is safe to assume that you can write to a file without having to worry about a lock file. The
+    scheduler will not crash or be corrupted if you write content to the folder while it's uploading. In practice,
+    _it is possible_ that concurrency issues happen for heavy-loaded apps. In this case, we advice to use the
+    `scheduler.lock` lock to ensure thread-safety. The lock is blocked only when the scheduler scans the folder for
+    changes, not when it uploads data. You can safely assume that it will not affect the user experience on your Space."
+2501,148.0,"#### Space persistence demo
+
+Persisting data from a Space to a Dataset on the Hub is the main use case for [`CommitScheduler`]. Depending on the use
+case, you might want to structure your data differently. The structure has to be robust to concurrent users and
+restarts which often implies generating UUIDs. Besides robustness, you should upload data in a format readable by the 🤗 Datasets library for later reuse. We created a [Space](https://huggingface.co/spaces/Wauplin/space_to_dataset_saver)
+that demonstrates how to save several different data formats (you may need to adapt it for your own specific needs).
+
+#### Custom uploads"
+2502,148.0,"#### Custom uploads
+
+[`CommitScheduler`] assumes your data is append-only and should be uploading ""as is"". However, you
+might want to customize the way data is uploaded. You can do that by creating a class inheriting from [`CommitScheduler`]
+and overwrite the `push_to_hub` method (feel free to overwrite it any way you want). You are guaranteed it will
+be called every `every` minutes in a background thread. You don't have to worry about concurrency and errors but you
+must be careful about other aspects, such as pushing empty commits or duplicated data.
+
+In the (simplified) example below, we overwrite `push_to_hub` to zip all PNG files in a single archive to avoid
+overloading the repo on the Hub:
+
+```py
+class ZipScheduler(CommitScheduler):
+    def push_to_hub(self):
+        # 1. List PNG files
+          png_files = list(self.folder_path.glob(""*.png""))
+          if len(png_files) == 0:
+              return None  # return early if nothing to commit"
+2503,148.0,"# 2. Zip png files in a single archive
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_path = Path(tmpdir) / ""train.zip""
+            with zipfile.ZipFile(archive_path, ""w"", zipfile.ZIP_DEFLATED) as zip:
+                for png_file in png_files:
+                    zip.write(filename=png_file, arcname=png_file.name)
+
+            # 3. Upload archive
+            self.api.upload_file(..., path_or_fileobj=archive_path)
+
+        # 4. Delete local png files to avoid re-uploading them later
+        for png_file in png_files:
+            png_file.unlink()"
+2504,148.0,"```
+
+When you overwrite `push_to_hub`, you have access to the attributes of [`CommitScheduler`] and especially:
+- [`HfApi`] client: `api`
+- Folder parameters: `folder_path` and `path_in_repo`
+- Repo parameters: `repo_id`, `repo_type`, `revision`
+- The thread lock: `lock`
+
+<Tip>
+
+For more examples of custom schedulers, check out our [demo Space](https://huggingface.co/spaces/Wauplin/space_to_dataset_saver)
+containing different implementations depending on your use cases.
+
+</Tip>
+
+### create_commit
+
+The [`upload_file`] and [`upload_folder`] functions are high-level APIs that are generally convenient to use. We recommend
+trying these functions first if you don't need to work at a lower level. However, if you want to work at a commit-level,
+you can use the [`create_commit`] function directly.
+
+There are three types of operations supported by [`create_commit`]:"
+2505,148.0,"There are three types of operations supported by [`create_commit`]:
+
+- [`CommitOperationAdd`] uploads a file to the Hub. If the file already exists, the file contents are overwritten. This operation accepts two arguments:
+
+  - `path_in_repo`: the repository path to upload a file to.
+  - `path_or_fileobj`: either a path to a file on your filesystem or a file-like object. This is the content of the file to upload to the Hub.
+
+- [`CommitOperationDelete`] removes a file or a folder from a repository. This operation accepts `path_in_repo` as an argument.
+
+- [`CommitOperationCopy`] copies a file within a repository. This operation accepts three arguments:
+
+  - `src_path_in_repo`: the repository path of the file to copy.
+  - `path_in_repo`: the repository path where the file should be copied.
+  - `src_revision`: optional - the revision of the file to copy if your want to copy a file from a different branch/revision."
+2506,148.0,"For example, if you want to upload two files and delete a file in a Hub repository:
+
+1. Use the appropriate `CommitOperation` to add or delete a file and to delete a folder:
+
+```py
+>>> from huggingface_hub import HfApi, CommitOperationAdd, CommitOperationDelete
+>>> api = HfApi()
+>>> operations = [
+...     CommitOperationAdd(path_in_repo=""LICENSE.md"", path_or_fileobj=""~/repo/LICENSE.md""),
+...     CommitOperationAdd(path_in_repo=""weights.h5"", path_or_fileobj=""~/repo/weights-final.h5""),
+...     CommitOperationDelete(path_in_repo=""old-weights.h5""),
+...     CommitOperationDelete(path_in_repo=""logs/""),
+...     CommitOperationCopy(src_path_in_repo=""image.png"", path_in_repo=""duplicate_image.png""),
+... ]"
+2507,148.0,"```
+
+2. Pass your operations to [`create_commit`]:
+
+```py
+>>> api.create_commit(
+...     repo_id=""lysandre/test-model"",
+...     operations=operations,
+...     commit_message=""Upload my model weights and license"",
+... )"
+2508,148.0,"```
+
+In addition to [`upload_file`] and [`upload_folder`], the following functions also use [`create_commit`] under the hood:
+
+- [`delete_file`] deletes a single file from a repository on the Hub.
+- [`delete_folder`] deletes an entire folder from a repository on the Hub.
+- [`metadata_update`] updates a repository's metadata.
+
+For more detailed information, take a look at the [`HfApi`] reference.
+
+### Preupload LFS files before commit"
+2509,148.0,"### Preupload LFS files before commit
+
+In some cases, you might want to upload huge files to S3 **before** making the commit call. For example, if you are
+committing a dataset in several shards that are generated in-memory, you would need to upload the shards one by one
+to avoid an out-of-memory issue. A solution is to upload each shard as a separate commit on the repo. While being
+perfectly valid, this solution has the drawback of potentially messing the git history by generating tens of commits.
+To overcome this issue, you can upload your files one by one to S3 and then create a single commit at the end. This
+is possible using [`preupload_lfs_files`] in combination with [`create_commit`].
+
+<Tip warning={true}>"
+2510,148.0,"<Tip warning={true}>
+
+This is a power-user method. Directly using [`upload_file`], [`upload_folder`] or [`create_commit`] instead of handling
+the low-level logic of pre-uploading files is the way to go in the vast majority of cases. The main caveat of
+[`preupload_lfs_files`] is that until the commit is actually made, the upload files are not accessible on the repo on
+the Hub. If you have a question, feel free to ping us on our Discord or in a GitHub issue.
+
+</Tip>
+
+Here is a simple example illustrating how to pre-upload files:
+
+```py
+>>> from huggingface_hub import CommitOperationAdd, preupload_lfs_files, create_commit, create_repo
+
+>>> repo_id = create_repo(""test_preupload"").repo_id"
+2511,148.0,">>> repo_id = create_repo(""test_preupload"").repo_id
+
+>>> operations = [] # List of all `CommitOperationAdd` objects that will be generated
+>>> for i in range(5):
+...     content = ... # generate binary content
+...     addition = CommitOperationAdd(path_in_repo=f""shard_{i}_of_5.bin"", path_or_fileobj=content)
+...     preupload_lfs_files(repo_id, additions=[addition])
+...     operations.append(addition)
+
+>>> # Create commit
+>>> create_commit(repo_id, operations=operations, commit_message=""Commit all shards"")"
+2512,148.0,"```
+
+First, we create the [`CommitOperationAdd`] objects one by one. In a real-world example, those would contain the
+generated shards. Each file is uploaded before generating the next one. During the [`preupload_lfs_files`] step, **the
+`CommitOperationAdd` object is mutated**. You should only use it to pass it directly to [`create_commit`]. The main
+update of the object is that **the binary content is removed** from it, meaning that it will be garbage-collected if
+you don't store another reference to it. This is expected as we don't want to keep in memory the content that is
+already uploaded. Finally we create the commit by passing all the operations to [`create_commit`]. You can pass
+additional operations (add, delete or copy) that have not been processed yet and they will be handled correctly.
+
+## Tips and tricks for large uploads"
+2513,148.0,"## Tips and tricks for large uploads
+
+There are some limitations to be aware of when dealing with a large amount of data in your repo. Given the time it takes to stream the data,
+getting an upload/push to fail at the end of the process or encountering a degraded experience, be it on hf.co or when working locally, can be very annoying.
+
+Check out our [Repository limitations and recommendations](https://huggingface.co/docs/hub/repositories-recommendations) guide for best practices on how to structure your repositories on the Hub. Next, let's move on with some practical tips to make your upload process as smooth as possible."
+2514,148.0,"- **Start small**: We recommend starting with a small amount of data to test your upload script. It's easier to iterate
+on a script when failing takes only a little time.
+- **Expect failures**: Streaming large amounts of data is challenging. You don't know what can happen, but it's always
+best to consider that something will fail at least once -no matter if it's due to your machine, your connection, or our
+servers. For example, if you plan to upload a large number of files, it's best to keep track locally of which files you
+already uploaded before uploading the next batch. You are ensured that an LFS file that is already committed will never
+be re-uploaded twice but checking it client-side can still save some time.
+- **Use `hf_transfer`**: this is a Rust-based [library](https://github.com/huggingface/hf_transfer) meant to speed up
+uploads on machines with very high bandwidth. To use it, you must install it (`pip install hf_transfer`) and enable it"
+2515,148.0,"by setting `HF_HUB_ENABLE_HF_TRANSFER=1` as an environment variable. You can then use `huggingface_hub` normally.
+Disclaimer: this is a power user tool. It is tested and production-ready but lacks user-friendly features like advanced error handling or proxies. For more details, please refer to this [section](https://huggingface.co/docs/huggingface_hub/hf_transfer)."
+2516,148.0,"<Tip>
+
+Progress bars are supported in `hf_transfer` starting from version `0.1.4`. Consider upgrading (`pip install -U hf-transfer`) if you plan to enable faster uploads.
+
+</Tip>
+
+## (legacy) Upload files with Git LFS
+
+All the methods described above use the Hub's API to upload files. This is the recommended way to upload files to the Hub.
+However, we also provide [`Repository`], a wrapper around the git tool to manage a local repository.
+
+<Tip warning={true}>
+
+Although [`Repository`] is not formally deprecated, we recommend using the HTTP-based methods described above instead.
+For more details about this recommendation, please have a look at [this guide](../concepts/git_vs_http) explaining the
+core differences between HTTP-based and Git-based approaches.
+
+</Tip>
+
+Git LFS automatically handles files larger than 10MB. But for very large files (>5GB), you need to install a custom transfer agent for Git LFS:
+
+```bash
+huggingface-cli lfs-enable-largefiles"
+2517,148.0,"```
+
+You should install this for each repository that has a very large file. Once installed, you'll be able to push files larger than 5GB.
+
+### commit context manager
+
+The `commit` context manager handles four of the most common Git commands: pull, add, commit, and push. `git-lfs` automatically tracks any file larger than 10MB. In the following example, the `commit` context manager:
+
+1. Pulls from the `text-files` repository.
+2. Adds a change made to `file.txt`.
+3. Commits the change.
+4. Pushes the change to the `text-files` repository.
+
+```python
+>>> from huggingface_hub import Repository
+>>> with Repository(local_dir=""text-files"", clone_from=""<user>/text-files"").commit(commit_message=""My first file :)""):
+...     with open(""file.txt"", ""w+"") as f:
+...         f.write(json.dumps({""hey"": 8}))"
+2518,148.0,"```
+
+Here is another example of how to use the `commit` context manager to save and upload a file to a repository:
+
+```python
+>>> import torch
+>>> model = torch.nn.Transformer()
+>>> with Repository(""torch-model"", clone_from=""<user>/torch-model"", token=True).commit(commit_message=""My cool model :)""):
+...     torch.save(model.state_dict(), ""model.pt"")
+```
+
+Set `blocking=False` if you would like to push your commits asynchronously. Non-blocking behavior is helpful when you want to continue running your script while your commits are being pushed.
+
+```python
+>>> with repo.commit(commit_message=""My cool model :)"", blocking=False)
+```
+
+You can check the status of your push with the `command_queue` method:
+
+```python
+>>> last_command = repo.command_queue[-1]
+>>> last_command.status"
+2519,148.0,"```
+
+Refer to the table below for the possible statuses:
+
+| Status   | Description                          |
+| -------- | ------------------------------------ |
+| -1       | The push is ongoing.                 |
+| 0        | The push has completed successfully. |
+| Non-zero | An error has occurred.               |
+
+When `blocking=False`, commands are tracked, and your script will only exit when all pushes are completed, even if other errors occur in your script. Some additional useful commands for checking the status of a push include:
+
+```python
+# Inspect an error.
+>>> last_command.stderr
+
+# Check whether a push is completed or ongoing.
+>>> last_command.is_done
+
+# Check whether a push command has errored.
+>>> last_command.failed"
+2520,148.0,"```
+
+### push_to_hub
+
+The [`Repository`] class has a [`~Repository.push_to_hub`] function to add files, make a commit, and push them to a repository. Unlike the `commit` context manager, you'll need to pull from a repository first before calling [`~Repository.push_to_hub`].
+
+For example, if you've already cloned a repository from the Hub, then you can initialize the `repo` from the local directory:
+
+```python
+>>> from huggingface_hub import Repository
+>>> repo = Repository(local_dir=""path/to/local/repo"")
+```
+
+Update your local clone with [`~Repository.git_pull`] and then push your file to the Hub:
+
+```py
+>>> repo.git_pull()
+>>> repo.push_to_hub(commit_message=""Commit my-awesome-file to the Hub"")
+```
+
+However, if you aren't ready to push a file yet, you can use [`~Repository.git_add`] and [`~Repository.git_commit`] to only add and commit your file:
+
+```py
+>>> repo.git_add(""path/to/file"")
+>>> repo.git_commit(commit_message=""add my first model config file :)"")"
+2521,148.0,"```
+
+When you're ready, push the file to your repository with [`~Repository.git_push`]:
+
+```py
+>>> repo.git_push()
+```"
+7037,564.0,"!--Copyright 2023 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the ""License""); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an ""AS IS"" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+-->
+
+# Text-to-image
+
+[[open-in-colab]]
+
+When you think of diffusion models, text-to-image is usually one of the first things that come to mind. Text-to-image generates an image from a text description (for example, ""Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"") which is also known as a *prompt*."
+7038,564.0,"From a very high level, a diffusion model takes a prompt and some random initial noise, and iteratively removes the noise to construct an image. The *denoising* process is guided by the prompt, and once the denoising process ends after a predetermined number of time steps, the image representation is decoded into an image.
+
+<Tip>
+
+Read the [How does Stable Diffusion work?](https://huggingface.co/blog/stable_diffusion#how-does-stable-diffusion-work) blog post to learn more about how a latent diffusion model works.
+
+</Tip>
+
+You can generate images from a prompt in 🤗 Diffusers in two steps:
+
+1. Load a checkpoint into the [`AutoPipelineForText2Image`] class, which automatically detects the appropriate pipeline class to use based on the checkpoint:
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(
+	""runwayml/stable-diffusion-v1-5"", torch_dtype=torch.float16, variant=""fp16""
+).to(""cuda"")"
+7039,564.0,"```
+
+2. Pass a prompt to the pipeline to generate an image:
+
+```py
+image = pipeline(
+	""stained glass of darth vader, backlight, centered composition, masterpiece, photorealistic, 8k""
+).images[0]
+image"
+7040,564.0,"```
+
+<div class=""flex justify-center"">
+	<img src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-vader.png""/>
+</div>
+
+## Popular models
+
+The most common text-to-image models are [Stable Diffusion v1.5](https://huggingface.co/runwayml/stable-diffusion-v1-5), [Stable Diffusion XL (SDXL)](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0), and [Kandinsky 2.2](https://huggingface.co/kandinsky-community/kandinsky-2-2-decoder). There are also ControlNet models or adapters that can be used with text-to-image models for more direct control in generating images. The results from each model are slightly different because of their architecture and training process, but no matter which model you choose, their usage is more or less the same. Let's use the same prompt for each model and compare their results.
+
+### Stable Diffusion v1.5"
+7041,564.0,"### Stable Diffusion v1.5
+
+[Stable Diffusion v1.5](https://huggingface.co/runwayml/stable-diffusion-v1-5) is a latent diffusion model initialized from [Stable Diffusion v1-4](https://huggingface.co/CompVis/stable-diffusion-v1-4), and finetuned for 595K steps on 512x512 images from the LAION-Aesthetics V2 dataset. You can use this model like:
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(
+	""runwayml/stable-diffusion-v1-5"", torch_dtype=torch.float16, variant=""fp16""
+).to(""cuda"")
+generator = torch.Generator(""cuda"").manual_seed(31)
+image = pipeline(""Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"", generator=generator).images[0]
+image"
+7042,564.0,"```
+
+### Stable Diffusion XL
+
+SDXL is a much larger version of the previous Stable Diffusion models, and involves a two-stage model process that adds even more details to an image. It also includes some additional *micro-conditionings* to generate high-quality images centered subjects. Take a look at the more comprehensive [SDXL](sdxl) guide to learn more about how to use it. In general, you can use SDXL like:
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(
+    ""stabilityai/stable-diffusion-xl-base-1.0"", torch_dtype=torch.float16, variant=""fp16""
+).to(""cuda"")
+generator = torch.Generator(""cuda"").manual_seed(31)
+image = pipeline(""Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"", generator=generator).images[0]
+image"
+7043,564.0,"```
+
+### Kandinsky 2.2
+
+The Kandinsky model is a bit different from the Stable Diffusion models because it also uses an image prior model to create embeddings that are used to better align text and images in the diffusion model.
+
+The easiest way to use Kandinsky 2.2 is:
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(
+	""kandinsky-community/kandinsky-2-2-decoder"", torch_dtype=torch.float16
+).to(""cuda"")
+generator = torch.Generator(""cuda"").manual_seed(31)
+image = pipeline(""Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"", generator=generator).images[0]
+image"
+7044,564.0,"```
+
+### ControlNet
+
+ControlNet models are auxiliary models or adapters that are finetuned on top of text-to-image models, such as [Stable Diffusion v1.5](https://huggingface.co/runwayml/stable-diffusion-v1-5). Using ControlNet models in combination with text-to-image models offers diverse options for more explicit control over how to generate an image. With ControlNet, you add an additional conditioning input image to the model. For example, if you provide an image of a human pose (usually represented as multiple keypoints that are connected into a skeleton) as a conditioning input, the model generates an image that follows the pose of the image. Check out the more in-depth [ControlNet](controlnet) guide to learn more about other conditioning inputs and how to use them.
+
+In this example, let's condition the ControlNet with a human pose estimation image. Load the ControlNet model pretrained on human pose estimations:"
+7045,564.0,"```py
+from diffusers import ControlNetModel, AutoPipelineForText2Image
+from diffusers.utils import load_image
+import torch
+
+controlnet = ControlNetModel.from_pretrained(
+	""lllyasviel/control_v11p_sd15_openpose"", torch_dtype=torch.float16, variant=""fp16""
+).to(""cuda"")
+pose_image = load_image(""https://huggingface.co/lllyasviel/control_v11p_sd15_openpose/resolve/main/images/control.png"")"
+7046,564.0,"```
+
+Pass the `controlnet` to the [`AutoPipelineForText2Image`], and provide the prompt and pose estimation image:
+
+```py
+pipeline = AutoPipelineForText2Image.from_pretrained(
+	""runwayml/stable-diffusion-v1-5"", controlnet=controlnet, torch_dtype=torch.float16, variant=""fp16""
+).to(""cuda"")
+generator = torch.Generator(""cuda"").manual_seed(31)
+image = pipeline(""Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"", image=pose_image, generator=generator).images[0]
+image"
+7047,564.0,```
+7048,564.0,"<div class=""flex flex-row gap-4"">
+  <div class=""flex-1"">
+    <img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-1.png""/>
+    <figcaption class=""mt-2 text-center text-sm text-gray-500"">Stable Diffusion v1.5</figcaption>
+  </div>
+  <div class=""flex-1"">
+    <img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/sdxl-text2img.png""/>
+    <figcaption class=""mt-2 text-center text-sm text-gray-500"">Stable Diffusion XL</figcaption>
+  </div>
+  <div class=""flex-1"">
+    <img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-2.png""/>
+    <figcaption class=""mt-2 text-center text-sm text-gray-500"">Kandinsky 2.2</figcaption>
+  </div>
+  <div class=""flex-1"">
+    <img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-3.png""/>"
+7049,564.0,"<figcaption class=""mt-2 text-center text-sm text-gray-500"">ControlNet (pose conditioning)</figcaption>
+  </div>
+</div>"
+7050,564.0,"## Configure pipeline parameters
+
+There are a number of parameters that can be configured in the pipeline that affect how an image is generated. You can change the image's output size, specify a negative prompt to improve image quality, and more. This section dives deeper into how to use these parameters.
+
+### Height and width
+
+The `height` and `width` parameters control the height and width (in pixels) of the generated image. By default, the Stable Diffusion v1.5 model outputs 512x512 images, but you can change this to any size that is a multiple of 8. For example, to create a rectangular image:
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(
+	""runwayml/stable-diffusion-v1-5"", torch_dtype=torch.float16, variant=""fp16""
+).to(""cuda"")
+image = pipeline(
+	""Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"", height=768, width=512
+).images[0]
+image"
+7051,564.0,"```
+
+<div class=""flex justify-center"">
+	<img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-hw.png""/>
+</div>
+
+<Tip warning={true}>
+
+Other models may have different default image sizes depending on the image sizes in the training dataset. For example, SDXL's default image size is 1024x1024 and using lower `height` and `width` values may result in lower quality images. Make sure you check the model's API reference first!
+
+</Tip>
+
+### Guidance scale
+
+The `guidance_scale` parameter affects how much the prompt influences image generation. A lower value gives the model ""creativity"" to generate images that are more loosely related to the prompt. Higher `guidance_scale` values push the model to follow the prompt more closely, and if this value is too high, you may observe some artifacts in the generated image.
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch"
+7052,564.0,"```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(
+	""runwayml/stable-diffusion-v1-5"", torch_dtype=torch.float16
+).to(""cuda"")
+image = pipeline(
+	""Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"", guidance_scale=3.5
+).images[0]
+image"
+7053,564.0,"```
+
+<div class=""flex flex-row gap-4"">
+  <div class=""flex-1"">
+    <img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-guidance-scale-2.5.png""/>
+    <figcaption class=""mt-2 text-center text-sm text-gray-500"">guidance_scale = 2.5</figcaption>
+  </div>
+  <div class=""flex-1"">
+    <img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-guidance-scale-7.5.png""/>
+    <figcaption class=""mt-2 text-center text-sm text-gray-500"">guidance_scale = 7.5</figcaption>
+  </div>
+  <div class=""flex-1"">
+    <img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-guidance-scale-10.5.png""/>
+    <figcaption class=""mt-2 text-center text-sm text-gray-500"">guidance_scale = 10.5</figcaption>
+  </div>
+</div>
+
+### Negative prompt"
+7054,564.0,"### Negative prompt
+
+Just like how a prompt guides generation, a *negative prompt* steers the model away from things you don't want the model to generate. This is commonly used to improve overall image quality by removing poor or bad image features such as ""low resolution"" or ""bad details"". You can also use a negative prompt to remove or modify the content and style of an image.
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(
+	""runwayml/stable-diffusion-v1-5"", torch_dtype=torch.float16
+).to(""cuda"")
+image = pipeline(
+	prompt=""Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"",
+	negative_prompt=""ugly, deformed, disfigured, poor details, bad anatomy"",
+).images[0]
+image"
+7055,564.0,"```
+
+<div class=""flex flex-row gap-4"">
+  <div class=""flex-1"">
+    <img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-neg-prompt-1.png""/>
+    <figcaption class=""mt-2 text-center text-sm text-gray-500"">negative_prompt = ""ugly, deformed, disfigured, poor details, bad anatomy""</figcaption>
+  </div>
+  <div class=""flex-1"">
+    <img class=""rounded-xl"" src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/text2img-neg-prompt-2.png""/>
+    <figcaption class=""mt-2 text-center text-sm text-gray-500"">negative_prompt = ""astronaut""</figcaption>
+  </div>
+</div>
+
+### Generator"
+7056,564.0,"### Generator
+
+A [`torch.Generator`](https://pytorch.org/docs/stable/generated/torch.Generator.html#generator) object enables reproducibility in a pipeline by setting a manual seed. You can use a `Generator` to generate batches of images and iteratively improve on an image generated from a seed as detailed in the [Improve image quality with deterministic generation](reusing_seeds) guide.
+
+You can set a seed and `Generator` as shown below. Creating an image with a `Generator` should return the same result each time instead of randomly generating a new image.
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(
+	""runwayml/stable-diffusion-v1-5"", torch_dtype=torch.float16
+).to(""cuda"")
+generator = torch.Generator(device=""cuda"").manual_seed(30)
+image = pipeline(
+	""Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"",
+	generator=generator,
+).images[0]
+image"
+7057,564.0,"```
+
+## Control image generation
+
+There are several ways to exert more control over how an image is generated outside of configuring a pipeline's parameters, such as prompt weighting and ControlNet models.
+
+### Prompt weighting
+
+Prompt weighting is a technique for increasing or decreasing the importance of concepts in a prompt to emphasize or minimize certain features in an image. We recommend using the [Compel](https://github.com/damian0815/compel) library to help you generate the weighted prompt embeddings.
+
+<Tip>
+
+Learn how to create the prompt embeddings in the [Prompt weighting](weighted_prompts) guide. This example focuses on how to use the prompt embeddings in the pipeline.
+
+</Tip>
+
+Once you've created the embeddings, you can pass them to the `prompt_embeds` (and `negative_prompt_embeds` if you're using a negative prompt) parameter in the pipeline.
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch"
+7058,564.0,"```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(
+	""runwayml/stable-diffusion-v1-5"", torch_dtype=torch.float16
+).to(""cuda"")
+image = pipeline(
+	prompt_embeds=prompt_embeds, # generated from Compel
+	negative_prompt_embeds=negative_prompt_embeds, # generated from Compel
+).images[0]"
+7059,564.0,"```
+
+### ControlNet
+
+As you saw in the [ControlNet](#controlnet) section, these models offer a more flexible and accurate way to generate images by incorporating an additional conditioning image input. Each ControlNet model is pretrained on a particular type of conditioning image to generate new images that resemble it. For example, if you take a ControlNet model pretrained on depth maps, you can give the model a depth map as a conditioning input and it'll generate an image that preserves the spatial information in it. This is quicker and easier than specifying the depth information in a prompt. You can even combine multiple conditioning inputs with a [MultiControlNet](controlnet#multicontrolnet)!
+
+There are many types of conditioning inputs you can use, and 🤗 Diffusers supports ControlNet for Stable Diffusion and SDXL models. Take a look at the more comprehensive [ControlNet](controlnet) guide to learn how you can use these models.
+
+## Optimize"
+7060,564.0,"## Optimize
+
+Diffusion models are large, and the iterative nature of denoising an image is computationally expensive and intensive. But this doesn't mean you need access to powerful - or even many - GPUs to use them. There are many optimization techniques for running diffusion models on consumer and free-tier resources. For example, you can load model weights in half-precision to save GPU memory and increase speed or offload the entire model to the GPU to save even more memory.
+
+PyTorch 2.0 also supports a more memory-efficient attention mechanism called [*scaled dot product attention*](../optimization/torch2.0#scaled-dot-product-attention) that is automatically enabled if you're using PyTorch 2.0. You can combine this with [`torch.compile`](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html) to speed your code up even more:
+
+```py
+from diffusers import AutoPipelineForText2Image
+import torch"
+7061,564.0,"```py
+from diffusers import AutoPipelineForText2Image
+import torch
+
+pipeline = AutoPipelineForText2Image.from_pretrained(""runwayml/stable-diffusion-v1-5"", torch_dtype=torch.float16, variant=""fp16"").to(""cuda"")
+pipeline.unet = torch.compile(pipeline.unet, mode=""reduce-overhead"", fullgraph=True)"
+7062,564.0,"```
+
+For more tips on how to optimize your code to save memory and speed up inference, read the [Memory and speed](../optimization/fp16) and [Torch 2.0](../optimization/torch2.0) guides."
+13751,1124.0,"!--Copyright 2022 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the ""License""); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an ""AS IS"" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+⚠️ Note that this file is in Markdown but contain specific syntax for our doc-builder (similar to MDX) that may not be
+rendered properly in your Markdown viewer.
+
+-->
+
+# YOSO
+
+## Overview"
+13752,1124.0,"-->
+
+# YOSO
+
+## Overview
+
+The YOSO model was proposed in [You Only Sample (Almost) Once: Linear Cost Self-Attention Via Bernoulli Sampling](https://arxiv.org/abs/2111.09714)  
+by Zhanpeng Zeng, Yunyang Xiong, Sathya N. Ravi, Shailesh Acharya, Glenn Fung, Vikas Singh. YOSO approximates standard softmax self-attention
+via a Bernoulli sampling scheme based on Locality Sensitive Hashing (LSH). In principle, all the Bernoulli random variables can be sampled with
+a single hash. 
+
+The abstract from the paper is the following:"
+13753,1124.0,"*Transformer-based models are widely used in natural language processing (NLP). Central to the transformer model is 
+the self-attention mechanism, which captures the interactions of token pairs in the input sequences and depends quadratically 
+on the sequence length. Training such models on longer sequences is expensive. In this paper, we show that a Bernoulli sampling 
+attention mechanism based on Locality Sensitive Hashing (LSH), decreases the quadratic complexity of such models to linear. 
+We bypass the quadratic cost by considering self-attention as a sum of individual tokens associated with Bernoulli random 
+variables that can, in principle, be sampled at once by a single hash (although in practice, this number may be a small constant). 
+This leads to an efficient sampling scheme to estimate self-attention which relies on specific modifications of 
+LSH (to enable deployment on GPU architectures). We evaluate our algorithm on the GLUE benchmark with standard 512 sequence"
+13754,1124.0,"length where we see favorable performance relative to a standard pretrained Transformer. On the Long Range Arena (LRA) benchmark, 
+for evaluating performance on long sequences, our method achieves results consistent with softmax self-attention but with sizable 
+speed-ups and memory savings and often outperforms other efficient self-attention methods. Our code is available at this https URL*"
+13755,1124.0,"This model was contributed by [novice03](https://huggingface.co/novice03). The original code can be found [here](https://github.com/mlpen/YOSO).
+
+## Usage tips
+
+- The YOSO attention algorithm is implemented through custom CUDA kernels, functions written in CUDA C++ that can be executed multiple times
+in parallel on a GPU.
+- The kernels provide a `fast_hash` function, which approximates the random projections of the queries and keys using the Fast Hadamard Transform. Using these
+hash codes, the `lsh_cumulation` function approximates self-attention via LSH-based Bernoulli sampling.
+- To use the custom kernels, the user should set `config.use_expectation = False`. To ensure that the kernels are compiled successfully, 
+the user must install the correct version of PyTorch and cudatoolkit. By default, `config.use_expectation = True`, which uses YOSO-E and 
+does not require compiling CUDA kernels."
+13756,1124.0,"<img src=""https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/yoso_architecture.jpg""
+alt=""drawing"" width=""600""/> 
+
+<small> YOSO Attention Algorithm. Taken from the <a href=""https://arxiv.org/abs/2111.09714"">original paper</a>.</small>
+
+## Resources
+
+- [Text classification task guide](../tasks/sequence_classification)
+- [Token classification task guide](../tasks/token_classification)
+- [Question answering task guide](../tasks/question_answering)
+- [Masked language modeling task guide](../tasks/masked_language_modeling)
+- [Multiple choice task guide](../tasks/multiple_choice)
+
+## YosoConfig
+
+[[autodoc]] YosoConfig
+
+## YosoModel
+
+[[autodoc]] YosoModel
+    - forward
+
+## YosoForMaskedLM
+
+[[autodoc]] YosoForMaskedLM
+    - forward
+
+## YosoForSequenceClassification
+
+[[autodoc]] YosoForSequenceClassification
+    - forward
+
+## YosoForMultipleChoice
+
+[[autodoc]] YosoForMultipleChoice
+    - forward
+
+## YosoForTokenClassification"
+13757,1124.0,"[[autodoc]] YosoForMultipleChoice
+    - forward
+
+## YosoForTokenClassification
+
+[[autodoc]] YosoForTokenClassification
+    - forward
+
+## YosoForQuestionAnswering
+
+[[autodoc]] YosoForQuestionAnswering
+    - forward"
+18890,1588.0,"--
+title: ""Stable Diffusion XL on Mac with Advanced Core ML Quantization""
+thumbnail: /blog/assets/stable-diffusion-xl-coreml/thumbnail.png
+authors:
+- user: pcuenq
+- user: Atila
+  guest: true
+---
+
+# Stable Diffusion XL on Mac with Advanced Core ML Quantization
+
+
+[Stable Diffusion XL](https://stability.ai/stablediffusion) was released yesterday and it’s awesome. It can generate large (1024x1024) high quality images; adherence to prompts has been improved with some new tricks; it can effortlessly produce very dark or very bright images thanks to the latest research on noise schedulers; and it’s open source!
+
+The downside is that the model is much bigger, and therefore slower and more difficult to run on consumer hardware. Using the [latest release of the Hugging Face diffusers library](https://github.com/huggingface/diffusers/releases/tag/v0.19.0), you can run Stable Diffusion XL on CUDA hardware in 16 GB of GPU RAM, making it possible to use it on Colab’s free tier."
+18891,1588.0,"The past few months have shown that people are very clearly interested in running ML models locally for a variety of reasons, including privacy, convenience, easier experimentation, or unmetered use. We’ve been working hard at both Apple and Hugging Face to explore this space. We’ve shown [how to run Stable Diffusion on Apple Silicon](https://machinelearning.apple.com/research/stable-diffusion-coreml-apple-silicon), or how to leverage the [latest advancements in Core ML to improve size and performance with 6-bit palettization](https://huggingface.co/blog/fast-diffusers-coreml)."
+18892,1588.0,"For Stable Diffusion XL we’ve done a few things:
+* Ported the [base model to Core ML](https://huggingface.co/apple/coreml-stable-diffusion-xl-base) so you can use it in your native Swift apps.
+* Updated [Apple’s conversion and inference repo](https://github.com/apple/ml-stable-diffusion) so you can convert the models yourself, including any fine-tunes you’re interested in.
+* Updated [Hugging Face’s demo app](https://github.com/huggingface/swift-coreml-diffusers) to show how to use the new Core ML Stable Diffusion XL models downloaded from the Hub.
+* Explored [mixed-bit palettization](https://github.com/apple/ml-stable-diffusion#-mbp-post-training-mixed-bit-palettization), an advanced compression technique that achieves important size reductions while minimizing and controlling the quality loss you incur. You can apply the same technique to your own models too!
+
+Everything is open source and available today, let’s get on with it.
+
+## Contents"
+18893,1588.0,"Everything is open source and available today, let’s get on with it.
+
+## Contents
+
+- [Using SD XL Models from the Hugging Face Hub](#using-sd-xl-models-from-the-hugging-face-hub)
+- [What is Mixed-Bit Palettization?](#what-is-mixed-bit-palettization)
+- [How are Mixed-Bit Recipes Created?](#how-are-mixed-bit-recipes-created)
+- [Converting Fine-Tuned Models](#converting-fine-tuned-models)
+- [Published Resources](#published-resources)
+
+## Using SD XL Models from the Hugging Face Hub"
+18894,1588.0,"## Using SD XL Models from the Hugging Face Hub
+
+As part of this release, we published two different versions of Stable Diffusion XL in Core ML.
+- [`apple/coreml-stable-diffusion-xl-base`](https://huggingface.co/apple/coreml-stable-diffusion-xl-base) is a complete pipeline, without any quantization.
+- [`apple/coreml-stable-diffusion-mixed-bit-palettization`](https://huggingface.co/apple/coreml-stable-diffusion-mixed-bit-palettization) contains (among other artifacts) a complete pipeline where the UNet has been replaced with a mixed-bit palettization _recipe_ that achieves a compression equivalent to 4.5 bits per parameter. Size went down from 4.8 to 1.4 GB, a 71% reduction, and in our opinion quality is still great."
+18895,1588.0,"Either model can be tested using Apple’s [Swift command-line inference app](https://github.com/apple/ml-stable-diffusion#inference), or Hugging Face’s [demo app](https://github.com/huggingface/swift-coreml-diffusers). This is an example of the latter using the new Stable Diffusion XL pipeline:
+
+![Screenshot of Stable Diffusion XL running on Mac](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/stable-diffusion-xl-coreml/sdxl-swift-screenshot.png)
+
+As with previous Stable Diffusion releases, we expect the community to come up with novel fine-tuned versions for different domains, and many of them will be converted to Core ML. You can keep an eye on [this filter in the Hub](https://huggingface.co/models?pipeline_tag=text-to-image&library=coreml&sort=trending) to explore!"
+18896,1588.0,"Stable Diffusion XL works on Apple Silicon Macs running the public beta of macOS 14. It currently uses the `ORIGINAL` attention implementation, which is intended for CPU + GPU compute units. Note that the refiner stage has not been ported yet.
+
+For reference, these are the performance figures we achieved on different devices:"
+18897,1588.0,"For reference, these are the performance figures we achieved on different devices:
+
+|        Device         | `--compute-unit`| `--attention-implementation` | End-to-End Latency (s) | Diffusion Speed (iter/s) |
+| --------------------- | --------------- | ---------------------------- | ---------------------- | ------------------------ |
+| MacBook Pro (M1 Max)  | `CPU_AND_GPU`   |      `ORIGINAL`              |      46                |        0.46              |
+| MacBook Pro (M2 Max)  | `CPU_AND_GPU`   |      `ORIGINAL`              |      37                |        0.57              |
+| Mac Studio (M1 Ultra) | `CPU_AND_GPU`   |      `ORIGINAL`              |      25                |        0.89              |
+| Mac Studio (M2 Ultra) | `CPU_AND_GPU`   |      `ORIGINAL`              |      20                |        1.11              |
+
+## What is Mixed-Bit Palettization?"
+18898,1588.0,"## What is Mixed-Bit Palettization?
+
+[Last month we discussed 6-bit palettization](https://huggingface.co/blog/fast-diffusers-coreml), a post-training quantization method that converts 16-bit weights to just 6-bit per parameter. This achieves an important reduction in model size, but going beyond that is tricky because model quality becomes more and more impacted as the number of bits is decreased.
+
+One option to decrease model size further is to use _training time_ quantization, which consists of learning the quantization tables while we fine-tune the model. This works great, but you need to run a fine-tuning phase for every model you want to convert."
+18899,1588.0,"We explored a different alternative instead: **mixed-bit palettization**. Instead of using 6 bits per parameter, we examine the model and decide how many quantization bits to use _per layer_. We make the decision based on how much each layer contributes to the overall quality degradation, which we measure by comparing the PSNR between the quantized model and the original model in `float16` mode, for a set of a few inputs. We explore several bit depths, per layer: `1` (!), `2`, `4` and `8`. If a layer degrades significantly when using, say, 2 bits, we move to `4` and so on. Some layers might be kept in 16-bit mode if they are critical to preserving quality.
+
+Using this method, we can achieve effective quantizations of, for example, 2.8 bits on average, and we measure the impact on degradation for every combination we try. This allows us to be better informed about the best quantization to use for our target quality and size budgets."
+18900,1588.0,"To illustrate the method, let’s consider the following quantization “recipes” that we got from one of our analysis runs (we’ll explain later how they were generated):
+
+```json
+{
+  ""model_version"": ""stabilityai/stable-diffusion-xl-base-1.0"",
+  ""baselines"": {
+    ""original"": 82.2,
+    ""linear_8bit"": 66.025,
+    ""recipe_6.55_bit_mixedpalette"": 79.9,
+    ""recipe_4.50_bit_mixedpalette"": 75.8,
+    ""recipe_3.41_bit_mixedpalette"": 71.7,
+  },
+}"
+18901,1588.0,"```
+
+What this tells us is that the original model quality, as measured by PSNR in float16, is about 82 dB. Performing a naïve 8-bit linear quantization drops it to 66 dB. But then we have a recipe that compresses to 6.55 bits per parameter, on average, while keeping PSNR at 80 dB. The second and third recipes further reduce the model size, while still sustaining a PSNR larger than that of the 8-bit linear quantization.
+
+For visual examples, these are the results on prompt `a high quality photo of a surfing dog` running each one of the three recipes with the same seed:"
+18902,1588.0,"| 3.41-bit | 4.50-bit | 6.55-bit | 16-bit (original) |
+| :-------:| :-------:| :-------:| :----------------:|
+| ![3.41](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/stable-diffusion-xl-coreml/a_high_quality_photo_of_a_surfing_dog.7667.final_3.41-bits.jpg) | ![4.50](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/stable-diffusion-xl-coreml/a_high_quality_photo_of_a_surfing_dog.7667.final_4.50-bits.jpg) | ![6.55](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/stable-diffusion-xl-coreml/a_high_quality_photo_of_a_surfing_dog.7667.final_6.55-bits.jpg) | ![16-bit](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/stable-diffusion-xl-coreml/a_high_quality_photo_of_a_surfing_dog.7667.final_float16_original.jpg) |"
+18903,1588.0,"Some initial conclusions:
+- In our opinion, all the images have good quality in terms of how realistic they look. The 6.55 and 4.50 versions are close to the 16-bit version in this aspect.
+- The same seed produces an equivalent composition, but will not preserve the same details. Dog breeds may be different, for example.
+- Adherence to the prompt may degrade as we increase compression. In this example, the aggressive 3.41 version loses the board. PSNR only compares how much pixels differ overall, but does not care about the subjects in the images. You need to examine results and assess them for your use case.
+
+This technique is great for Stable Diffusion XL because we can keep about the same UNet size even though the number of parameters tripled with respect to the previous version. But it's not exclusive to it! You can apply the method to any Stable Diffusion Core ML model.
+
+## How are Mixed-Bit Recipes Created?"
+18904,1588.0,"## How are Mixed-Bit Recipes Created?
+
+The following plot shows the signal strength (PSNR in dB) versus model size reduction (% of float16 size) for `stabilityai/stable-diffusion-xl-base-1.0`. The `{1,2,4,6,8}`-bit curves are generated by progressively palettizing more layers using a palette with a fixed number of bits. The layers were ordered in ascending order of their isolated impact to end-to-end signal strength, so the cumulative compression's impact is delayed as much as possible. The mixed-bit curve is based on falling back to a higher number of bits as soon as a layer's isolated impact to end-to-end signal integrity drops below a threshold. Note that all curves based on palettization outperform linear 8-bit quantization at the same model size except for 1-bit.
+
+![PSNR-vs-size-reduction-plot](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/stable-diffusion-xl-coreml/stabilityai_stable-diffusion-xl-base-1.0_psnr_vs_size.png)"
+18905,1588.0,"Mixed-bit palettization runs in two phases: _analysis_ and _application_.
+
+The goal of the analysis phase is to find points in the mixed-bit curve (the brown one above all the others in the figure) so we can choose our desired quality-vs-size tradeoff. As mentioned in the previous section, we iterate through the layers and select the lowest bit depths that yield results above a given PSNR threshold. We repeat the process for various thresholds to get different quantization strategies. The result of the process is thus a set of quantization recipes, where each recipe is just a JSON dictionary detailing the number of bits to use for each layer in the model. Layers with few parameters are ignored and kept in float16 for simplicity.
+
+The application phase simply goes over the recipe and applies palettization with the number of bits specified in the JSON structure."
+18906,1588.0,"Analysis is a lengthy process and requires a GPU (`mps` or `cuda`), as we have to run inference multiple times. Once it’s done, recipe application can be performed in a few minutes.
+
+We provide scripts for each one of these phases:
+
+* [`mixed_bit_compression_pre_analysis.py`](https://github.com/apple/ml-stable-diffusion/python_coreml_stable_diffusion/mixed_bit_compression_pre_analysis.py)
+* [`mixed_bit_compression_apply.py`](https://github.com/apple/ml-stable-diffusion/python_coreml_stable_diffusion/mixed_bit_compression_apply.py)
+
+## Converting Fine-Tuned Models
+
+If you’ve previously converted Stable Diffusion models to Core ML, the process for XL using [the command line converter is very similar](https://github.com/apple/ml-stable-diffusion#-using-stable-diffusion-xl). There’s a new flag to indicate whether the model belongs to the XL family, and you have to use `--attention-implementation ORIGINAL` if that’s the case."
+18907,1588.0,"For an introduction to the process, check the [instructions in the repo](https://github.com/apple/ml-stable-diffusion#-converting-models-to-core-ml) or one of [our previous blog posts](https://huggingface.co/blog/diffusers-coreml), and make sure you use the flags above.
+
+### Running Mixed-Bit Palettization
+
+After converting Stable Diffusion or Stable Diffusion XL models to Core ML, you can optionally apply mixed-bit palettization using the scripts mentioned above."
+18908,1588.0,"Because the analysis process is slow, we have prepared recipes for the most popular models:
+* [Recipes for Stable Diffusion 1.5](https://huggingface.co/apple/coreml-stable-diffusion-mixed-bit-palettization/blob/main/recipes/runwayml-stable-diffusion-v1-5_palettization_recipe.json)
+* [Recipes for Stable Diffusion 2.1](https://huggingface.co/apple/coreml-stable-diffusion-mixed-bit-palettization/blob/main/recipes/stabilityai-stable-diffusion-2-1-base_palettization_recipe.json)
+* [Recipes for Stable Diffusion XL 1.0 base](https://huggingface.co/apple/coreml-stable-diffusion-mixed-bit-palettization/blob/main/recipes/stabilityai-stable-diffusion-xl-base-1.0_palettization_recipe.json)
+
+You can download and apply them locally to experiment."
+18909,1588.0,"You can download and apply them locally to experiment.
+
+In addition, we also applied the three best recipes from the Stable Diffusion XL analysis to the Core ML version of the UNet, and published them [here](https://huggingface.co/apple/coreml-stable-diffusion-mixed-bit-palettization/tree/main/unet-mbp-sdxl-1-base). Feel free to play with them and see how they work for you!
+
+Finally, as mentioned in the introduction, we created a [complete Stable Diffusion XL Core ML pipeline](https://huggingface.co/apple/coreml-stable-diffusion-mixed-bit-palettization) that uses a `4.5-bit` recipe.
+
+### Published Resources"
+18910,1588.0,"* [`apple/ml-stable-diffusion`](https://github.com/apple/ml-stable-diffusion), by Apple. Conversion and inference library for Swift (and Python).
+* [`huggingface/swift-coreml-diffusers`](https://github.com/huggingface/swift-coreml-diffusers). Hugging Face demo app, built on top of Apple's package.
+* [Stable Diffusion XL 1.0 base (Core ML version)](https://huggingface.co/apple/coreml-stable-diffusion-xl-base). Model ready to run using the repos above and other third-party apps.
+* [Stable Diffusion XL 1.0 base, with mixed-bit palettization (Core ML)](https://huggingface.co/apple/coreml-stable-diffusion-mixed-bit-palettization/blob/main/coreml-stable-diffusion-mixed-bit-palettization_original_compiled.zip). Same model as above, with UNet quantized with an effective palettization of 4.5 bits (on average).
+* [Additional UNets with mixed-bit palettizaton](https://huggingface.co/apple/coreml-stable-diffusion-mixed-bit-palettization/tree/main/unet-mbp-sdxl-1-base)."
+18911,1588.0,"* [Mixed-bit palettization recipes](https://huggingface.co/apple/coreml-stable-diffusion-mixed-bit-palettization/tree/main/recipes), pre-computed for popular models and ready to use.
+* [`mixed_bit_compression_pre_analysis.py`](https://github.com/apple/ml-stable-diffusion/python_coreml_stable_diffusion/mixed_bit_compression_pre_analysis.py). Script to run mixed-bit analysis and recipe generation.
+* [`mixed_bit_compression_apply.py`](https://github.com/apple/ml-stable-diffusion/python_coreml_stable_diffusion/mixed_bit_compression_apply.py). Script to apply recipes computed during the analysis phase."
+19971,1688.0,"Distillation for quantization on Textual Inversion models to personalize text2image
+
+[Textual inversion](https://arxiv.org/abs/2208.01618) is a method to personalize text2image models like stable diffusion on your own images._By using just 3-5 images new concepts can be taught to Stable Diffusion and the model personalized on your own images_
+The `textual_inversion.py` script shows how to implement the training procedure and adapt it for stable diffusion.
+We have enabled distillation for quantization in `textual_inversion.py` to do quantization aware training as well as distillation on the model generated by Textual Inversion method.
+
+## Installing the dependencies
+
+Before running the scripts, make sure to install the library's training dependencies:
+
+```bash
+pip install -r requirements.txt"
+19972,1688.0,"```
+
+## Prepare Datasets
+
+One picture which is from the huggingface datasets [sd-concepts-library/dicoo2](https://huggingface.co/sd-concepts-library/dicoo2) is needed, and save it to the `./dicoo` directory. The picture is shown below:
+
+<a href=""https://huggingface.co/sd-concepts-library/dicoo2/blob/main/concept_images/1.jpeg"">
+    <img src=""https://huggingface.co/sd-concepts-library/dicoo2/resolve/main/concept_images/1.jpeg"" width = ""300"" height=""300"">
+</a>
+
+## Get a FP32 Textual Inversion model
+
+Use the following command to fine-tune the Stable Diffusion model on the above dataset to obtain the FP32 Textual Inversion model.
+
+```bash
+export MODEL_NAME=""CompVis/stable-diffusion-v1-4""
+export DATA_DIR=""./dicoo"""
+19973,1688.0,"```bash
+export MODEL_NAME=""CompVis/stable-diffusion-v1-4""
+export DATA_DIR=""./dicoo""
+
+accelerate launch textual_inversion.py \
+  --pretrained_model_name_or_path=$MODEL_NAME \
+  --train_data_dir=$DATA_DIR \
+  --learnable_property=""object"" \
+  --placeholder_token=""<dicoo>"" --initializer_token=""toy"" \
+  --resolution=512 \
+  --train_batch_size=1 \
+  --gradient_accumulation_steps=4 \
+  --max_train_steps=3000 \
+  --learning_rate=5.0e-04 --scale_lr \
+  --lr_scheduler=""constant"" \
+  --lr_warmup_steps=0 \
+  --output_dir=""dicoo_model"""
+19974,1688.0,"```
+
+## Do distillation for quantization
+
+Distillation for quantization is a method that combines [intermediate layer knowledge distillation](https://github.com/intel/neural-compressor/blob/master/docs/source/distillation.md#intermediate-layer-knowledge-distillation) and [quantization aware training](https://github.com/intel/neural-compressor/blob/master/docs/source/quantization.md#quantization-aware-training) in the same training process to improve the performance of the quantized model. Provided a FP32 model, the distillation for quantization approach will take this model itself as the teacher model and transfer the knowledges of the specified layers to the student model, i.e. quantized version of the FP32 model, during the quantization aware training process.
+
+Once you have the FP32 Textual Inversion model, the following command will take the FP32 Textual Inversion model as input to do distillation for quantization and generate the INT8 Textual Inversion model."
+19975,1688.0,"```bash
+export FP32_MODEL_NAME=""./dicoo_model""
+export DATA_DIR=""./dicoo""
+
+accelerate launch textual_inversion.py \
+  --pretrained_model_name_or_path=$FP32_MODEL_NAME \
+  --train_data_dir=$DATA_DIR \
+  --use_ema --learnable_property=""object"" \
+  --placeholder_token=""<dicoo>"" --initializer_token=""toy"" \
+  --resolution=512 \
+  --train_batch_size=1 \
+  --gradient_accumulation_steps=4 \
+  --max_train_steps=300 \
+  --learning_rate=5.0e-04 --max_grad_norm=3 \
+  --lr_scheduler=""constant"" \
+  --lr_warmup_steps=0 \
+  --output_dir=""int8_model"" \
+  --do_quantization --do_distillation --verify_loading"
+19976,1688.0,"```
+
+After the distillation for quantization process, the quantized UNet would be 4 times smaller (3279MB -> 827MB).
+
+## Inference
+
+Once you have trained a INT8 model with the above command, the inference can be done simply using the `text2images.py` script. Make sure to include the `placeholder_token` in your prompt.
+
+```bash
+export INT8_MODEL_NAME=""./int8_model""
+
+python text2images.py \
+  --pretrained_model_name_or_path=$INT8_MODEL_NAME \
+  --caption ""a lovely <dicoo> in red dress and hat, in the snowly and brightly night, with many brighly buildings."" \
+  --images_num 4"
+19977,1688.0,"```
+
+Here is the comparison of images generated by the FP32 model (left) and INT8 model (right) respectively:
+
+<p float=""left"">
+  <img src=""https://huggingface.co/datasets/Intel/textual_inversion_dicoo_dfq/resolve/main/FP32.png"" width = ""300"" height = ""300"" alt=""FP32"" align=center />
+  <img src=""https://huggingface.co/datasets/Intel/textual_inversion_dicoo_dfq/resolve/main/INT8.png"" width = ""300"" height = ""300"" alt=""INT8"" align=center />
+</p>"
+21247,1799.0,"p align=""center"">
+    <br>
+    <img src=""https://huggingface.co/datasets/evaluate/media/resolve/main/evaluate-banner.png"" width=""400""/>
+    <br>
+</p>
+
+# 🤗 Evaluate
+
+A library for easily evaluating machine learning models and datasets.
+
+With a single line of code, you get access to dozens of evaluation methods for different domains (NLP, Computer Vision, Reinforcement Learning, and more!). Be it on your local machine or in a distributed training setup, you can evaluate your models in a consistent and reproducible way! 
+
+Visit the 🤗 Evaluate [organization](https://huggingface.co/evaluate-metric) for a full list of available metrics. Each metric has a dedicated Space with an interactive demo for how to use the metric, and a documentation card detailing the metrics limitations and usage."
+21248,1799.0,"<div class=""mt-10"">
+  <div class=""w-full flex flex-col space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-y-4 md:gap-x-5"">
+    <a class=""!no-underline border dark:border-gray-700 p-5 rounded-lg shadow hover:shadow-lg"" href=""./installation""
+      ><div class=""w-full text-center bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg py-1.5 font-semibold mb-5 text-white text-lg leading-relaxed"">Tutorials</div>
+      <p class=""text-gray-700"">Learn the basics and become familiar with loading, computing, and saving with 🤗 Evaluate. Start here if you are using 🤗 Evaluate for the first time!</p>
+    </a>
+    <a class=""!no-underline border dark:border-gray-700 p-5 rounded-lg shadow hover:shadow-lg"" href=""./choosing_a_metric""
+      ><div class=""w-full text-center bg-gradient-to-br from-indigo-400 to-indigo-500 rounded-lg py-1.5 font-semibold mb-5 text-white text-lg leading-relaxed"">How-to guides</div>"
+21249,1799.0,"<p class=""text-gray-700"">Practical guides to help you achieve a specific goal. Take a look at these guides to learn how to use 🤗 Evaluate to solve real-world problems.</p>
+    </a>
+    <a class=""!no-underline border dark:border-gray-700 p-5 rounded-lg shadow hover:shadow-lg"" href=""./types_of_evaluations""
+      ><div class=""w-full text-center bg-gradient-to-br from-pink-400 to-pink-500 rounded-lg py-1.5 font-semibold mb-5 text-white text-lg leading-relaxed"">Conceptual guides</div>
+      <p class=""text-gray-700"">High-level explanations for building a better understanding of important topics such as considerations going into evaluating a model or dataset and the difference between metrics, measurements, and comparisons.</p>
+   </a>
+    <a class=""!no-underline border dark:border-gray-700 p-5 rounded-lg shadow hover:shadow-lg"" href=""./package_reference/main_classes"""
+21250,1799.0,"><div class=""w-full text-center bg-gradient-to-br from-purple-400 to-purple-500 rounded-lg py-1.5 font-semibold mb-5 text-white text-lg leading-relaxed"">Reference</div>
+      <p class=""text-gray-700"">Technical descriptions of how 🤗 Evaluate classes and methods work.</p>
+    </a>
+  </div>
+</div>"
+21797,1849.0,"!--Copyright 2022 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the ""License""); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an ""AS IS"" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+-->
+
+# The Tasks Manager"
+21798,1849.0,"# The Tasks Manager
+
+Exporting a model from one framework to some format (also called backend here) involves specifying inputs and outputs information that the export function needs. The way `optimum.exporters` is structured for each backend is as follows:
+- Configuration classes containing the information for each model to perform the export.
+- Exporting functions using the proper configuration for the model to export.
+
+The role of the [`~optimum.exporters.tasks.TasksManager`] is to be the main entry-point to load a model given a name and a task, and to get the proper configuration for a given (architecture, backend) couple. That way, there is a centralized place to register the `task -> model class` and `(architecture, backend) -> configuration` mappings. This allows the export functions to use this, and to rely on the various checks it provides.
+
+## Task names"
+21799,1849.0,"## Task names
+
+The tasks supported might depend on the backend, but here are the mappings between a task name and the auto class for both PyTorch and TensorFlow.
+
+<Tip>
+
+It is possible to know which tasks are supported for a model for a given backend, by doing:
+
+```python
+>>> from optimum.exporters.tasks import TasksManager
+
+>>> model_type = ""distilbert""
+>>> # For instance, for the ONNX export.
+>>> backend = ""onnx""
+>>> distilbert_tasks = list(TasksManager.get_supported_tasks_for_model_type(model_type, backend).keys())
+
+>>> print(distilbert_tasks)
+['default', 'fill-mask', 'text-classification', 'multiple-choice', 'token-classification', 'question-answering']"
+21800,1849.0,"```
+
+</Tip>
+
+### PyTorch"
+21801,1849.0,"| Task                                 | Auto Class                           |
+|--------------------------------------|--------------------------------------|
+| `text-generation`, `text-generation-with-past`   | `AutoModelForCausalLM`               |
+| `feature-extraction`, `feature-extraction-with-past`       | `AutoModel`                          |
+| `fill-mask`                          | `AutoModelForMaskedLM`               |
+| `question-answering`                 | `AutoModelForQuestionAnswering`      |
+| `text2text-generation`, `text2text-generation-with-past` | `AutoModelForSeq2SeqLM`              |
+| `text-classification`            | `AutoModelForSequenceClassification` |
+| `token-classification`               | `AutoModelForTokenClassification`    |
+| `multiple-choice`                    | `AutoModelForMultipleChoice`         |
+| `image-classification`               | `AutoModelForImageClassification`    |"
+21802,1849.0,"| `image-classification`               | `AutoModelForImageClassification`    |
+| `object-detection`                   | `AutoModelForObjectDetection`        |
+| `image-segmentation`                 | `AutoModelForImageSegmentation`      |
+| `masked-im`                          | `AutoModelForMaskedImageModeling`    |
+| `semantic-segmentation`              | `AutoModelForSemanticSegmentation`   |
+| `automatic-speech-recognition`                      | `AutoModelForSpeechSeq2Seq`          |"
+21803,1849.0,"### TensorFlow
+
+| Task                                 | Auto Class                             |
+|--------------------------------------|----------------------------------------|
+| `text-generation`, `text-generation-with-past`   | `TFAutoModelForCausalLM`               |
+| `default`, `default-with-past`       | `TFAutoModel`                          |
+| `fill-mask`                          | `TFAutoModelForMaskedLM`               |
+| `question-answering`                 | `TFAutoModelForQuestionAnswering`      |
+| `text2text-generation`, `text2text-generation-with-past` | `TFAutoModelForSeq2SeqLM`              |
+| `text-classification`            | `TFAutoModelForSequenceClassification` |
+| `token-classification`               | `TFAutoModelForTokenClassification`    |
+| `multiple-choice`                    | `TFAutoModelForMultipleChoice`         |
+| `semantic-segmentation`              | `TFAutoModelForSemanticSegmentation`   |
+
+
+## Reference"
+21804,1849.0,"## Reference
+
+[[autodoc]] exporters.tasks.TasksManager"
+22155,1895.0,"!---
+Copyright 2020 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the ""License"");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an ""AS IS"" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+# How to contribute to Evaluate
+
+Everyone is welcome to contribute, and we value everybody's contribution. Code
+is not the only way to help the community. Answering questions, helping
+others, reaching out and improving the documentations are immensely valuable to
+the community."
+22156,1895.0,"It also helps us if you spread the word: reference the library from blog posts
+on the awesome projects it made possible, shout out on Twitter every time it has
+helped you, or simply star the repo to say ""thank you"".
+
+Whichever way you choose to contribute, please be mindful to respect our
+[code of conduct](https://github.com/huggingface/evaluate/blob/main/CODE_OF_CONDUCT.md).
+
+## You can contribute in so many ways!
+
+There are four ways you can contribute to `evaluate`:
+* Fixing outstanding issues with the existing code;
+* Implementing new evaluators and metrics;
+* Contributing to the examples and documentation;
+* Submitting issues related to bugs or desired new features.
+
+Open issues are tracked directly on the repository [here](https://github.com/huggingface/evaluate/issues)."
+22157,1895.0,"If you would like to work on any of the open issues:
+* Make sure it is not already assigned to someone else. The assignee (if any) is on the top right column of the Issue page. If it's not taken, self-assign it.
+* Work on your self-assigned issue and create a Pull Request!
+
+## Submitting a new issue or feature request
+
+Following these guidelines when submitting an issue or a feature
+request will make it easier for us to come back to you quickly and with good
+feedback.
+
+### Do you want to implement a new metric?
+
+All evaluation modules, be it metrics, comparisons, or measurements live on the 🤗 Hub in a [Space](https://huggingface.co/docs/hub/spaces) (see for example [Accuracy](https://huggingface.co/spaces/evaluate-metric/accuracy)). Evaluation modules can be either **community** or **canonical**."
+22158,1895.0,"* **Canonical** metrics are well-established metrics which already broadly adopted. 
+* **Community** metrics are new or custom metrics. It is simple to add a new community metric to use with `evaluate`. Please see our guide to adding a new evaluation metric [here](https://huggingface.co/docs/evaluate/creating_and_sharing)! 
+
+The only functional difference is that canonical metrics are integrated into the `evaluate` library directly and do not require a namespace when being loaded. 
+
+We encourage contributors to share new evaluation modules they contribute broadly! If they become widely adopted then they will be integrated into the core `evaluate` library as a canonical module.
+
+### Do you want to request a new feature (that is not a metric)?
+
+We would appreciate it if your feature request addresses the following points:"
+22159,1895.0,"We would appreciate it if your feature request addresses the following points:
+
+1. Motivation first:
+  * Is it related to a problem/frustration with the library? If so, please explain
+    why. Providing a code snippet that demonstrates the problem is best.
+  * Is it related to something you would need for a project? We'd love to hear
+    about it!
+  * Is it something you worked on and think could benefit the community?
+    Awesome! Tell us what problem it solved for you.
+2. Write a *full paragraph* describing the feature;
+3. Provide a **code snippet** that demonstrates its future use;
+4. In case this is related to a paper, please attach a link;
+5. Attach any additional information (drawings, screenshots, etc.) you think may help.
+
+### Did you find a bug?
+
+Thank you for reporting an issue. If the bug is related to a community metric, please open an issue or pull request directly on the repository of the metric on the Hugging Face Hub."
+22160,1895.0,"If the bug is related to the `evaluate` library and not a community metric, we would really appreciate it if you could **make sure the bug was not already reported** (use the search bar on Github under Issues). If it's not already logged, please open an issue with these details:
+
+* Include your **OS type and version**, the versions of **Python**, **PyTorch** and
+  **Tensorflow** when applicable;
+* A short, self-contained, code snippet that allows us to reproduce the bug in
+  less than 30s;
+* Provide the *full* traceback if an exception is raised.
+
+## Start contributing! (Pull Requests)
+
+Before writing code, we strongly advise you to search through the existing PRs or
+issues to make sure that nobody is already working on the same thing. If you are
+unsure, it is always a good idea to open an issue to get some feedback."
+22161,1895.0,"1. Fork the [repository](https://github.com/huggingface/evaluate) by
+   clicking on the 'Fork' button on the repository's page. This creates a copy of the code
+   under your GitHub user account.
+
+2. Clone your fork to your local disk, and add the base repository as a remote:
+
+   ```bash
+   $ git clone git@github.com:<your Github handle>/evaluate.git
+   $ cd evaluate 
+   $ git remote add upstream https://github.com/huggingface/evaluate.git"
+22162,1895.0,"```
+
+3. Create a new branch to hold your development changes:
+
+   ```bash
+   $ git checkout -b a-descriptive-name-for-my-changes
+   ```
+
+   **Do not** work on the `main` branch.
+
+4. Set up a development environment by running the following command in a virtual environment:
+
+   ```bash
+   $ pip install -e "".[dev]""
+   ```
+
+5. Develop the features on your branch.
+
+   As you work on the features, you should make sure that the test suite
+   passes. You should run the tests impacted by your changes like this:
+
+   ```bash
+   $ pytest tests/<TEST_TO_RUN>.py
+   ```
+   
+   To run a specific test, for example the `test_model_init` test in test_evaluator.py, 
+
+   ```bash
+   python -m pytest ./tests/test_evaluator.py::TestQuestionAnsweringEvaluator::test_model_init
+   ```
+
+   You can also run the full suite with the following command:
+
+   ```bash
+   $ python -m pytest ./tests/"
+22163,1895.0,"```
+
+   🤗 Evaluate relies on `black` and `isort` to format its source code
+   consistently. After you make changes, apply automatic style corrections and code verifications
+   that can't be automated in one go with:
+
+   ```bash
+   $ make fixup
+   ```
+
+   This target is also optimized to only work with files modified by the PR you're working on.
+
+   If you prefer to run the checks one after the other, the following command apply the
+   style corrections:
+
+   ```bash
+   $ make style
+   ```
+
+   🤗 Evaluate also uses `flake8` and a few custom scripts to check for coding mistakes. Quality
+   control runs in CI, however you can also run the same checks with:
+
+   ```bash
+   $ make quality"
+22164,1895.0,"```
+
+   If you're modifying documents under `docs/source`, make sure to validate that
+   they can still be built. This check also runs in CI. To run a local check
+   make sure you have installed the documentation builder requirements. First you will need to clone the
+   repository containing our tools to build the documentation:
+   
+   ```bash
+   $ pip install git+https://github.com/huggingface/doc-builder
+   ```
+
+   Then, make sure you have all the dependencies to be able to build the doc with:
+   
+   ```bash
+   $ pip install "".[docs]""
+   ```
+
+   Finally, run the following command from the root of the repository:
+
+   ```bash
+   $ doc-builder build evaluate docs/source/ --build_dir ~/tmp/test-build"
+22165,1895.0,"```
+
+   This will build the documentation in the `~/tmp/test-build` folder where you can inspect the generated
+   Markdown files with your favorite editor. You won't be able to see the final rendering on the website
+   before your PR is merged, we are actively working on adding a tool for this.
+
+   Once you're happy with your changes, add changed files using `git add` and
+   make a commit with `git commit` to record your changes locally:
+
+   ```bash
+   $ git add modified_file.py
+   $ git commit
+   ```
+
+   Please write [good commit
+   messages](https://chris.beams.io/posts/git-commit/).
+
+   It is a good idea to sync your copy of the code with the original
+   repository regularly. This way you can quickly account for changes:
+
+   ```bash
+   $ git fetch upstream
+   $ git rebase upstream/main
+   ```
+
+   Push the changes to your account using:
+
+   ```bash
+   $ git push -u origin a-descriptive-name-for-my-changes"
+22166,1895.0,"```
+
+6. Once you are satisfied, go to the webpage of your fork on GitHub. Click on 'Pull request' to send your changes
+   to the project maintainers for review.
+
+7. It's ok if maintainers ask you for changes. It happens to core contributors
+   too! So everyone can see the changes in the Pull request, work in your local
+   branch and push the changes to your fork. They will automatically appear in
+   the pull request.
+
+
+### Checklist"
+22167,1895.0,"1. The title of your pull request should be a summary of its contribution;
+2. If your pull request addresses an issue, please mention the issue number in
+   the pull request description to make sure they are linked (and people
+   consulting the issue know you are working on it);
+3. To indicate a work in progress please prefix the title with `[WIP]`. These
+   are useful to avoid duplicated work, and to differentiate it from PRs ready
+   to be merged;
+4. Make sure existing tests pass;
+5. Add high-coverage tests. No quality testing = no merge.
+6. All public methods must have informative docstrings that work nicely with sphinx. 
+7. Due to the rapidly growing repository, it is important to make sure that no files that would significantly weigh down the repository are added. This includes images, videos and other non-text files. We prefer to leverage a hf.co hosted `dataset` like"
+22168,1895.0,"the ones hosted on [`hf-internal-testing`](https://huggingface.co/hf-internal-testing) in which to place these files and reference 
+   them by URL."
+22169,1895.0,"### Style guide
+
+For documentation strings, 🤗 Evaluate follows the [google style](https://google.github.io/styleguide/pyguide.html).
+Check our [documentation writing guide](https://github.com/huggingface/transformers/tree/main/docs#writing-documentation---specification)
+for more information.
+
+**This guide was heavily inspired by the awesome [scikit-learn guide to contributing](https://github.com/scikit-learn/scikit-learn/blob/main/CONTRIBUTING.md).**
+
+### Develop on Windows
+
+On Windows, you need to configure git to transform Windows `CRLF` line endings to Linux `LF` line endings:
+
+`git config core.autocrlf input`
+
+One way one can run the make command on Window is to pass by MSYS2:"
+22170,1895.0,"One way one can run the make command on Window is to pass by MSYS2:
+
+1. [Download MSYS2](https://www.msys2.org/), we assume to have it installed in C:\msys64
+2. Open the command line C:\msys64\msys2.exe (it should be available from the start menu)
+3. Run in the shell: `pacman -Syu` and install make with `pacman -S make`
+4. Add `C:\msys64\usr\bin` to your PATH environment variable.
+
+You can now use `make` from any terminal (Powershell, cmd.exe, etc) 🎉
+
+### Syncing forked main with upstream (HuggingFace) main
+
+To avoid pinging the upstream repository which adds reference notes to each upstream PR and sends unnecessary notifications to the developers involved in these PRs,
+when syncing the main branch of a forked repository, please, follow these steps:
+1. When possible, avoid syncing with the upstream using a branch and PR on the forked repository. Instead, merge directly into the forked main.
+2. If a PR is absolutely necessary, use the following steps after checking out your branch:"
+22171,1895.0,"```
+$ git checkout -b your-branch-for-syncing
+$ git pull --squash --no-commit upstream main
+$ git commit -m '<your message without GitHub references>'
+$ git push --set-upstream origin your-branch-for-syncing
+```"
+24816,2148.0,"!--Copyright 2023 The HuggingFace Team. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the ""License""); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an ""AS IS"" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+-->
+
+# DDPM
+
+[Denoising Diffusion Probabilistic Models](https://huggingface.co/papers/2006.11239) (DDPM) by Jonathan Ho, Ajay Jain and Pieter Abbeel proposes a diffusion based model of the same name. In the 🤗 Diffusers library, DDPM refers to the *discrete denoising scheduler* from the paper as well as the pipeline.
+
+The abstract from the paper is:"
+24817,2148.0,"The abstract from the paper is:
+
+*We present high quality image synthesis results using diffusion probabilistic models, a class of latent variable models inspired by considerations from nonequilibrium thermodynamics. Our best results are obtained by training on a weighted variational bound designed according to a novel connection between diffusion probabilistic models and denoising score matching with Langevin dynamics, and our models naturally admit a progressive lossy decompression scheme that can be interpreted as a generalization of autoregressive decoding. On the unconditional CIFAR10 dataset, we obtain an Inception score of 9.46 and a state-of-the-art FID score of 3.17. On 256x256 LSUN, we obtain sample quality similar to ProgressiveGAN.*
+
+The original codebase can be found at [hohonathanho/diffusion](https://github.com/hojonathanho/diffusion).
+
+<Tip>"
+24818,2148.0,"<Tip>
+
+Make sure to check out the Schedulers [guide](../../using-diffusers/schedulers) to learn how to explore the tradeoff between scheduler speed and quality, and see the [reuse components across pipelines](../../using-diffusers/loading#reuse-components-across-pipelines) section to learn how to efficiently load the same components into multiple pipelines.
+
+</Tip>
+
+# DDPMPipeline
+[[autodoc]] DDPMPipeline
+	- all
+	- __call__
+
+## ImagePipelineOutput
+[[autodoc]] pipelines.ImagePipelineOutput"

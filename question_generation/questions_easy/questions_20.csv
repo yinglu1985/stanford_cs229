@@ -1,0 +1,21 @@
+Question,A,B,C,D
+What is the default hardware configuration for Hugging Face Spaces?,"2 CPUs, 16GB RAM, and 50GB storage","4 CPUs, 32GB RAM, and 100GB storage","8 CPUs, 64GB RAM, and 200GB storage","12 CPUs, 46GB RAM, and 1TB storage"
+How can you manage secrets in Hugging Face Spaces?,By storing them in public environment variables,By adding them in the Space's Settings page as private secrets,By hardcoding them directly into the application,By encrypting them manually in the source code
+What is the purpose of the `language` field in Hugging Face datasets?,To specify the dataset's processing framework,To indicate the dataset's languages for discoverability,To categorize datasets by task type,To automate dataset preprocessing
+What is the main advantage of duplicating a Space in Hugging Face?,It allows the use of static HTML templates,It enables fast setup of a new demo using an existing template,It eliminates the need for additional environment variables,It automatically assigns premium hardware resources
+What metadata should you add to list linked models in a Hugging Face Space?,Framework and SDK,Tasks and evaluations,Models and datasets keys in the README file,System requirements and hardware
+What is the typical use case for the `facebook/fasttext-language-identification` model?,Preprocessing text for training,Identifying languages in datasets with unknown fields,Generating embeddings for zero-shot tasks,Performing speech-to-text transcription
+Which hardware tier provides persistent storage for Hugging Face Spaces?,CPU Basic,Nvidia T4 - Small,Nvidia A10G - Large,Medium Storage Tier
+What happens to a Space running on free hardware when unused?,It continues to run indefinitely,It pauses and stops executing,It automatically upgrades to paid hardware,It reduces available memory to save resources
+What tool does Hugging Face recommend for identifying languages in multilingual datasets?,Google Translate,BERT embeddings,FastText,Word2Vec
+How can you prevent hardcoded secrets in Hugging Face Spaces?,By encrypting them in the source code,By using public environment variables,By setting them as private secrets in the Settings page,By linking them in the dataset card
+Which SDK is supported for creating Spaces on Hugging Face?,Flask,Gradio,PyTorch Lightning,TensorFlow
+What action should be taken for datasets without language metadata?,Ignore them as irrelevant,Manually review and add the `language` field,Automatically assign the default language,Delete the datasets from the Hub
+How can you clone a Hugging Face Space repository locally?,Through the Space's metadata file,By clicking 'Clone repository' in the Space page,By adding the repository link to a config file,By downloading a ZIP file of the repository
+What is the recommended way to specify multiple languages in a dataset?,Add separate dataset cards for each language,Include all languages in the `language` field of the dataset card,Create an individual column for each language,Use a third-party language tagging tool
+What is a key feature of the Hugging Face Spaces lifecycle management?,Unlimited runtime for free hardware,Auto-scaling of hardware resources,Spaces pause automatically when unused,Persistent storage for free accounts
+Why is it important to add language metadata to Hugging Face datasets?,It enables automated preprocessing pipelines,It improves dataset discoverability by language,It enhances dataset visualization capabilities,It ensures compatibility with all models
+Which storage tier includes 1TB persistent storage on Hugging Face Spaces?,Ephemeral storage,Small storage tier,Large storage tier,Medium storage tier
+What type of metadata is essential for datasets on text-related tasks?,License type,Language field,Dataset size,Number of downloads
+What should you do if you encounter a dataset without a `language` field on the Hugging Face Hub?,Submit a PR to add the language metadata,Ignore the dataset,Tag it for deletion,Mark it as incomplete
+What metadata key allows you to link models in a Hugging Face Space?,models,tasks,datasets,tags

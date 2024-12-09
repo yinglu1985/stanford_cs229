@@ -1,0 +1,59 @@
+Question,True Label,Predicted Label
+What feature of the Hugging Face `pipeline` API supports zero-shot classification?,True,1.0
+What best describes the integration of SQuAD metrics into a semantic segmentation workflow?,False,1.0
+What combination of techniques would be most effective for accelerating the training and deployment of a large-scale ASR system capable of handling diverse accents and noisy environments?,False,0.0
+"What would be the most effective method to ensure both efficiency and adaptability when training a machine translation system for diverse languages while optimizing for low-latency, real-time inference?",False,0.0
+"How does Hugging Face evaluate large models like BigBird for biases, particularly when using zero-shot tasks, and how do logs assist in identifying these biases during deployment?",True,1.0
+"Which solution would best optimize a vision model’s performance for both image generation and real-time inference on a large-scale, diverse dataset?",False,1.0
+"A startup wants to build an AI-powered virtual assistant that can receive input from multiple sources, such as a user’s spoken request, an uploaded image, and a typed text prompt. The assistant needs to process this multimodal input and provide a unified response in natural language. What combination of models would provide the most comprehensive solution for this requirement?",True,1.0
+How can hardware optimizations improve multitask ASR pipelines?,True,1.0
+What feature of the `Gallery` component makes it effective for showcasing datasets?,True,1.0
+How does using JSON Lines benefit dataset preprocessing in NLP pipelines?,False,1.0
+"What is the primary benefit of employing Ray for distributed retrieval in RAG models, as opposed to PyTorch's torch.distributed?",True,1.0
+Why is the CLIP tokenizer critical in Kandinsky 2.2 training workflows?,True,1.0
+"How does the integration of model optimization, user interactivity, large-scale data management, and ethical AI deployment ensure the development of responsible and efficient AI models?",True,1.0
+"How does Hugging Face ensure the ethical use of large models like BigBird, particularly when dealing with biases in datasets, and what role do logs play in this process?",True,1.0
+How can Transformers be applied to multimodal tasks such as visual question answering and audio classification?,True,1.0
+A company is developing a platform to automatically annotate large datasets of image-text pairs to train a new multimodal model. They need a solution that can provide annotations without manually labeling thousands of images. Which combination of models and strategies would be most effective?,True,1.0
+Why is the exploration-exploitation trade-off critical in reinforcement learning and how can it be mirrored in document retrieval?,True,1.0
+What distinguishes ViLT's approach to VQA compared to traditional methods?,True,1.0
+What makes preprocessing tools essential for Transformer model deployment in multimodal tasks?,True,1.0
+How do licensing practices on the Hugging Face Hub promote ethical compliance and user transparency in model deployment?,True,1.0
+"A developer wants to create a multilingual chatbot that supports multiple tasks, including sentiment analysis and question answering. Which architecture and approach are best suited for this?",True,1.0
+Which combination of strategies would best optimize both the accuracy and speed of a multilingual ASR system when handling different accents and noisy environments?,True,0.0
+"What role do legal frameworks play when handling biased datasets like WinoBias, and how do zero-shot evaluation and logs assist in mitigating these biases during model training and deployment?",True,1.0
+"In value-based reinforcement learning, how does the Bellman equation reduce computational complexity, and how might it relate to modern document retrieval mechanisms?",True,1.0
+What is the best approach to scale reinforcement learning workflows using Gradio modularity?,True,1.0
+What metadata key allows you to link models in a Hugging Face Space?,True,0.0
+"What challenge does the Bellman equation address in value-based reinforcement learning, and how might it inform efficient retrieval systems?",True,1.0
+What action should be taken for datasets without language metadata?,True,1.0
+A machine learning researcher needs to visualize and explain how a multimodal model associates text prompts with image regions. Which tools and techniques could they combine?,True,1.0
+What makes Gradio’s quality checks valuable for maintaining model deployment standards?,False,1.0
+What distinguishes ViLT's architecture from BLIP-2 in vision-and-language tasks?,True,1.0
+"What is the primary advantage of Hugging Face’s integration across JAX, PyTorch, and TensorFlow?",True,1.0
+What is the default hardware configuration for Hugging Face Spaces?,True,1.0
+"How does Hugging Face handle bias detection in models like BigBird, and how do legal considerations and logs ensure that datasets used for training, like WinoBias, are ethically managed?",True,1.0
+What is the best approach to debug an ML pipeline while ensuring compliance with licensing requirements for datasets?,True,1.0
+"How does Hugging Face handle the ethical evaluation of large models like BigBird, particularly in terms of biases in datasets like WinoBias, and how do logs contribute to addressing these issues?",True,1.0
+How does the Datasets library handle data stored remotely?,True,0.0
+How can multilingual fine-tuning improve ASR performance for underrepresented languages?,True,1.0
+How can ASR pipelines be optimized for efficiency on Intel CPUs?,True,1.0
+What task is best suited for the TAPAS model in the Hugging Face ecosystem?,True,1.0
+How do Hugging Face pipelines simplify multimodal workflow integration?,True,1.0
+What is the purpose of the `Gallery` component in Gradio applications?,True,1.0
+Why is the Transformers library considered framework-agnostic?,True,1.0
+What preprocessing steps are essential for Proximal Policy Optimization (PPO) reinforcement learning?,False,1.0
+"How do 8-bit models, deep learning workflows, and Hugging Face’s platform contribute to the practical deployment of AI solutions?",True,1.0
+What distinguishes DDPMs from traditional VAEs?,False,1.0
+How does PatchTST achieve efficiency in long-term time-series forecasting?,True,1.0
+What is a key feature of the Hugging Face Spaces lifecycle management?,True,1.0
+What key challenge does `gradient_checkpointing` address in model training?,True,1.0
+How does the U-Net architecture enhance diffusion models?,True,1.0
+"How do performance optimization through 8-bit models, ethical deployment in Hugging Face Spaces, and large-scale data handling with DuckDB ensure that AI systems are both effective and aligned with legal, ethical, and societal standards?",True,1.0
+"When deploying a large language model for code visualization tasks across multiple users, which approach correctly balances the tradeoffs between inference speed, storage efficiency, and user request handling?",True,1.0
+How does Hugging Face's pipeline API simplify model deployment for multimodal tasks?,True,1.0
+"How do the integration of frameworks for model deployment, legal considerations, performance optimization, and ethics across various platforms ensure that AI solutions are both efficient and aligned with societal needs?",True,0.0
+What is a core advantage of Hugging Face's CleanRL PPO implementation for reinforcement learning?,True,1.0
+Why is it important to add language metadata to Hugging Face datasets?,False,1.0
+How does the `AutoTokenizer` simplify text preprocessing for models?,False,1.0
+"Which of the following best explains the relationship between model optimization, framework switching, and user interaction in AI tools?",True,1.0
