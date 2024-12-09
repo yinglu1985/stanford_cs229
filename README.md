@@ -1,5 +1,12 @@
 # stanford_cs229
+Contributions: Ying worked on RAG and frontend. Alice worked on the rest. Our code should be read in the following order: 
+data_cleaning: We cleaned our data here.
+clustering: We clustered the data here.
+question_generation: Most of our questions were generated through lots of prompting on ChatGPT manually; we mostly create a csv of the questions here.
+RAG: We extract the document IDs and the RAG answer in this step.
+Evaluation: We evaluate the results of the RAG answers in this step.
 
+To access our web application, follow the steps:
 Part 1: Query generation: 
 
 We would like to generate a set of complex queries to test the limitation of RAG. To do that, we would like to cluster chunks with relevance, and generate queries based on those chunks. 
