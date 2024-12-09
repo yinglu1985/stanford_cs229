@@ -5,7 +5,7 @@ data_cleaning: We cleaned our data here.
 
 clustering: We clustered the data here.
 
-question_generation: Most of our questions were generated through lots of prompting on ChatGPT manually; we mostly create a csv of the questions here.
+question_generation: Our questions were generated through lots of prompting on ChatGPT manually; we mostly create a csv of the questions here.
 
 RAG: We extract the document IDs and the RAG answer in this step.
 
