@@ -4,8 +4,11 @@ Contributions: Ying worked on RAG and frontend. Alice worked on the rest. Our co
 data_cleaning: We cleaned our data here.
 
 clustering: We clustered the data here.
+
 question_generation: Most of our questions were generated through lots of prompting on ChatGPT manually; we mostly create a csv of the questions here.
+
 RAG: We extract the document IDs and the RAG answer in this step.
+
 Evaluation: We evaluate the results of the RAG answers in this step.
 
 To access our web application, follow the steps:
