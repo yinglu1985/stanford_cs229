@@ -1,6 +1,6 @@
 # stanford_cs229
 
-Ying: Contribute the overall idea and architecture design for the project. setting up and writing code for RAG pipeline system end-to-end including data cleaning, document chunking, document embedding with FAISS, contextual retrieval implementation with batch prompts, reranking model with {\it thenlper/gte-small}, and prompt engineering, LLM answer generation(genai-1.5-pro and Llama-70b) and evaluation.
+Ying: Contribute the overall idea and architecture design for the project. setting up and writing code for RAG pipeline system end-to-end including data cleaning, document chunking, document embedding with FAISS, contextual retrieval implementation with batch prompts, reranking model with thenlper/gte-small, and prompt engineering, LLM answer generation(genai-1.5-pro and Llama-70b) and evaluation.
 Hyperparameter tuning for chunk size, retrieval size, and reranking size and LLM models. In addition, creating the search endpoint on local machine for visualizing the answers. 
 
 Binbin: Implement code to configure NER pipeline and enrich the embedding process.\ Implement code to process batch results to get LLM's multiple answers to queries, prompt tuning, and generate batch results for LLM summarized response and multiple choice answers to queries. Set up GCP instance and environment, deploy required codebase and execute workflow from end to end.
